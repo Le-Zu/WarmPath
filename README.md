@@ -3,7 +3,7 @@
 
 **WarmPath** is a trust-first social networking application designed to eliminate the awkwardness of the "Cold Start" problem in socializing. Unlike traditional platforms that rely on algorthmic matching or transaction-based netowrking, this app digitizes the "Plus-One" protocol - ensuring every new connection is vetted and facilitated by a mutual friend.
 
-## The problem & Solution
+## The Problem & Solution
 People value introductions from mutual friends significatnly more than algorithmically generated matches, but the friction of asking for (and facillitating) these introductions often prevents themm from happening.
 
 
