@@ -40,3 +40,4 @@ jobs:
     # Ensures the React frontend actually builds without errors
     - name: Build Project
       run: npm run build --if-present
+ 
