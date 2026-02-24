@@ -1,81 +1,14 @@
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-}
-
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  phone     String?  @unique
-  firstName String?
-  lastName  String?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // 1. The Standard Social Graph (Who knows Who)
-  // This self-relation is needed for your "Path Discovery" algorithm
-  friends  Connection[] @relation("UserFriends")
-  friendOf Connection[] @relation("ConnectedUsers")
-
-  // 2. The triangular "Warm Intro" Relations
-  introsRequested   Introduction[] @relation("RequesterRelation")
-  introsTargeted    Introduction[] @relation("TargetRelation")
-  introsConnected Introduction[] @relation("ConnecterRelation")
-
-  // 3. The TriadrRelation")
-}
-
-// Model for standard 1-to-1 connections (The baseline network)
-model Connection {
-  id         String @id @default(uuid())
-  createdAt DateTime @default(now())
-
-  userId    String
-  connectedId String
-
-  user      User @relation("UserFriends", fields: [userId], references: [id])
-  connected User @relation("ConnectedUsers", fields: [connectedId], references: [id])
-
-  //Ensures User A can't add User B as a friend more than once
-  @@unique([userId, connectedId])
-}
-
-// Model for the Wam Intro (The Triangular Transaction)
-
-model Introduction {
-  id String @id @default(uuid())
-  status IntroStatus @default(PENDING)
-  
-  // The Triad Foreign Keys
-  requesterId String
-  targetId String
-  connecterId String
-
-  //The Triad Relations
-  requester User @relation("RequesterRelation", fields: [requesterId], references: [id])
-  target User @relation("TargetRelation", fields: [targetId], references: [id])
-  connector User @relation("ConnecterRelation", fields: [connecterId], references: [id])
-
-  //The Data Payload
-  intentContext String? // The "Context Pre-Read " the requestor sends to the connector
-  icebreaker String? // The prompt logic text generated once the intro is approved
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-}
-
-// Enum to strictly track the state of the intro
-enum IntroStatus {
-  PENDING // Requester asked Connector
-  ACCEPTED // Connector vouched, Chat unlocks
-  REJECTED // Connector declined the intro
 }
