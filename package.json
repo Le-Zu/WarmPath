@@ -2,8 +2,7 @@
    "devDependencies": {
       "prisma": "^7.4.1"
    },
-   "type": "module",
    "dependencies": {
-      "express": "^5.2.1"
+      "@prisma/client": "^7.4.1"
    }
 }
