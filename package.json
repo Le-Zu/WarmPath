@@ -1,5 +1,9 @@
 {
-  "devDependencies": {
-    "prisma": "^7.4.1"
-  }
+   "devDependencies": {
+      "prisma": "^7.4.1"
+   },
+   "type": "module",
+   "dependencies": {
+      "express": "^5.2.1"
+   }
 }
