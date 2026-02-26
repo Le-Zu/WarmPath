@@ -29,10 +29,11 @@
 
   },
   "scripts": {
+    "setup": "npm install && npx prisma generate",
     "dev": "vite",
+    "db:ui": "npx prisma studio",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "ready": "npm install && npx prisma generate && vite"
+    "preview": "vite preview"
   }
 }
