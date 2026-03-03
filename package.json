@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "setup": "npm install && cd server && npm install express cors dotenv prisma @prisma/client && npx prisma generate && cd ../warm-path && npm install",
-    "start:client": "cd warm-path && npm run dev",
+    "start:client": "cd warm-path && npm run dev -- --open",
     "start:server": "cd server && npm run dev",
     "db:ui": "cd server && npx prisma studio",
     "dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
