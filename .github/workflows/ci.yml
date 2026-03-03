@@ -24,21 +24,16 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
-    - name: Install Dependencies
-      run: npm ci
-
-    # Essential for Prisma projects to ensure the DB client exists
-    - name: Generate Prisma Client
+    - name: Setup Workspace & Install All Dependencies        
       env:
-        DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-      run: npx prisma generate
-      working-directory: ./server
-
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+        run: npm run setup
+        
     # This runs test script in package.json
     - name: Run Tests
       run: npm test --if-present
 
     # Ensures the React frontend actually builds without errors
     - name: Build Project
-      run: npm run build:client
+      run: npm run build:client --if-present
  
