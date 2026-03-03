@@ -1,6 +1,24 @@
 node_modules
 # Keep environment variables out of version control
 .env
+.env.local
+.env.*.local
+
+#Vite / Frontend Build Outputs
+warm-path/dist/
+warm-path/dist-ssr/
+
+# IDE / Editor Folders
+.vscode/
+.idea/
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+# Npm Logs
+npm-debug.log*
+
 
 /generated/prisma
 .vscode/settings.json
