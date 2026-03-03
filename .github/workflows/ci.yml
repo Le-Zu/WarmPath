@@ -23,12 +23,12 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-
+        
     - name: Setup Workspace & Install All Dependencies        
       env:
           DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
-        run: npm run setup
-        
+      run: npm run setup
+      
     # This runs test script in package.json
     - name: Run Tests
       run: npm test --if-present
