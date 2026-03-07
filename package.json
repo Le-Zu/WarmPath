@@ -16,8 +16,9 @@
     "@prisma/client": "^7.4.1"
   },
   "devDependencies": {
-    "prisma": "^7.4.1",
-    "concurrently": "^8.2.2"
+    "@types/node": "^25.3.5",
+    "concurrently": "^8.2.2",
+    "prisma": "^7.4.1"
   },
   "overrides": {
     "eslint": "^10.0.1",
