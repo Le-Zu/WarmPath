@@ -26,6 +26,8 @@
     "@tootallnate/once": "^3.0.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "nodemon": "^3.1.14"
   },
   "script": {
