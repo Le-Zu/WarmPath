@@ -5,4 +5,4 @@ node_modules
 /generated/prisma
 
 # Backend Node js
-serviceAccountKey,json
+serviceAccountKey.json
