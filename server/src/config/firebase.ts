@@ -1,18 +1,17 @@
 import * as admin from 'firebase-admin';
-import { readFileSync } from 'fs';
+import {readFileSync } from 'fs';
 import path from 'path';
 
 // Points to secure JSON file
-// Using porcess.cwd() ensures it looks in the root of server/
-const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json');
+const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json')
 
-// read and parse the JSON file
+// Read and parse the JSON file
 const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
-// Initialize Firebase Admin SDK
+// Initialize the Admin app
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount)
 });
 
-// Export the auth module so the routes can use it to verify tokens
-export const auth = admin.auth();
+// Export the auth module, so that middleware can use it
+export const adminAuth = admin.auth();

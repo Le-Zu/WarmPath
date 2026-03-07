@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../firebase";
 
 export default function LoginTest() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [backendMessage, setbackendMessage] = useState("");
 
-    const handleLogin = async (e) => {
+    const handleLoginAndFetch = async (e) => {
         e.preventDefault();
         setbackendMessage('Logging in...');
         try {
@@ -22,7 +22,7 @@ export default function LoginTest() {
             setbackendMessage('Login successful. Sending token to backend...');
 
             // Send the request to Express server
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch('http://localhost:5000/api/test-auth', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -41,9 +41,9 @@ export default function LoginTest() {
     };
 
     return (
-        <div style = {{pading: '20px', fontFamily: 'Arial'}}>
+        <div style = {{padding: '20px', fontFamily: 'Arial'}}>
             <h2>Login Test</h2>
-            <form onSubmit={handleLoginAndFetchn} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <form onSubmit={handleLoginAndFetch} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input
                     type="email"
                     placeholder="Email"
