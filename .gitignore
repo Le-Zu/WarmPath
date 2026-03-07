@@ -12,6 +12,9 @@ warm-path/dist-ssr/
 .vscode/
 .idea/
 
+# Backend Node js
+serviceAccountKey,json
+
 # OS Generated Files
 .DS_Store
 Thumbs.db
