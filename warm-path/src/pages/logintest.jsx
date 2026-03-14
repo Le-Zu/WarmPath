@@ -20,9 +20,12 @@ export default function LoginTest() {
             //Calling this method automatically refreshes the token if it has expired
             const token = await user.getIdToken();
             setbackendMessage('Login successful. Sending token to backend...');
+            
+            // Dynamically sets the API URL based on the environment
+            const apiURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
             // Send the request to Express server
-            const response = await fetch('http://localhost:5000/api/test-auth', {
+            const response = await fetch('${apiUrl}/api/test-auth', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

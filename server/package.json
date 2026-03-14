@@ -13,16 +13,16 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^7.4.2",
+    "@prisma/client": "^7.5.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
-    "prisma": "^7.4.2"
+    "prisma": "^7.5.0"
   },
   "overrides": {
     "eslint": "^10.0.1",
-    "hono": "^4.12.5",
+    "hono": "^4.12.7",
     "@hono/node-server": "^1.19.11",
     "lodash": "^4.17.22",
     "@tootallnate/once": "^3.0.1"

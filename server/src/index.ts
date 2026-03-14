@@ -3,7 +3,7 @@ import cors from 'cors';
 import { verifyToken, AuthRequest } from './middleware/authMiddleware';
 
 const app = express();
-const PORT = process.env.port || 5000;
+const PORT = process.env.PORT || 5000;
 
 // -- Standard Middleware --
 // Allows Vite fontend to make requests to this server
