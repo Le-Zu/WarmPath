@@ -22,10 +22,10 @@ export default function LoginTest() {
             setbackendMessage('Login successful. Sending token to backend...');
             
             // Dynamically sets the API URL based on the environment
-            const apiURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
             // Send the request to Express server
-            const response = await fetch('${apiUrl}/api/test-auth', {
+            const response = await fetch(`${apiUrl}/api/test-auth`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
