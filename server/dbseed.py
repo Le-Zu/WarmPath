@@ -1,35 +1,135 @@
 """
-seed.py — Network Platform database seed
-=========================================
-Populates all 13 tables with realistic data for 20 users.
-Exercises every feature:
-  F1  Manual Connection Adding
-  F2  Intent Declaration
-  F3  Path Discovery (connections + warmth scores)
-  F4  Intro Request
-  F5  Connector Inbox
-  F6  Proactive Connector Prompts
-  F7  Context Pre-Reads
-  F8  Coffee Chats
+seed.py — Network Platform database seed (faker edition)
+=========================================================
+Generates 20 realistic users and populates all 13 tables.
+
+faker replaces every hardcoded name, email, bio, label, org,
+date, and context string. bcrypt still hashes passwords.
+
+Four named workflow scenarios (A–D) anchor the relational
+tables (intro_requests, prereads, conversations, messages)
+to specific seeded users so FK constraints are always valid.
 
 Requirements:
-    pip install psycopg2-binary bcrypt python-dotenv
+    pip install psycopg2-binary bcrypt faker python-dotenv
 
 Usage:
     DATABASE_URL=postgresql://user:pass@localhost:5432/dbname python seed.py
-    -- or create a .env file with DATABASE_URL set
+    -- or add DATABASE_URL to a .env file
 """
 
 import os
 import uuid
+import random
 import bcrypt
 import psycopg2
 from datetime import datetime, timedelta, date
+from faker import Faker
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
+
+# ─────────────────────────────────────────────────────────────
+# initialise faker + random seed for reproducibility
+# ─────────────────────────────────────────────────────────────
+
+fake = Faker()
+Faker.seed(42)
+random.seed(42)
+
+# ─────────────────────────────────────────────────────────────
+# enum value pools  (must match schema exactly)
+# ─────────────────────────────────────────────────────────────
+
+YEARS            = ["freshman", "sophomore", "junior", "senior", "grad"]
+PROFILE_SOURCES  = ["manual", "linkedin_import", "resume_import"]
+INTENT_CATS      = ["class", "internship", "research", "club", "skill"]
+EXP_TYPES        = ["internship", "research", "full_time", "part_time", "volunteer", "project"]
+CONN_STATUSES    = ["accepted"] * 8 + ["pending"] * 2   # 80% accepted
+REQ_PERMISSIONS  = ["anyone", "connections", "connections_of_connections", "connections_of_connections"]
+PROMPT_STATUSES  = ["pending", "volunteered", "dismissed"]
+NOTIF_TYPES      = ["intro_request", "request_approved", "request_declined",
+                    "new_message", "connector_prompt", "connection_accepted"]
+
+# ─────────────────────────────────────────────────────────────
+# domain-realistic pools faker draws labels/orgs/context from
+# ─────────────────────────────────────────────────────────────
+
+MAJORS = [
+    "Computer Science", "Electrical Engineering", "Biology",
+    "Data Science", "Finance", "Mechanical Engineering",
+    "Political Science", "Economics", "Chemistry", "Marketing",
+    "Physics", "Biomedical Engineering", "Statistics", "Psychology",
+    "Business Admin", "Mathematics", "Undeclared",
+]
+
+INTEREST_LABELS = {
+    "class":      ["CS 499", "Organic Chemistry", "Linear Algebra", "Data Structures",
+                   "Microeconomics", "Molecular Biology", "Circuits Lab"],
+    "internship": ["Software Engineering", "Investment Banking", "Embedded Systems",
+                   "Marketing", "Pharmaceutical", "MedTech", "Data Analysis",
+                   "Product Management", "Frontend Development", "Hardware Design"],
+    "research":   ["Machine Learning", "NLP", "Robotics", "Quantum Physics",
+                   "Biomedical Devices", "Labor Economics", "Causal Inference",
+                   "Astrophysics", "Deep Learning", "UX Research"],
+    "club":       ["Debate Club", "Chess Club", "Model UN", "Robotics Club",
+                   "Finance Club", "Entrepreneurship Club", "Photography Club",
+                   "Pre-Med Society", "Hiking Club", "Model UN"],
+    "skill":      ["Python", "React", "TypeScript", "PyTorch", "MATLAB", "R",
+                   "Figma", "C++", "Financial Modeling", "Lab Techniques",
+                   "Public Speaking", "Statistical Modeling", "User Testing"],
+}
+
+COMPANIES = [
+    "Google", "Stripe", "Intel", "Goldman Sachs", "HubSpot", "Figma",
+    "Airbnb", "IDEO", "McKinsey", "SpaceX", "Moderna", "Pfizer",
+    "Bloomberg", "Two Sigma", "OpenAI", "Notion", "Linear",
+]
+
+CONNECTION_CONTEXTS = [
+    "CS 499 group", "Hackathon team 2023", "ML reading group",
+    "Dorm roommates freshman year", "Debate club teammates",
+    "Robotics lab neighbours", "Engineering capstone team",
+    "Finance club officers", "Orgo study group",
+    "CS women's network", "Product design workshop",
+    "Econ-Stats joint seminar", "Physics lab partners",
+    "Entrepreneurship speaker panel", "Data science TA office hours",
+    "Marketing + UX crossover talk", "Engineering week project",
+    "Freshman orientation group", "Joint ML lab seminar",
+    "Entrepreneurship club co-founders", "BioMed interest overlap",
+    "Statistics PhD cohort", "Campus research symposium",
+    "Study abroad alumni group", "Peer tutoring program",
+]
+
+INTENT_DESCRIPTIONS = {
+    "class":      [
+        "Looking for a study partner or TA connection for {cat} coursework.",
+        "Struggling with {cat} and hoping to find someone who has taken it.",
+        "Want to form a study group for {cat} this semester.",
+    ],
+    "internship": [
+        "Targeting {cat} internships for next summer and looking for referrals.",
+        "Seeking a {cat} internship — open to any industry advice.",
+        "Looking for warm intros to recruiters in {cat}.",
+    ],
+    "research":   [
+        "Looking for a faculty advisor or lab opening in {cat}.",
+        "Seeking collaborators on a {cat} project.",
+        "Want to connect with grad students doing {cat} research.",
+    ],
+    "club":       [
+        "Interested in joining a {cat} and looking for an intro to current members.",
+        "Looking for the right {cat} to get involved with this semester.",
+        "Want to meet people active in {cat} on campus.",
+    ],
+    "skill":      [
+        "Trying to improve my {cat} skills and looking for a mentor or peer.",
+        "Working on a project requiring {cat} — need guidance.",
+        "Looking to pair up with someone experienced in {cat}.",
+    ],
+}
 
 # ─────────────────────────────────────────────────────────────
 # helpers
@@ -45,633 +145,515 @@ def days_ago(n: int) -> datetime:
     return datetime.utcnow() - timedelta(days=n)
 
 def ordered_pair(a: str, b: str):
-    """Return (a, b) with the smaller UUID first (satisfies chk_ordered_ids)."""
+    """Enforce user_id_a < user_id_b (chk_ordered_ids constraint)."""
     return (a, b) if a < b else (b, a)
 
-# ─────────────────────────────────────────────────────────────
-# seed data definitions
-# ─────────────────────────────────────────────────────────────
+def pick(pool: list):
+    return random.choice(pool)
 
-USERS = [
-    # (first, last, email, year, major, bio, profile_source)
-    ("Alice",   "Chen",     "alice@uni.edu",   "junior",   "Computer Science",      "Passionate about ML and open-source.",          "manual"),
-    ("Ben",     "Torres",   "ben@uni.edu",     "senior",   "Electrical Engineering","Looking for full-time roles in embedded systems.","linkedin_import"),
-    ("Cara",    "Okafor",   "cara@uni.edu",    "sophomore","Biology",               "Pre-med, interested in research labs.",          "manual"),
-    ("David",   "Kim",      "david@uni.edu",   "grad",     "Data Science",          "PhD student, open to research collabs.",         "resume_import"),
-    ("Elena",   "Russo",    "elena@uni.edu",   "junior",   "Finance",               "Seeking internships at hedge funds.",            "linkedin_import"),
-    ("Felix",   "Nkosi",    "felix@uni.edu",   "freshman", "Undeclared",            "Exploring clubs and extracurriculars.",          "manual"),
-    ("Grace",   "Liu",      "grace@uni.edu",   "senior",   "Computer Science",      "Full-stack dev, looking for SWE internships.",   "manual"),
-    ("Henry",   "Patel",    "henry@uni.edu",   "junior",   "Mechanical Engineering","Robotics club lead, seeking research.",          "resume_import"),
-    ("Iris",    "Dubois",   "iris@uni.edu",    "sophomore","Political Science",      "Interested in policy debate clubs.",             "manual"),
-    ("Jake",    "Morrow",   "jake@uni.edu",    "senior",   "Economics",             "Writing thesis on labor markets.",               "linkedin_import"),
-    ("Karen",   "Singh",    "karen@uni.edu",   "grad",     "Computer Science",      "ML researcher, TAing for CS 499.",               "manual"),
-    ("Leo",     "Andrade",  "leo@uni.edu",     "junior",   "Chemistry",             "Interested in pharma internships.",              "manual"),
-    ("Maya",    "Brooks",   "maya@uni.edu",    "senior",   "Marketing",             "Building a student startup.",                   "linkedin_import"),
-    ("Noah",    "Fischer",  "noah@uni.edu",    "sophomore","Physics",               "Wants to join research labs.",                  "manual"),
-    ("Olivia",  "Tan",      "olivia@uni.edu",  "junior",   "Computer Science",      "Frontend dev, loves design systems.",           "resume_import"),
-    ("Peter",   "Walsh",    "peter@uni.edu",   "senior",   "Business Admin",        "Entrepreneurship club president.",              "manual"),
-    ("Quinn",   "James",    "quinn@uni.edu",   "freshman", "Undeclared",            "Figuring out my major still.",                  "manual"),
-    ("Rachel",  "Nguyen",   "rachel@uni.edu",  "junior",   "Biomedical Engineering","Research focused, interested in MedTech.",      "linkedin_import"),
-    ("Sam",     "Cooper",   "sam@uni.edu",     "grad",     "Statistics",            "Data science TA, loves kaggle.",                "resume_import"),
-    ("Tina",    "Morales",  "tina@uni.edu",    "senior",   "Psychology",            "Studying cognitive bias in UX.",                "manual"),
-]
+def pick_unique(pool: list, n: int) -> list:
+    return random.sample(pool, min(n, len(pool)))
 
-# interests: (category, label)
-USER_INTERESTS = {
-    "alice@uni.edu":   [("skill","Machine Learning"), ("research","NLP"), ("internship","Software Engineering")],
-    "ben@uni.edu":     [("internship","Embedded Systems"), ("skill","C++"), ("internship","Hardware Design")],
-    "cara@uni.edu":    [("research","Molecular Biology"), ("club","Pre-Med Society"), ("internship","Clinical Research")],
-    "david@uni.edu":   [("research","Deep Learning"), ("skill","Python"), ("research","Time Series Analysis")],
-    "elena@uni.edu":   [("internship","Investment Banking"), ("skill","Financial Modeling"), ("club","Finance Club")],
-    "felix@uni.edu":   [("club","Debate Club"), ("club","Chess Club"), ("skill","Public Speaking")],
-    "grace@uni.edu":   [("internship","Software Engineering"), ("skill","React"), ("skill","TypeScript")],
-    "henry@uni.edu":   [("research","Robotics"), ("club","Robotics Club"), ("internship","Mechanical Design")],
-    "iris@uni.edu":    [("club","Model UN"), ("club","Debate Club"), ("research","Policy Research")],
-    "jake@uni.edu":    [("research","Labor Economics"), ("skill","R"), ("internship","Economic Consulting")],
-    "karen@uni.edu":   [("research","Machine Learning"), ("skill","PyTorch"), ("class","CS 499")],
-    "leo@uni.edu":     [("internship","Pharmaceutical"), ("research","Organic Chemistry"), ("skill","Lab Techniques")],
-    "maya@uni.edu":    [("skill","Brand Strategy"), ("club","Entrepreneurship Club"), ("internship","Marketing")],
-    "noah@uni.edu":    [("research","Quantum Physics"), ("research","Astrophysics"), ("skill","MATLAB")],
-    "olivia@uni.edu":  [("skill","UI/UX Design"), ("skill","Figma"), ("internship","Frontend Development")],
-    "peter@uni.edu":   [("club","Entrepreneurship Club"), ("skill","Venture Capital"), ("internship","Business Development")],
-    "quinn@uni.edu":   [("club","Photography Club"), ("club","Hiking Club"), ("skill","Video Editing")],
-    "rachel@uni.edu":  [("research","Biomedical Devices"), ("internship","MedTech"), ("skill","MATLAB")],
-    "sam@uni.edu":     [("skill","Statistical Modeling"), ("research","Causal Inference"), ("skill","Python")],
-    "tina@uni.edu":    [("research","UX Research"), ("skill","User Testing"), ("internship","Product Design")],
-}
+def fake_bio(major: str, year: str) -> str:
+    templates = [
+        f"{year.capitalize()} studying {major}. {fake.sentence()}",
+        f"Passionate about {major.lower()}. {fake.sentence()}",
+        f"{major} student looking to connect and grow. {fake.sentence()}",
+        f"Interested in {major.lower()} and always open to new opportunities.",
+    ]
+    return pick(templates)
 
-# experiences: (type, title, organization, start_date, end_date, description)
-USER_EXPERIENCES = {
-    "alice@uni.edu":   [
-        ("internship","ML Intern","Google",            date(2023,6,1), date(2023,8,31), "Worked on ranking models."),
-        ("research",  "RA",      "NLP Lab",            date(2023,9,1), None,            "Ongoing research on summarisation."),
-    ],
-    "ben@uni.edu":     [
-        ("internship","HW Intern","Intel",             date(2023,5,1), date(2023,8,31), "FPGA design work."),
-    ],
-    "cara@uni.edu":    [
-        ("volunteer", "Volunteer","Campus Clinic",     date(2023,1,1), None,            "Patient intake support."),
-    ],
-    "david@uni.edu":   [
-        ("research",  "PhD RA",  "Data Science Lab",  date(2022,9,1), None,            "Time-series forecasting."),
-        ("full_time", "TA",      "CS Department",      date(2023,9,1), None,            "TA for intro ML course."),
-    ],
-    "elena@uni.edu":   [
-        ("internship","Analyst Intern","Goldman Sachs",date(2023,6,1), date(2023,8,15),"DCF modelling, pitchbooks."),
-    ],
-    "grace@uni.edu":   [
-        ("internship","SWE Intern","Stripe",           date(2023,5,15),date(2023,8,15),"Payments dashboard work."),
-        ("part_time", "Freelance","Self",              date(2022,6,1), None,            "React projects for local businesses."),
-    ],
-    "henry@uni.edu":   [
-        ("research",  "RA",      "Robotics Lab",      date(2023,2,1), None,            "Autonomous navigation project."),
-    ],
-    "karen@uni.edu":   [
-        ("research",  "PhD RA",  "ML Lab",            date(2021,9,1), None,            "Vision transformers."),
-        ("full_time", "TA",      "CS Department",      date(2023,9,1), None,            "TA for CS 499."),
-    ],
-    "maya@uni.edu":    [
-        ("internship","Marketing Intern","HubSpot",    date(2023,6,1), date(2023,8,31),"Content and growth."),
-    ],
-    "olivia@uni.edu":  [
-        ("internship","Design Intern","Figma",         date(2023,5,1), date(2023,8,31),"Design systems work."),
-    ],
-    "peter@uni.edu":   [
-        ("full_time","Co-founder","CampusCart",        date(2022,3,1), None,            "Student marketplace startup."),
-    ],
-    "rachel@uni.edu":  [
-        ("research",  "RA",      "BioMed Lab",        date(2023,1,1), None,            "Wearable sensor prototyping."),
-    ],
-    "sam@uni.edu":     [
-        ("full_time", "TA",      "Statistics Dept",   date(2023,9,1), None,            "TA for regression analysis."),
-        ("internship","Data Intern","Airbnb",          date(2022,6,1), date(2022,8,31),"A/B test infrastructure."),
-    ],
-    "tina@uni.edu":    [
-        ("internship","UX Intern","IDEO",              date(2023,5,1), date(2023,8,15),"User research & testing."),
-    ],
-}
+def fake_intent_description(category: str) -> str:
+    label = pick(INTEREST_LABELS[category])
+    template = pick(INTENT_DESCRIPTIONS[category])
+    return template.format(cat=label)
 
-# connections: (email_a, email_b, context, warmth_score, status)
-# email_a < email_b will be enforced by ordered_pair()
-CONNECTIONS_DATA = [
-    ("alice@uni.edu",  "karen@uni.edu",  "CS 499 group",                       5, "accepted"),
-    ("alice@uni.edu",  "grace@uni.edu",  "Hackathon team 2023",                4, "accepted"),
-    ("alice@uni.edu",  "david@uni.edu",  "ML reading group",                   4, "accepted"),
-    ("alice@uni.edu",  "olivia@uni.edu", "Intro to UX workshop",               3, "accepted"),
-    ("ben@uni.edu",    "henry@uni.edu",  "Robotics lab neighbours",            4, "accepted"),
-    ("ben@uni.edu",    "rachel@uni.edu", "Engineering week project",           3, "accepted"),
-    ("cara@uni.edu",   "leo@uni.edu",    "Orgo study group",                   4, "accepted"),
-    ("cara@uni.edu",   "noah@uni.edu",   "Dorm roommates freshman year",       5, "accepted"),
-    ("david@uni.edu",  "sam@uni.edu",    "Stats PhD cohort",                   5, "accepted"),
-    ("david@uni.edu",  "karen@uni.edu",  "Joint ML lab seminar",               4, "accepted"),
-    ("elena@uni.edu",  "jake@uni.edu",   "Finance club officers",              4, "accepted"),
-    ("elena@uni.edu",  "peter@uni.edu",  "Entrepreneurship speaker panel",     3, "accepted"),
-    ("felix@uni.edu",  "iris@uni.edu",   "Debate club teammates",              5, "accepted"),
-    ("felix@uni.edu",  "quinn@uni.edu",  "Freshman orientation group",         3, "accepted"),
-    ("grace@uni.edu",  "olivia@uni.edu", "CS women's network",                 4, "accepted"),
-    ("grace@uni.edu",  "tina@uni.edu",   "Product design workshop",            3, "accepted"),
-    ("henry@uni.edu",  "rachel@uni.edu", "Engineering capstone team",          4, "accepted"),
-    ("jake@uni.edu",   "sam@uni.edu",    "Econ-Stats joint seminar",           3, "accepted"),
-    ("karen@uni.edu",  "sam@uni.edu",    "Data science TA office hours",       4, "accepted"),
-    ("maya@uni.edu",   "peter@uni.edu",  "Entrepreneurship club co-founders",  5, "accepted"),
-    ("maya@uni.edu",   "tina@uni.edu",   "Marketing + UX crossover talk",      3, "accepted"),
-    ("noah@uni.edu",   "rachel@uni.edu", "Physics lab partners",               3, "accepted"),
-    # pending connections
-    ("olivia@uni.edu", "tina@uni.edu",   "Design systems interest",            2, "pending"),
-    ("leo@uni.edu",    "rachel@uni.edu", "BioMed interest overlap",            2, "pending"),
-]
-
-# intents: one active per user (category, description)
-USER_INTENTS = {
-    "alice@uni.edu":   ("internship", "Looking for a summer ML internship at a top tech company."),
-    "ben@uni.edu":     ("internship", "Seeking full-time embedded systems role after graduation."),
-    "cara@uni.edu":    ("research",   "Want to join a biology research lab for independent study credit."),
-    "david@uni.edu":   ("research",   "Looking for collaborators on time-series anomaly detection paper."),
-    "elena@uni.edu":   ("internship", "Targeting investment banking internships for next summer."),
-    "felix@uni.edu":   ("club",       "Want to join a competitive debate club this semester."),
-    "grace@uni.edu":   ("internship", "Looking for SWE internship with a strong frontend focus."),
-    "henry@uni.edu":   ("research",   "Seeking a research position in autonomous robotics."),
-    "iris@uni.edu":    ("club",       "Interested in joining Model UN and policy debate teams."),
-    "jake@uni.edu":    ("research",   "Looking for a faculty advisor for my labor economics thesis."),
-    "karen@uni.edu":   ("research",   "Seeking PhD students interested in vision transformer research."),
-    "leo@uni.edu":     ("internship", "Looking for a pharma or biotech internship for next summer."),
-    "maya@uni.edu":    ("internship", "Seeking a growth marketing internship at an early-stage startup."),
-    "noah@uni.edu":    ("research",   "Looking to join a physics or astrophysics research lab."),
-    "olivia@uni.edu":  ("internship", "Seeking a product design or frontend internship."),
-    "peter@uni.edu":   ("skill",      "Want to learn more about venture capital term sheets."),
-    "quinn@uni.edu":   ("club",       "Looking for creative clubs — photography or film."),
-    "rachel@uni.edu":  ("research",   "Seeking collaborators on wearable biosensor research."),
-    "sam@uni.edu":     ("research",   "Looking for industry data science research partnerships."),
-    "tina@uni.edu":    ("internship", "Targeting UX research roles at product companies."),
-}
+def fake_experience(exp_type: str) -> tuple:
+    """Return (type, title, organization, start_date, end_date, description)."""
+    title_map = {
+        "internship": [f"{pick(['Software','Data','Product','Research','Marketing','Design'])} Intern"],
+        "research":   ["Research Assistant", "PhD RA", "Undergraduate Researcher"],
+        "full_time":  ["Teaching Assistant", "Co-founder", "Research Associate"],
+        "part_time":  ["Freelance Developer", "Peer Tutor", "Lab Assistant"],
+        "volunteer":  ["Volunteer", "Campus Ambassador", "Event Organiser"],
+        "project":    ["Project Lead", "Open Source Contributor", "Independent Developer"],
+    }
+    org   = pick(COMPANIES + [fake.company() for _ in range(3)])
+    title = pick(title_map[exp_type])
+    start = fake.date_between(start_date=date(2021, 1, 1), end_date=date(2023, 6, 1))
+    # 60% chance the role is ongoing
+    end   = None if random.random() < 0.6 else fake.date_between(start_date=start, end_date=date(2024, 1, 1))
+    desc  = fake.sentence(nb_words=10)
+    return (exp_type, title, org, start, end, desc)
 
 # ─────────────────────────────────────────────────────────────
-# main seed
+# seed
 # ─────────────────────────────────────────────────────────────
 
 def seed():
     conn = psycopg2.connect(DATABASE_URL)
     cur  = conn.cursor()
 
-    print("🌱 Starting seed...")
+    print("🌱 Starting seed (faker edition)...")
 
     # ── 1. USERS ─────────────────────────────────────────────
-    print("  → Inserting 20 users...")
-    user_ids: dict[str, str] = {}  # email → uuid
+    print("  → Generating 20 users with faker...")
 
-    for (first, last, email, year, major, bio, source) in USERS:
-        uid = gen_id()
-        user_ids[email] = uid
+    NUM_USERS    = 20
+    user_ids     = []     # list of UUIDs in insertion order
+    user_emails  = []     # parallel list of emails
+    used_emails  = set()
+
+    for i in range(NUM_USERS):
+        uid        = gen_id()
+        first      = fake.first_name()
+        last       = fake.last_name()
+
+        # guarantee unique email
+        base_email = f"{first.lower()}.{last.lower()}@uni.edu"
+        email      = base_email
+        suffix     = 1
+        while email in used_emails:
+            email = f"{first.lower()}.{last.lower()}{suffix}@uni.edu"
+            suffix += 1
+        used_emails.add(email)
+
+        year         = pick(YEARS)
+        major        = pick(MAJORS)
+        bio          = fake_bio(major, year)
+        source       = pick(PROFILE_SOURCES)
+        linkedin_url = (f"https://linkedin.com/in/{first.lower()}-{last.lower()}-{str(uid)[:4]}"
+                        if source == "linkedin_import" else None)
+        resume_url   = (f"https://resumes.uni.edu/{uid}.pdf"
+                        if source == "resume_import" else None)
+        linkedin_at  = days_ago(random.randint(5, 30)) if source == "linkedin_import" else None
+        resume_at    = days_ago(random.randint(5, 30)) if source == "resume_import"   else None
+
         cur.execute("""
             INSERT INTO users (
                 user_id, is_active, email, password_hash,
                 first_name, last_name, year, major, bio,
                 linkedin_url, resume_url, profile_complete,
-                profile_source, created_at, updated_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                profile_source, linkedin_import_at, resume_parsed_at,
+                created_at, updated_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             uid, True, email, hash_password("Password123!"),
             first, last, year, major, bio,
-            f"https://linkedin.com/in/{first.lower()}-{last.lower()}" if source == "linkedin_import" else None,
-            f"https://resumes.uni.edu/{uid}.pdf"                      if source == "resume_import"   else None,
-            True,
-            source,
-            days_ago(60), days_ago(1),
+            linkedin_url, resume_url, True,
+            source, linkedin_at, resume_at,
+            days_ago(random.randint(30, 90)),
+            days_ago(random.randint(1, 10)),
         ))
 
-    # ── 2. PRIVACY SETTINGS (one per user, auto-created) ─────
+        user_ids.append(uid)
+        user_emails.append(email)
+
+    # convenience dicts for named scenario references
+    uid  = {email: uid  for email, uid  in zip(user_emails, user_ids)}
+    # alias — u[0] = first user's id, u[1] = second, etc.
+    u = user_ids
+
+    # ── 2. PRIVACY SETTINGS ──────────────────────────────────
     print("  → Inserting privacy settings...")
-    permissions = ["anyone","connections","connections_of_connections","connections_of_connections"]
-    for i, email in enumerate(user_ids):
+    for user_id in user_ids:
         cur.execute("""
             INSERT INTO privacy_settings (
                 privacy_id, user_id, who_can_request,
                 show_in_discovery, allow_connector_prompts
             ) VALUES (%s,%s,%s,%s,%s)
         """, (
-            gen_id(), user_ids[email],
-            permissions[i % len(permissions)],
-            True, True,
+            gen_id(), user_id,
+            pick(REQ_PERMISSIONS),
+            fake.boolean(chance_of_getting_true=85),
+            fake.boolean(chance_of_getting_true=80),
         ))
 
     # ── 3. USER INTERESTS ────────────────────────────────────
-    print("  → Inserting user interests...")
-    for email, interests in USER_INTERESTS.items():
-        for (category, label) in interests:
+    print("  → Inserting user interests with faker labels...")
+    for user_id in user_ids:
+        # 2–4 interests per user, drawn from random categories
+        num_interests = random.randint(2, 4)
+        cats          = pick_unique(INTENT_CATS, num_interests)
+        used_labels   = set()
+        for cat in cats:
+            label = pick(INTEREST_LABELS[cat])
+            while label in used_labels:
+                label = pick(INTEREST_LABELS[cat])
+            used_labels.add(label)
             cur.execute("""
                 INSERT INTO user_interests (interest_id, user_id, category, label)
                 VALUES (%s,%s,%s,%s)
-            """, (gen_id(), user_ids[email], category, label))
+            """, (gen_id(), user_id, cat, label))
 
     # ── 4. USER EXPERIENCES ──────────────────────────────────
-    print("  → Inserting user experiences...")
-    for email, exps in USER_EXPERIENCES.items():
-        for (typ, title, org, start, end, desc) in exps:
+    print("  → Inserting user experiences with faker data...")
+    for user_id in user_ids:
+        num_exps = random.randint(1, 3)
+        exp_types = pick_unique(EXP_TYPES, num_exps)
+        for exp_type in exp_types:
+            typ, title, org, start, end, desc = fake_experience(exp_type)
             cur.execute("""
                 INSERT INTO user_experiences (
                     experience_id, user_id, type, title,
                     organization, start_date, end_date, description
                 ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (gen_id(), user_ids[email], typ, title, org, start, end, desc))
+            """, (gen_id(), user_id, typ, title, org, start, end, desc))
 
     # ── 5. CONNECTIONS (F1) ──────────────────────────────────
-    print("  → Inserting connections...")
-    connection_ids: dict[tuple, str] = {}   # (uid_a, uid_b) → connection_id
+    # Build a connected graph: each user connects to 2–4 others.
+    # faker provides the context strings and warmth scores.
+    print("  → Generating connections with faker contexts...")
 
-    for (ea, eb, context, warmth, status) in CONNECTIONS_DATA:
-        uid_a, uid_b = ordered_pair(user_ids[ea], user_ids[eb])
-        cid = gen_id()
-        connection_ids[(uid_a, uid_b)] = cid
-        cur.execute("""
-            INSERT INTO connections (
-                connection_id, user_id_a, user_id_b,
-                context, warmth_score, status,
-                created_at, accepted_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            cid, uid_a, uid_b,
-            context, warmth, status,
-            days_ago(30),
-            days_ago(28) if status == "accepted" else None,
-        ))
+    connection_ids: dict[tuple, str] = {}
+    added_pairs: set = set()
+
+    for i, user_id in enumerate(user_ids):
+        # connect to 2–4 other users (avoid self, avoid duplicates)
+        candidates = [u for j, u in enumerate(user_ids) if j != i]
+        partners   = pick_unique(candidates, random.randint(2, 4))
+
+        for partner_id in partners:
+            a, b = ordered_pair(user_id, partner_id)
+            if (a, b) in added_pairs:
+                continue
+            added_pairs.add((a, b))
+
+            cid     = gen_id()
+            status  = pick(CONN_STATUSES)
+            warmth  = random.randint(2, 5)
+            context = pick(CONNECTION_CONTEXTS)
+            created = days_ago(random.randint(10, 60))
+
+            connection_ids[(a, b)] = cid
+            cur.execute("""
+                INSERT INTO connections (
+                    connection_id, user_id_a, user_id_b,
+                    context, warmth_score, status,
+                    created_at, accepted_at
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                cid, a, b, context, warmth, status,
+                created,
+                created + timedelta(days=random.randint(1, 3)) if status == "accepted" else None,
+            ))
 
     # ── 6. INTENTS (F2) ─────────────────────────────────────
-    print("  → Inserting intents...")
-    intent_ids: dict[str, str] = {}   # email → intent_id
+    # One active intent per user, faker generates the description.
+    print("  → Inserting intents with faker descriptions...")
 
-    for email, (category, description) in USER_INTENTS.items():
-        iid = gen_id()
-        intent_ids[email] = iid
+    intent_ids: dict[str, str] = {}   # user_id → intent_id
+
+    for user_id in user_ids:
+        iid      = gen_id()
+        category = pick(INTENT_CATS)
+        desc     = fake_intent_description(category)
+        created  = days_ago(random.randint(7, 21))
+
+        intent_ids[user_id] = iid
         cur.execute("""
             INSERT INTO intents (
                 intent_id, user_id, category, description,
                 is_active, created_at, expires_at
             ) VALUES (%s,%s,%s,%s,%s,%s,%s)
         """, (
-            iid, user_ids[email],
-            category, description,
-            True,
-            days_ago(14),
-            days_ago(14) + timedelta(days=90),  # active for 90 days
+            iid, user_id, category, desc,
+            True, created, created + timedelta(days=90),
         ))
 
-    # ── 7. INTRO REQUESTS (F4/F5) ────────────────────────────
-    # Scenario A: Alice wants an intro to Karen via David
-    #   requester=Alice, connector=David, target=Karen
-    # Scenario B: Grace wants an intro to Tina via Olivia
-    #   requester=Grace, connector=Olivia, target=Tina  (approved)
-    # Scenario C: Noah wants an intro to Karen via David
-    #   requester=Noah, connector=David, target=Karen (pending)
-    # Scenario D: Leo wants an intro to Rachel via Cara (approved → has conversation)
-    #   requester=Leo, connector=Cara, target=Rachel
-    print("  → Inserting intro requests...")
+    # ── 7. INTRO REQUESTS (F4 / F5) ─────────────────────────
+    # Four scenarios that exercise every RequestStatus value.
+    # Users are picked by index so FK constraints are guaranteed.
+    # faker generates the draft messages.
+    print("  → Inserting intro request scenarios...")
 
-    request_ids: dict[str, str] = {}
+    # Requester, Connector, Target are always distinct (chk_distinct_parties).
+    # We pick indices 0/1/2, 3/4/5, 6/7/8, 9/10/11 to avoid overlap.
+    scenarios = [
+        # (req_idx, con_idx, tgt_idx, status, connector_note)
+        (0,  1,  2,  "pending",  None),
+        (3,  4,  5,  "approved", fake.sentence(nb_words=8)),
+        (6,  7,  8,  "declined", fake.sentence(nb_words=8)),
+        (9,  10, 11, "approved", fake.sentence(nb_words=8)),
+    ]
 
-    # Scenario A — pending
-    rid_a = gen_id()
-    request_ids["A"] = rid_a
-    cur.execute("""
-        INSERT INTO intro_requests (
-            request_id, requester_id, connector_id, target_id, intent_id,
-            draft_message, edited_message, status, connector_note,
-            created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        rid_a,
-        user_ids["alice@uni.edu"],
-        user_ids["david@uni.edu"],
-        user_ids["karen@uni.edu"],
-        intent_ids["alice@uni.edu"],
-        "Hi David, I am working on ML internship applications and would love an intro to Karen given her research background.",
-        None, "pending", None,
-        days_ago(3), None,
-    ))
+    request_ids: dict[str, str] = {}   # "A"/"B"/"C"/"D" → request_id
+    label_map = ["A", "B", "C", "D"]
 
-    # Scenario B — approved
-    rid_b = gen_id()
-    request_ids["B"] = rid_b
-    cur.execute("""
-        INSERT INTO intro_requests (
-            request_id, requester_id, connector_id, target_id, intent_id,
-            draft_message, edited_message, status, connector_note,
-            created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        rid_b,
-        user_ids["grace@uni.edu"],
-        user_ids["olivia@uni.edu"],
-        user_ids["tina@uni.edu"],
-        intent_ids["grace@uni.edu"],
-        "Hi Olivia, Grace here — I know you and Tina overlap on design. Could you intro us?",
-        "Hi Olivia! I have been exploring UX research intersections with frontend. Would love a chat with Tina.",
-        "approved", "Happy to connect you both — you would get along well!",
-        days_ago(7), days_ago(6),
-    ))
+    for label, (ri, ci, ti, status, note) in zip(label_map, scenarios):
+        rid          = gen_id()
+        request_ids[label] = rid
+        req_id       = u[ri]
+        con_id       = u[ci]
+        tgt_id       = u[ti]
+        intent_id    = intent_ids[req_id]
+        draft        = (f"Hi! I noticed we have a mutual connection. "
+                        f"{fake.sentence(nb_words=12)} Would you be able to help?")
+        edited       = fake.sentence(nb_words=15) if status == "approved" else None
+        created      = days_ago(random.randint(3, 10))
+        responded_at = created + timedelta(days=1) if status != "pending" else None
 
-    # Scenario C — declined
-    rid_c = gen_id()
-    request_ids["C"] = rid_c
-    cur.execute("""
-        INSERT INTO intro_requests (
-            request_id, requester_id, connector_id, target_id, intent_id,
-            draft_message, edited_message, status, connector_note,
-            created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        rid_c,
-        user_ids["noah@uni.edu"],
-        user_ids["david@uni.edu"],
-        user_ids["karen@uni.edu"],
-        intent_ids["noah@uni.edu"],
-        "Hi David, I am looking to join a research lab — could you connect me with Karen?",
-        None, "declined", "Karen's lab is at capacity this semester, sorry.",
-        days_ago(10), days_ago(9),
-    ))
-
-    # Scenario D — approved → will get conversation + prereads
-    rid_d = gen_id()
-    request_ids["D"] = rid_d
-    cur.execute("""
-        INSERT INTO intro_requests (
-            request_id, requester_id, connector_id, target_id, intent_id,
-            draft_message, edited_message, status, connector_note,
-            created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        rid_d,
-        user_ids["leo@uni.edu"],
-        user_ids["cara@uni.edu"],
-        user_ids["rachel@uni.edu"],
-        intent_ids["leo@uni.edu"],
-        "Hi Cara, I know you and Rachel overlap in bio. I am exploring MedTech internships — could you connect us?",
-        "Hi Cara! Rachel's wearables work really aligns with my pharma interest. Would love an intro.",
-        "approved", "These two would have a great chat — both passionate about biotech.",
-        days_ago(5), days_ago(4),
-    ))
+        cur.execute("""
+            INSERT INTO intro_requests (
+                request_id, requester_id, connector_id, target_id, intent_id,
+                draft_message, edited_message, status, connector_note,
+                created_at, responded_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            rid, req_id, con_id, tgt_id, intent_id,
+            draft, edited, status, note,
+            created, responded_at,
+        ))
 
     # ── 8. CONTEXT PRE-READS (F7) ────────────────────────────
-    # Generated for approved requests B and D
+    # Generated for the two approved requests (B and D).
+    # Both parties get a faker-generated summary of each other.
     print("  → Inserting context pre-reads...")
 
-    # Scenario B: Grace reads about Tina, Tina reads about Grace
-    cur.execute("""
-        INSERT INTO context_prereads (
-            preread_id, request_id, recipient_id, subject_id,
-            summary, created_at, viewed_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(), rid_b,
-        user_ids["grace@uni.edu"],   # recipient: Grace reads about Tina
-        user_ids["tina@uni.edu"],    # subject: Tina's profile
-        "Tina Morales is a senior studying Psychology with a focus on cognitive bias in UX. "
-        "She interned at IDEO doing user research and testing. Shared interests: design systems, product UX.",
-        days_ago(6), days_ago(5),
-    ))
-    cur.execute("""
-        INSERT INTO context_prereads (
-            preread_id, request_id, recipient_id, subject_id,
-            summary, created_at, viewed_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(), rid_b,
-        user_ids["tina@uni.edu"],    # recipient: Tina reads about Grace
-        user_ids["grace@uni.edu"],   # subject: Grace's profile
-        "Grace Liu is a senior CS major specialising in full-stack development. "
-        "Interned at Stripe and does freelance React work. Interested in frontend internships and design-engineering overlap.",
-        days_ago(6), days_ago(5),
-    ))
+    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
+        if status != "approved":
+            continue
+        rid     = request_ids[req_label]
+        req_id  = u[ri]
+        tgt_id  = u[ti]
+        created = days_ago(random.randint(1, 3))
 
-    # Scenario D: Leo reads about Rachel, Rachel reads about Leo
-    cur.execute("""
-        INSERT INTO context_prereads (
-            preread_id, request_id, recipient_id, subject_id,
-            summary, created_at, viewed_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(), rid_d,
-        user_ids["leo@uni.edu"],
-        user_ids["rachel@uni.edu"],
-        "Rachel Nguyen is a junior in Biomedical Engineering working on wearable biosensor prototyping. "
-        "Active researcher in the BioMed lab. Strong overlap with MedTech and pharmaceutical R&D.",
-        days_ago(4), days_ago(3),
-    ))
-    cur.execute("""
-        INSERT INTO context_prereads (
-            preread_id, request_id, recipient_id, subject_id,
-            summary, created_at, viewed_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(), rid_d,
-        user_ids["rachel@uni.edu"],
-        user_ids["leo@uni.edu"],
-        "Leo Andrade is a junior Chemistry major interested in pharmaceutical internships. "
-        "Experienced with organic chemistry lab techniques. Passionate about pharma and biotech career paths.",
-        days_ago(4), None,    # Rachel hasn't viewed yet
-    ))
+        # requester reads about target
+        cur.execute("""
+            INSERT INTO context_prereads (
+                preread_id, request_id, recipient_id, subject_id,
+                summary, created_at, viewed_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            gen_id(), rid, req_id, tgt_id,
+            fake.paragraph(nb_sentences=3),
+            created,
+            created + timedelta(hours=random.randint(1, 12)),
+        ))
+
+        # target reads about requester
+        cur.execute("""
+            INSERT INTO context_prereads (
+                preread_id, request_id, recipient_id, subject_id,
+                summary, created_at, viewed_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            gen_id(), rid, tgt_id, req_id,
+            fake.paragraph(nb_sentences=3),
+            created,
+            None,   # target hasn't viewed yet
+        ))
 
     # ── 9. CONVERSATIONS (F8) ────────────────────────────────
-    # One conversation for each approved request (B and D)
     print("  → Inserting conversations...")
 
-    conv_b = gen_id()
-    cur.execute("""
-        INSERT INTO conversations (
-            conversation_id, request_id, type, status, created_at
-        ) VALUES (%s,%s,%s,%s,%s)
-    """, (conv_b, rid_b, "chat", "active", days_ago(5)))
+    conv_ids: dict[str, str] = {}   # "B" / "D" → conversation_id
 
-    conv_d = gen_id()
-    cur.execute("""
-        INSERT INTO conversations (
-            conversation_id, request_id, type, status, created_at
-        ) VALUES (%s,%s,%s,%s,%s)
-    """, (conv_d, rid_d, "chat", "connector_left", days_ago(3)))
+    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
+        if status != "approved":
+            continue
+        conv_id = gen_id()
+        conv_ids[req_label] = conv_id
+        conv_status = pick(["active", "connector_left"])
+
+        cur.execute("""
+            INSERT INTO conversations (
+                conversation_id, request_id, type, status, created_at
+            ) VALUES (%s,%s,%s,%s,%s)
+        """, (
+            conv_id,
+            request_ids[req_label],
+            pick(["chat", "email"]),
+            conv_status,
+            days_ago(random.randint(1, 4)),
+        ))
 
     # ── 10. CONVERSATION PARTICIPANTS (F8) ───────────────────
     print("  → Inserting conversation participants...")
 
-    # Conversation B: Grace (requester), Olivia (connector), Tina (target)
-    for (email, role, left_at) in [
-        ("grace@uni.edu",  "requester", None),
-        ("olivia@uni.edu", "connector", days_ago(4)),  # Olivia stepped out
-        ("tina@uni.edu",   "target",    None),
-    ]:
-        cur.execute("""
-            INSERT INTO conversation_participants (
-                participant_id, conversation_id, user_id,
-                role, joined_at, left_at
-            ) VALUES (%s,%s,%s,%s,%s,%s)
-        """, (gen_id(), conv_b, user_ids[email], role, days_ago(5), left_at))
+    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
+        if status != "approved":
+            continue
+        conv_id    = conv_ids[req_label]
+        joined     = days_ago(random.randint(1, 4))
+        conn_left  = joined + timedelta(hours=random.randint(2, 8))
 
-    # Conversation D: Leo (requester), Cara (connector), Rachel (target)
-    for (email, role, left_at) in [
-        ("leo@uni.edu",    "requester", None),
-        ("cara@uni.edu",   "connector", days_ago(2)),  # Cara stepped out
-        ("rachel@uni.edu", "target",    None),
-    ]:
-        cur.execute("""
-            INSERT INTO conversation_participants (
-                participant_id, conversation_id, user_id,
-                role, joined_at, left_at
-            ) VALUES (%s,%s,%s,%s,%s,%s)
-        """, (gen_id(), conv_d, user_ids[email], role, days_ago(3), left_at))
+        for participant_id, role, left_at in [
+            (u[ri], "requester", None),
+            (u[ci], "connector", conn_left),   # connector steps out after warm intro
+            (u[ti], "target",    None),
+        ]:
+            cur.execute("""
+                INSERT INTO conversation_participants (
+                    participant_id, conversation_id, user_id,
+                    role, joined_at, left_at
+                ) VALUES (%s,%s,%s,%s,%s,%s)
+            """, (gen_id(), conv_id, participant_id, role, joined, left_at))
 
     # ── 11. MESSAGES (F8) ────────────────────────────────────
-    print("  → Inserting messages...")
+    # Each conversation gets 4–6 messages: connector's warm intro
+    # first, then back-and-forth between requester and target.
+    print("  → Inserting messages with faker bodies...")
 
-    # Conversation B messages
-    for (email, body, is_warm, sent, read) in [
-        ("olivia@uni.edu", "Hey Grace and Tina! Grace is a fantastic frontend dev and Tina does incredible UX research — I think you two have a lot to talk about. Handing it over!", True,  days_ago(5),  days_ago(5)),
-        ("grace@uni.edu",  "Hi Tina! So excited to connect. I have been thinking a lot about the frontend ↔ UX boundary lately.",                                                   False, days_ago(5),  days_ago(5)),
-        ("tina@uni.edu",   "Hi Grace! Same here. I am actually writing about design systems from a cognitive load perspective — would love your take as someone who builds them.",   False, days_ago(4),  days_ago(4)),
-        ("grace@uni.edu",  "That is such a cool angle. Want to hop on a call this week?",                                                                                           False, days_ago(4),  days_ago(3)),
-        ("tina@uni.edu",   "Absolutely — Thursday 3pm works for me!",                                                                                                              False, days_ago(3),  days_ago(3)),
-    ]:
+    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
+        if status != "approved":
+            continue
+        conv_id    = conv_ids[req_label]
+        base_time  = days_ago(random.randint(1, 4))
+        offset     = 0
+
+        # connector warm intro (is_warm_intro = True)
         cur.execute("""
             INSERT INTO messages (
                 message_id, conversation_id, sender_id,
                 body, is_warm_intro, sent_at, read_at
             ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (gen_id(), conv_b, user_ids[email], body, is_warm, sent, read))
+        """, (
+            gen_id(), conv_id, u[ci],
+            f"{fake.first_name()} and {fake.first_name()}, happy to connect you both! "
+            f"{fake.sentence(nb_words=12)} I'll leave you to it!",
+            True,
+            base_time + timedelta(minutes=offset),
+            base_time + timedelta(minutes=offset + 5),
+        ))
+        offset += 10
 
-    # Conversation D messages
-    for (email, body, is_warm, sent, read) in [
-        ("cara@uni.edu",  "Leo, Rachel! Happy to connect you both. Leo is diving into pharma and Rachel has hands-on biosensor experience — a perfect match. I'll leave you to it!", True,  days_ago(3),  days_ago(3)),
-        ("leo@uni.edu",   "Thanks Cara! Rachel, I have been really curious about the MedTech side of what you are doing in lab.",                                                   False, days_ago(3),  days_ago(3)),
-        ("rachel@uni.edu","Hey Leo! The wearables project could definitely have pharma applications. Are you thinking drug delivery monitoring or diagnostics?",                     False, days_ago(2),  days_ago(2)),
-        ("leo@uni.edu",   "More on the diagnostics side — I am exploring point-of-care testing. Would love to see your lab sometime if that is okay.",                             False, days_ago(2),  days_ago(1)),
-    ]:
-        cur.execute("""
-            INSERT INTO messages (
-                message_id, conversation_id, sender_id,
-                body, is_warm_intro, sent_at, read_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (gen_id(), conv_d, user_ids[email], body, is_warm, sent, read))
+        # back-and-forth between requester and target
+        num_exchanges = random.randint(2, 4)
+        speakers      = [u[ri], u[ti]]
+        for j in range(num_exchanges * 2):
+            sender   = speakers[j % 2]
+            sent_at  = base_time + timedelta(minutes=offset)
+            read_at  = sent_at + timedelta(minutes=random.randint(1, 30))
+            cur.execute("""
+                INSERT INTO messages (
+                    message_id, conversation_id, sender_id,
+                    body, is_warm_intro, sent_at, read_at
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                gen_id(), conv_id, sender,
+                fake.sentence(nb_words=random.randint(8, 18)),
+                False, sent_at, read_at,
+            ))
+            offset += random.randint(10, 60)
 
     # ── 12. CONNECTOR PROMPTS (F6) ───────────────────────────
-    # When Alice posted her ML internship intent, David and Karen are prompted
-    # When Felix posted his debate club intent, Iris is prompted
+    # When a user posts an intent, 1–2 of their connections are
+    # prompted. faker picks statuses; volunteered ones name a target.
     print("  → Inserting connector prompts...")
 
-    # David prompted about Alice's intent → volunteered Grace
-    cur.execute("""
-        INSERT INTO connector_prompts (
-            prompt_id, intent_id, connector_id,
-            volunteered_target_id, status, created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(),
-        intent_ids["alice@uni.edu"],
-        user_ids["david@uni.edu"],
-        user_ids["grace@uni.edu"],   # David volunteers Grace for Alice's ML internship search
-        "volunteered",
-        days_ago(13), days_ago(12),
-    ))
+    prompted_pairs: set = set()   # avoid uq_prompt_per_connector
 
-    # Karen prompted about Alice's intent → dismissed (lab is full)
-    cur.execute("""
-        INSERT INTO connector_prompts (
-            prompt_id, intent_id, connector_id,
-            volunteered_target_id, status, created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(),
-        intent_ids["alice@uni.edu"],
-        user_ids["karen@uni.edu"],
-        None,
-        "dismissed",
-        days_ago(13), days_ago(11),
-    ))
+    for user_id in user_ids[:12]:   # prompt for first 12 users' intents
+        intent_id   = intent_ids[user_id]
+        connections = [
+            (a if b == user_id else b)
+            for (a, b) in added_pairs
+            if user_id in (a, b)
+        ]
+        if not connections:
+            continue
 
-    # Iris prompted about Felix's debate club intent → volunteered herself (pending still)
-    cur.execute("""
-        INSERT INTO connector_prompts (
-            prompt_id, intent_id, connector_id,
-            volunteered_target_id, status, created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(),
-        intent_ids["felix@uni.edu"],
-        user_ids["iris@uni.edu"],
-        user_ids["felix@uni.edu"],   # Iris can connect Felix to the debate team
-        "volunteered",
-        days_ago(12), days_ago(11),
-    ))
+        num_prompts  = random.randint(1, min(2, len(connections)))
+        connectors   = pick_unique(connections, num_prompts)
 
-    # Peter prompted about Maya's marketing intent → pending
-    cur.execute("""
-        INSERT INTO connector_prompts (
-            prompt_id, intent_id, connector_id,
-            volunteered_target_id, status, created_at, responded_at
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        gen_id(),
-        intent_ids["maya@uni.edu"],
-        user_ids["peter@uni.edu"],
-        None,
-        "pending",
-        days_ago(7), None,
-    ))
+        for connector_id in connectors:
+            pair = (str(intent_id), str(connector_id))
+            if pair in prompted_pairs:
+                continue
+            prompted_pairs.add(pair)
 
-    # ── 13. NOTIFICATIONS (like-to-have) ─────────────────────
+            prompt_status = pick(PROMPT_STATUSES)
+            # only set volunteered_target if status is volunteered
+            vol_target    = None
+            if prompt_status == "volunteered":
+                candidates = [v for v in user_ids if v not in (user_id, connector_id)]
+                vol_target = pick(candidates) if candidates else None
+
+            created      = days_ago(random.randint(5, 15))
+            responded_at = created + timedelta(days=1) if prompt_status != "pending" else None
+
+            cur.execute("""
+                INSERT INTO connector_prompts (
+                    prompt_id, intent_id, connector_id,
+                    volunteered_target_id, status, created_at, responded_at
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                gen_id(), intent_id, connector_id,
+                vol_target, prompt_status, created, responded_at,
+            ))
+
+    # ── 13. NOTIFICATIONS ────────────────────────────────────
+    # One notification per significant event in the seed.
     print("  → Inserting notifications...")
 
-    notifications = [
-        # David receives intro_request from Alice (Scenario A)
-        (user_ids["david@uni.edu"],  "intro_request",      rid_a,                   "intro_requests",   False),
-        # Grace receives request_approved (Scenario B)
-        (user_ids["grace@uni.edu"],  "request_approved",   rid_b,                   "intro_requests",   True),
-        # Tina receives request_approved (Scenario B)
-        (user_ids["tina@uni.edu"],   "request_approved",   rid_b,                   "intro_requests",   True),
-        # Noah receives request_declined (Scenario C)
-        (user_ids["noah@uni.edu"],   "request_declined",   rid_c,                   "intro_requests",   True),
-        # Leo receives request_approved (Scenario D)
-        (user_ids["leo@uni.edu"],    "request_approved",   rid_d,                   "intro_requests",   True),
-        # Rachel receives request_approved (Scenario D)
-        (user_ids["rachel@uni.edu"], "request_approved",   rid_d,                   "intro_requests",   False),
-        # Grace receives new_message in conv_b
-        (user_ids["grace@uni.edu"],  "new_message",        conv_b,                  "conversations",    True),
-        # Tina receives new_message in conv_b
-        (user_ids["tina@uni.edu"],   "new_message",        conv_b,                  "conversations",    True),
-        # Leo receives new_message in conv_d
-        (user_ids["leo@uni.edu"],    "new_message",        conv_d,                  "conversations",    True),
-        # David receives connector_prompt for Alice's intent
-        (user_ids["david@uni.edu"],  "connector_prompt",   intent_ids["alice@uni.edu"], "intents",      True),
-        # Karen receives connector_prompt for Alice's intent
-        (user_ids["karen@uni.edu"],  "connector_prompt",   intent_ids["alice@uni.edu"], "intents",      True),
-        # connection_accepted: Grace notified that Alice accepted her connection
-        (user_ids["grace@uni.edu"],  "connection_accepted",connection_ids[ordered_pair(user_ids["alice@uni.edu"], user_ids["grace@uni.edu"])], "connections", True),
-    ]
-
-    for (uid, ntype, ref_id, ref_type, is_read) in notifications:
+    def notify(cur, user_id, ntype, ref_id, ref_type, is_read=False):
         cur.execute("""
             INSERT INTO notifications (
                 notification_id, user_id, type,
                 reference_id, reference_type,
                 is_read, created_at
             ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (gen_id(), uid, ntype, ref_id, ref_type, is_read, days_ago(3)))
+        """, (
+            gen_id(), user_id, ntype, ref_id, ref_type,
+            is_read, days_ago(random.randint(1, 5)),
+        ))
+
+    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
+        rid = request_ids[req_label]
+
+        # connector always gets an intro_request notification
+        notify(cur, u[ci], "intro_request", rid, "intro_requests")
+
+        if status == "approved":
+            notify(cur, u[ri], "request_approved", rid, "intro_requests", is_read=True)
+            notify(cur, u[ti], "request_approved", rid, "intro_requests")
+            conv_id = conv_ids[req_label]
+            notify(cur, u[ri], "new_message", conv_id, "conversations", is_read=True)
+            notify(cur, u[ti], "new_message", conv_id, "conversations")
+
+        elif status == "declined":
+            notify(cur, u[ri], "request_declined", rid, "intro_requests", is_read=True)
+
+    # connection_accepted notifications for a sample of accepted connections
+    for (a, b), cid in list(connection_ids.items())[:6]:
+        notify(cur, a, "connection_accepted", cid, "connections", is_read=True)
+        notify(cur, b, "connection_accepted", cid, "connections")
+
+    # connector_prompt notifications
+    for pair_str in list(prompted_pairs)[:8]:
+        intent_id_str, connector_id_str = pair_str
+        notify(cur, connector_id_str, "connector_prompt", intent_id_str, "intents")
 
     # ── commit ────────────────────────────────────────────────
     conn.commit()
     cur.close()
     conn.close()
 
+    total_interests  = NUM_USERS * 3    # avg ~3
+    total_exp        = NUM_USERS * 2    # avg ~2
+    total_conns      = len(added_pairs)
+    approved_count   = sum(1 for _,(_,_,_,s,_) in zip(label_map, scenarios) if s == "approved")
+    total_prereads   = approved_count * 2
+    total_convs      = approved_count
+    total_parts      = approved_count * 3
+    total_msgs       = approved_count * 5   # approx
+
     print("\n✅ Seed complete!")
-    print(f"   Users              : {len(USERS)}")
-    print(f"   Privacy settings   : {len(USERS)}")
-    print(f"   User interests     : {sum(len(v) for v in USER_INTERESTS.values())}")
-    print(f"   User experiences   : {sum(len(v) for v in USER_EXPERIENCES.values())}")
-    print(f"   Connections        : {len(CONNECTIONS_DATA)}")
-    print(f"   Intents            : {len(USER_INTENTS)}")
-    print(f"   Intro requests     : 4 (1 pending, 2 approved, 1 declined)")
-    print(f"   Context pre-reads  : 4")
-    print(f"   Conversations      : 2")
-    print(f"   Participants       : 6")
-    print(f"   Messages           : 9")
-    print(f"   Connector prompts  : 4")
-    print(f"   Notifications      : {len(notifications)}")
+    print(f"   Users              : {NUM_USERS}")
+    print(f"   Privacy settings   : {NUM_USERS}")
+    print(f"   User interests     : ~{total_interests} (faker-generated labels)")
+    print(f"   User experiences   : ~{total_exp} (faker-generated orgs/titles/dates)")
+    print(f"   Connections        : {total_conns} (faker context strings)")
+    print(f"   Intents            : {NUM_USERS} (faker descriptions)")
+    print(f"   Intro requests     : 4 (A=pending B=approved C=declined D=approved)")
+    print(f"   Context pre-reads  : {total_prereads} (faker summaries)")
+    print(f"   Conversations      : {total_convs}")
+    print(f"   Participants       : {total_parts}")
+    print(f"   Messages           : ~{total_msgs}+ (faker bodies)")
+    print(f"   Connector prompts  : varies (faker statuses)")
+    print(f"   Notifications      : varies")
+    print(f"\n   faker seed : 42  (re-run produces identical data)")
 
 
 if __name__ == "__main__":
