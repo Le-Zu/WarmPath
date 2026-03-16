@@ -7,6 +7,8 @@ export default function LoginTest() {
    const [email, setEmail] = useState("");
    const [password, setPassword] = useState("");
    const [backendMessage, setbackendMessage] = useState("");
+   const [hovered, setHovered] = useState(false);
+   const [hovered2, setHovered2] = useState(false);
 
    const handleLoginAndFetch = async (e) => {
       e.preventDefault();
@@ -138,8 +140,10 @@ export default function LoginTest() {
                   />
                   <button
                      type="submit"
+                     onMouseEnter={() => setHovered(true)}
+                     onMouseLeave={() => setHovered(false)}
                      style={{
-                        backgroundColor: "LightSalmon",
+                        backgroundColor: hovered ? "#e8825a" : "LightSalmon",
                         width: "100%",
                         padding: "1rem 1rem",
                         borderRadius: "100px",
@@ -147,10 +151,33 @@ export default function LoginTest() {
                         fontSize: "1rem",
                         fontWeight: "bold",
                         marginTop: ".8rem",
+                        cursor: "pointer",
+                        transition: "background-color 0.1s",
                      }}
                   >
-                     {" "}
                      Sign in
+                  </button>
+                  <button
+                     type="submit"
+                     onMouseEnter={() => setHovered2(true)}
+                     onMouseLeave={() => setHovered2(false)}
+                     style={{
+                        backgroundColor: hovered2 ? "#ecc6b5" : "#f2e9e4",
+                        width: "100%",
+                        padding: "1rem 1rem",
+                        borderRadius: "100px",
+                        border: "1px  ",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        marginTop: ".8rem",
+                        border: "1px solid",
+                        borderColor: "Tomato",
+                        color: "Tomato",
+                        cursor: "pointer",
+                        transition: "background-color 0.1s",
+                     }}
+                  >
+                     Create new account
                   </button>
                </form>
                <div
