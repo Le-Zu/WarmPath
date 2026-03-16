@@ -47,19 +47,24 @@ export default function LoginTest() {
    };
 
    return (
-      <div style={{ padding: "20px", fontFamily: "Arial" }}>
-         {/*Logo on the top left*/}
+      <div
+         style={{ background: "#f2e9e4", padding: "20px", fontFamily: "Arial" }}
+      >
          <img
             src="/logo.png"
             alt="Logo"
-            style={{ height: "44px", display: "block", marginBottom: "2rem" }}
+            style={{
+               height: "44px",
+               display: "block",
+               marginBottom: "2rem",
+            }}
          />
          <div
             style={{
                display: "flex",
                justifyContent: "center",
                alignItems: "center",
-               minHeight: "80vh",
+               minHeight: "calc(100vh - 110px)",
             }}
          >
             <div
@@ -92,6 +97,7 @@ export default function LoginTest() {
                      onChange={(e) => setEmail(e.target.value)}
                      required
                      style={{
+                        backgroundColor: "#f2e9e4",
                         width: "100%",
                         marginTop: "10px",
                         padding: "1rem 1rem",
@@ -107,6 +113,7 @@ export default function LoginTest() {
                      onChange={(e) => setPassword(e.target.value)}
                      required
                      style={{
+                        backgroundColor: "#f2e9e4",
                         width: "100%",
                         marginTop: "10px",
                         padding: "1rem 1rem",
@@ -125,6 +132,7 @@ export default function LoginTest() {
                         border: "1px  ",
                         fontSize: "1rem",
                         fontWeight: "bold",
+                        marginTop: ".8rem",
                      }}
                   >
                      {" "}
