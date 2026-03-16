@@ -48,77 +48,100 @@ export default function LoginTest() {
 
    return (
       <div style={{ padding: "20px", fontFamily: "Arial" }}>
+         {/*Logo on the top left*/}
          <img
             src="/logo.png"
             alt="Logo"
             style={{ height: "44px", display: "block", marginBottom: "2rem" }}
          />
-         <h2
-            style={{
-               fontSize: "1.5rem",
-            }}
-         >
-            Login Test
-         </h2>
-         <form
-            onSubmit={handleLoginAndFetch}
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-         >
-            <input
-               type="email"
-               placeholder="Email"
-               value={email}
-               onChange={(e) => setEmail(e.target.value)}
-               required
-               style={{
-                  width: "20%",
-                  marginTop: "10px",
-                  padding: "1rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid",
-                  fontSize: "1rem",
-               }}
-            />
-            <input
-               type="password"
-               placeholder="Password"
-               value={password}
-               onChange={(e) => setPassword(e.target.value)}
-               required
-               style={{
-                  width: "20%",
-                  marginTop: "10px",
-                  padding: "1rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid",
-                  fontSize: "1rem",
-               }}
-            />
-            <button
-               type="submit"
-               style={{
-                  backgroundColor: "LightSalmon",
-                  width: "20%",
-                  padding: "1rem 1rem",
-                  borderRadius: "100px",
-                  border: "1px ",
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-               }}
-            >
-               {" "}
-               Sign in
-            </button>
-         </form>
          <div
             style={{
-               marginTop: "20px",
-               padding: "10px",
-               backgroundColor: "#f0f0f0",
-               color: "#333",
+               display: "flex",
+               justifyContent: "center",
+               alignItems: "center",
+               minHeight: "80vh",
             }}
          >
-            <strong>Status:</strong> {backendMessage}
+            <div
+               style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "360px",
+                  gap: "10px",
+               }}
+            >
+               <h2
+                  style={{
+                     fontSize: "1.5rem",
+                  }}
+               >
+                  Sign in
+               </h2>
+               <form
+                  onSubmit={handleLoginAndFetch}
+                  style={{
+                     display: "flex",
+                     flexDirection: "column",
+                     gap: "10px",
+                  }}
+               >
+                  <input
+                     type="email"
+                     placeholder="Email"
+                     value={email}
+                     onChange={(e) => setEmail(e.target.value)}
+                     required
+                     style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        padding: "1rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "1rem",
+                     }}
+                  />
+                  <input
+                     type="password"
+                     placeholder="Password"
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     required
+                     style={{
+                        width: "100%",
+                        marginTop: "10px",
+                        padding: "1rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "1rem",
+                     }}
+                  />
+                  <button
+                     type="submit"
+                     style={{
+                        backgroundColor: "LightSalmon",
+                        width: "100%",
+                        padding: "1rem 1rem",
+                        borderRadius: "100px",
+                        border: "1px  ",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                     }}
+                  >
+                     {" "}
+                     Sign in
+                  </button>
+               </form>
+               <div
+                  style={{
+                     marginTop: "20px",
+                     padding: "10px",
+                     backgroundColor: "#f0f0f0",
+                     color: "#333",
+                  }}
+               >
+                  <strong>Status:</strong> {backendMessage}
+               </div>
+            </div>
          </div>
       </div>
    );
