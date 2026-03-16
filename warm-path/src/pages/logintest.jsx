@@ -53,7 +53,13 @@ export default function LoginTest() {
             alt="Logo"
             style={{ height: "44px", display: "block", marginBottom: "2rem" }}
          />
-         <h2>Login Test</h2>
+         <h2
+            style={{
+               fontSize: "1.5rem",
+            }}
+         >
+            Login Test
+         </h2>
          <form
             onSubmit={handleLoginAndFetch}
             style={{ display: "flex", flexDirection: "column", gap: "10px" }}
@@ -66,6 +72,7 @@ export default function LoginTest() {
                required
                style={{
                   width: "20%",
+                  marginTop: "10px",
                   padding: "1rem 1rem",
                   borderRadius: "8px",
                   border: "1px solid",
@@ -80,6 +87,7 @@ export default function LoginTest() {
                required
                style={{
                   width: "20%",
+                  marginTop: "10px",
                   padding: "1rem 1rem",
                   borderRadius: "8px",
                   border: "1px solid",
@@ -89,15 +97,17 @@ export default function LoginTest() {
             <button
                type="submit"
                style={{
+                  backgroundColor: "LightSalmon",
                   width: "20%",
                   padding: "1rem 1rem",
-                  borderRadius: "8px",
-                  border: "1px solid",
+                  borderRadius: "100px",
+                  border: "1px ",
                   fontSize: "1rem",
+                  fontWeight: "bold",
                }}
             >
                {" "}
-               Log in & fetch data
+               Sign in
             </button>
          </form>
          <div
