@@ -158,7 +158,8 @@ export default function LoginTest() {
                      Sign in
                   </button>
                   <button
-                     type="submit"
+                     type="button"
+                     onClick={() => {}}
                      onMouseEnter={() => setHovered2(true)}
                      onMouseLeave={() => setHovered2(false)}
                      style={{
