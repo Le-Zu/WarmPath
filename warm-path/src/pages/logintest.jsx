@@ -64,6 +64,13 @@ export default function LoginTest() {
                value={email}
                onChange={(e) => setEmail(e.target.value)}
                required
+               style={{
+                  width: "20%",
+                  padding: "1rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  fontSize: "1rem",
+               }}
             />
             <input
                type="password"
@@ -71,8 +78,27 @@ export default function LoginTest() {
                value={password}
                onChange={(e) => setPassword(e.target.value)}
                required
+               style={{
+                  width: "20%",
+                  padding: "1rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  fontSize: "1rem",
+               }}
             />
-            <button type="submit"> Log in & fetch data</button>
+            <button
+               type="submit"
+               style={{
+                  width: "20%",
+                  padding: "1rem 1rem",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  fontSize: "1rem",
+               }}
+            >
+               {" "}
+               Log in & fetch data
+            </button>
          </form>
          <div
             style={{
