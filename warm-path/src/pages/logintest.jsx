@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
+import { Link } from "react-router-dom";
 
 export default function LoginTest() {
    const [email, setEmail] = useState("");
@@ -48,17 +49,27 @@ export default function LoginTest() {
 
    return (
       <div
-         style={{ background: "#f2e9e4", padding: "20px", fontFamily: "Arial" }}
+         style={{
+            background: "#f2e9e4",
+            padding: "20px",
+            color: "#386641",
+            fontFamily: "sans-serif",
+         }}
       >
-         <img
-            src="/logo.png"
-            alt="Logo"
-            style={{
-               height: "44px",
-               display: "block",
-               marginBottom: "2rem",
-            }}
-         />
+         <Link to="/">
+            <img
+               src="/logo.png"
+               alt="Logo"
+               style={{
+                  height: "46px",
+                  display: "block",
+                  marginBottom: "2rem",
+                  padding: "0.08rem 2rem",
+                  marginTop: "-0.55rem",
+                  marginLeft: "-0.24rem",
+               }}
+            />
+         </Link>
          <div
             style={{
                display: "flex",
@@ -73,6 +84,9 @@ export default function LoginTest() {
                   flexDirection: "column",
                   width: "360px",
                   gap: "10px",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
+                  padding: "45px 25px",
+                  borderRadius: "10px",
                }}
             >
                <h2
