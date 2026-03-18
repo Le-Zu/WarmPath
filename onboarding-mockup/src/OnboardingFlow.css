@@ -1,0 +1,262 @@
+.ob-wrapper {
+  min-height: 100vh;
+  background: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--dark);
+}
+
+.ob-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(56, 102, 65, 0.1);
+  width: 100%;
+  max-width: 520px;
+  padding: 2.5rem 2rem;
+}
+
+/* Step dots */
+.ob-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.ob-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.2s;
+}
+
+.ob-dot.active {
+  background: var(--warm);
+}
+
+/* Headings */
+.ob-heading {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--dark);
+  margin: 0 0 0.5rem;
+}
+
+.ob-subtext {
+  font-weight: 300;
+  color: var(--mid);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Password rules */
+.ob-pw-rules {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--border);
+}
+
+.ob-pw-rules li {
+  padding: 0.15rem 0;
+  transition: color 0.2s;
+}
+
+.ob-pw-rules li::before {
+  content: '✕ ';
+}
+
+.ob-pw-rules li.pass {
+  color: var(--mid);
+}
+
+.ob-pw-rules li.pass::before {
+  content: '✓ ';
+}
+
+/* Form elements */
+.ob-field {
+  margin-bottom: 1rem;
+}
+
+.ob-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--dark);
+  margin-bottom: 0.35rem;
+}
+
+.ob-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.ob-input:focus {
+  border-color: var(--warm);
+}
+
+.ob-textarea {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.ob-textarea:focus {
+  border-color: var(--warm);
+}
+
+/* Buttons */
+.ob-btn-primary {
+  display: inline-block;
+  padding: 0.7rem 2rem;
+  background: var(--warm);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.ob-btn-primary:hover:not(:disabled) {
+  background: #d45a3a;
+  transform: translateY(-1px);
+}
+
+.ob-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ob-btn-ghost {
+  display: inline-block;
+  padding: 0.7rem 1.5rem;
+  background: none;
+  color: var(--dark);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  border: none;
+  border-bottom: 1px solid var(--dark);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.ob-btn-ghost:hover {
+  color: var(--warm);
+  border-color: var(--warm);
+}
+
+.ob-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+/* Add connector button */
+.ob-add-btn {
+  background: none;
+  border: none;
+  color: var(--warm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: color 0.2s;
+}
+
+.ob-add-btn:hover {
+  color: #d45a3a;
+}
+
+/* Connector pair */
+.ob-connector-group {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ob-connector-group:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0;
+}
+
+/* Section label */
+.ob-section-label {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--dark);
+  margin: 1.5rem 0 0.75rem;
+}
+
+.ob-section-label:first-of-type {
+  margin-top: 0;
+}
+
+/* Complete screen */
+.ob-complete {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.ob-complete .ob-heading {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  margin-bottom: 1rem;
+}
+
+.ob-complete .ob-subtext {
+  font-size: 1.05rem;
+  margin-bottom: 2rem;
+}
+
+/* Helper text */
+.ob-helper {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--mid);
+  margin-top: 0.2rem;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .ob-card {
+    padding: 2rem 1.25rem;
+  }
+}

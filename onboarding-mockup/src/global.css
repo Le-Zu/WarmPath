@@ -1,0 +1,24 @@
+:root {
+  --cream: #f2e9e4;
+  --warm: #e76f51;
+  --warm-light: #f4a261;
+  --dark: #386641;
+  --mid: #6a994e;
+  --card-bg: #fff;
+  --border: #d88c9a;
+}
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--cream);
+  color: var(--dark);
+  -webkit-font-smoothing: antialiased;
+}
