@@ -24,7 +24,7 @@ app.get('/api/test-auth', verifyToken, (req: AuthRequest, res) => {
     const userUid = req.user?.uid;
     const userEmail = req.user?.email;
 
-    console.log('Secure request received from: ${userEmail}');
+    console.log(`Secure request received from: ${userEmail}`);
 
     res.json({
         message: "Authenticated request successful!",
