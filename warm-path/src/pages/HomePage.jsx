@@ -258,7 +258,7 @@ export default function HomePage() {
 
             {/* FOOTER */}
             <footer className="hp-footer">
-               <img src="/warmpath-logo.png" alt="WarmPath" />
+               <img src="/logo.png" alt="WarmPath" />
                <span>© 2026 WarmPath. Built for real connections.</span>
             </footer>
          </div>

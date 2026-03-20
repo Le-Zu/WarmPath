@@ -167,7 +167,6 @@ export default function LoginTest() {
                         width: "100%",
                         padding: "1rem 1rem",
                         borderRadius: "100px",
-                        border: "1px  ",
                         fontSize: "1rem",
                         fontWeight: "bold",
                         marginTop: ".8rem",
