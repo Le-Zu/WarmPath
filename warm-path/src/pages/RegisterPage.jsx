@@ -40,7 +40,7 @@ export default function RegisterPage() {
                "Content-Type": "application/json",
             },
          });
-         //navigate("/profile"); //For later
+         navigate("/profile"); //For later
       } catch (err) {
          console.error("Register error", err);
          setbackendMessage(`Register failed: ${err.message}`);

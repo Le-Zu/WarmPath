@@ -44,6 +44,7 @@ export default function LoginTest() {
          // Read the backend's response
          const data = await response.json();
          setbackendMessage(`Backend says: ${JSON.stringify(data)}`);
+         navigate("/profile"); //For later
       } catch (error) {
          console.error("Login error during auth or fetch:", error);
          setbackendMessage(`Login failed: ${error.message}`);
