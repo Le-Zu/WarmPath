@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function LoginTest() {
+   const navigate = useNavigate();
    const [email, setEmail] = useState("");
    const [password, setPassword] = useState("");
    const [backendMessage, setbackendMessage] = useState("");
@@ -159,7 +160,7 @@ export default function LoginTest() {
                   </button>
                   <button
                      type="button"
-                     onClick={() => {}}
+                     onClick={() => navigate("/register")}
                      onMouseEnter={() => setHovered2(true)}
                      onMouseLeave={() => setHovered2(false)}
                      style={{

@@ -18,13 +18,13 @@ export default function RegisterPage() {
 
    const handleRegister = async (e) => {
       e.preventDefault();
+      setbackendMessage("");
 
       if (form.password !== form.confirm) {
          setbackendMessage("Passwords don't match.");
          return;
       }
 
-      setbackendMessage("Creating account...");
       try {
          const userCredential = await createUserWithEmailAndPassword(
             auth,
@@ -40,8 +40,7 @@ export default function RegisterPage() {
                "Content-Type": "application/json",
             },
          });
-         if (!res.ok) throw new Error("Failed to create user profile.");
-         navigate("/profile");
+         //navigate("/profile"); //For later
       } catch (err) {
          console.error("Register error", err);
          setbackendMessage(`Register failed: ${err.message}`);
@@ -49,43 +48,172 @@ export default function RegisterPage() {
    };
 
    return (
-      <div>
-         <form onSubmit={handleRegister}>
-            <label>Email</label>
-            <input
-               name="email"
-               type="email"
-               value={form.email}
-               placeholder="you@example.com"
-               required
-               autoComplete="email"
-               onChange={handleChange}
+      <div
+         style={{
+            background: "#f2e9e4",
+            padding: "20px",
+            color: "#386641",
+            fontFamily: "sans-serif",
+         }}
+      >
+         <Link to="/">
+            <img
+               src="/logo.png"
+               alt="Logo"
+               style={{
+                  height: "62px",
+                  display: "block",
+                  marginBottom: "2rem",
+                  padding: "0.08rem 2rem",
+                  marginTop: "-0.55rem",
+                  marginLeft: "-0.24rem",
+               }}
             />
+         </Link>
 
-            <label>Password</label>
-            <input
-               name="password"
-               type="password"
-               value={form.password}
-               placeholder="At least 6 characters"
-               required
-               autoComplete="new-password"
-               onChange={handleChange}
-            />
+         <div
+            style={{
+               display: "flex",
+               justifyContent: "center",
+               alignItems: "center",
+               minHeight: "calc(100vh - 110px)",
+            }}
+         >
+            <div
+               style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "360px",
+                  gap: "10px",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
+                  padding: "45px 25px",
+                  borderRadius: "10px",
+               }}
+            >
+               <h2 style={{ fontSize: "1.5rem" }}>Create account</h2>
 
-            <label> Confirm Password</label>
-            <input
-               name="confirm"
-               type="password"
-               value={form.confirm}
-               placeholder="Repeat your password"
-               required
-               autoComplete="new-password"
-               onChange={handleChange}
-            />
+               <form
+                  onSubmit={handleRegister}
+                  style={{
+                     display: "flex",
+                     flexDirection: "column",
+                     gap: "10px",
+                  }}
+               >
+                  <input
+                     name="email"
+                     type="email"
+                     placeholder="Email"
+                     value={form.email}
+                     onChange={handleChange}
+                     required
+                     autoComplete="email"
+                     style={{
+                        backgroundColor: "#f2e9e4",
+                        width: "100%",
+                        marginTop: "10px",
+                        padding: "1rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "1rem",
+                     }}
+                  />
 
-            <button type="submit">Create account</button>
-         </form>
+                  <input
+                     name="password"
+                     type="password"
+                     placeholder="Password (at least 6 characters)"
+                     value={form.password}
+                     onChange={handleChange}
+                     required
+                     autoComplete="new-password"
+                     style={{
+                        backgroundColor: "#f2e9e4",
+                        width: "100%",
+                        marginTop: "10px",
+                        padding: "1rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "1rem",
+                     }}
+                  />
+
+                  <input
+                     name="confirm"
+                     type="password"
+                     placeholder="Confirm password"
+                     value={form.confirm}
+                     onChange={handleChange}
+                     required
+                     autoComplete="new-password"
+                     style={{
+                        backgroundColor: "#f2e9e4",
+                        width: "100%",
+                        marginTop: "10px",
+                        padding: "1rem 1rem",
+                        borderRadius: "8px",
+                        border: "1px solid",
+                        fontSize: "1rem",
+                     }}
+                  />
+
+                  {backendMessage && (
+                     <p
+                        style={{
+                           color: "Tomato",
+                           fontSize: "0.875rem",
+                           marginTop: "4px",
+                        }}
+                     >
+                        {backendMessage}
+                     </p>
+                  )}
+
+                  <button
+                     type="submit"
+                     onMouseEnter={() => setHovered(true)}
+                     onMouseLeave={() => setHovered(false)}
+                     style={{
+                        backgroundColor: hovered ? "#e8825a" : "LightSalmon",
+                        width: "100%",
+                        padding: "1rem 1rem",
+                        borderRadius: "100px",
+                        border: "1px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        marginTop: ".8rem",
+                        cursor: "pointer",
+                        transition: "background-color 0.1s",
+                     }}
+                  >
+                     Create account
+                  </button>
+
+                  <button
+                     type="button"
+                     onClick={() => navigate("/logintest")}
+                     onMouseEnter={() => setHovered2(true)}
+                     onMouseLeave={() => setHovered2(false)}
+                     style={{
+                        backgroundColor: hovered2 ? "#ecc6b5" : "#f2e9e4",
+                        width: "100%",
+                        padding: "1rem 1rem",
+                        borderRadius: "100px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        marginTop: ".8rem",
+                        border: "1px solid",
+                        borderColor: "Tomato",
+                        color: "Tomato",
+                        cursor: "pointer",
+                        transition: "background-color 0.1s",
+                     }}
+                  >
+                     Sign in instead
+                  </button>
+               </form>
+            </div>
+         </div>
       </div>
    );
 }
