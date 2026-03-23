@@ -41,7 +41,7 @@ html {
    align-items: center;
    justify-content: space-between;
    padding: 0.75rem 3rem;
-   background: rgba(242, 233, 228, 0.92);
+   background: rgba(226, 213, 207, 0.92);
    backdrop-filter: blur(12px);
    border-bottom: 1px solid var(--border);
 }
@@ -594,7 +594,7 @@ html {
    justify-content: space-between;
    font-size: 0.8rem;
    color: var(--mid);
-   background: var(--cream);
+   background: rgba(226, 213, 207, 0.92);
 }
 
 .hp-footer img {
