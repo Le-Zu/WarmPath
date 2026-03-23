@@ -63,7 +63,7 @@ export default function LoginTest() {
                src="/logo.png"
                alt="Logo"
                style={{
-                  height: "46px",
+                  height: "62px",
                   display: "block",
                   marginBottom: "2rem",
                   padding: "0.08rem 2rem",

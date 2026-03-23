@@ -40,14 +40,14 @@ html {
    display: flex;
    align-items: center;
    justify-content: space-between;
-   padding: 0.75rem 3rem;
+   padding: 0.25rem 3rem;
    background: rgba(226, 213, 207, 0.92);
    backdrop-filter: blur(12px);
    border-bottom: 1px solid var(--border);
 }
 
 .hp-nav-logo img {
-   height: 44px;
+   height: 55px;
    display: block;
 }
 
