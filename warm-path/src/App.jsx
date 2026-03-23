@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage"; // Page
 import LoginTest from "./pages/logintest"; // component
 import RegisterPage from "./pages/RegisterPage";
+import ProfilePage from "./pages/ProfilePage";
 //import ProtectRoute from './components/ProtectedRoute.jsx'; // component
 
 export default function App() {
@@ -18,6 +19,9 @@ export default function App() {
             <Route path="/logintest" element={<LoginTest />} />
 
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Profile Page */}
+            <Route path="/profile" element={<ProfilePage />} />
 
             {/* WIP Dashboard for later */}
             {/* <Route path="/dashboard" element={
