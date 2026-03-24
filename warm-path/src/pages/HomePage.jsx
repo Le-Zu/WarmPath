@@ -208,7 +208,7 @@ export default function HomePage() {
 
                <div className="hp-features-grid">
                   {features.map((f, i) => (
-                     <div className="hp-feature-item">
+                     <div key={f.num} className="hp-feature-item">
                         <div className="hp-feature-num">{f.num}</div>
                         <div className="hp-feature-title">{f.title}</div>
                         <p className="hp-feature-desc">{f.desc}</p>
@@ -225,7 +225,7 @@ export default function HomePage() {
                   </h2>
                   <div className="hp-steps">
                      {steps.map((s, i) => (
-                        <div className="hp-step">
+                        <div key={s.num} className="hp-step">
                            <div className="hp-step-num">{s.num}</div>
                            <div className="hp-step-title">{s.title}</div>
                            <p className="hp-step-desc">{s.desc}</p>
