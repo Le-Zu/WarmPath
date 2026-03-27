@@ -1,7 +1,7 @@
 CREATE VIEW user_connections_view AS
 SELECT c.connection_id, c.context, c.warmth_score, c.accepted_at,
        u1.user_id AS user_id, u2.user_id AS connected_user_id,
-       u2.first_name, u2.last_name, u2.major, u2.year
+       u2.first_name, u2.last_name, u2.major, u2.year, u2.profile_picture_url
 FROM connections c
 JOIN users u1 ON u1.user_id = c.user_id_a
 JOIN users u2 ON u2.user_id = c.user_id_b
@@ -9,7 +9,7 @@ WHERE c.status = 'accepted'
 UNION ALL
 SELECT c.connection_id, c.context, c.warmth_score, c.accepted_at,
        u2.user_id, u1.user_id,
-       u1.first_name, u1.last_name, u1.major, u1.year
+       u1.first_name, u1.last_name, u1.major, u1.year, u1.profile_picture_url
 FROM connections c
 JOIN users u1 ON u1.user_id = c.user_id_a
 JOIN users u2 ON u2.user_id = c.user_id_b

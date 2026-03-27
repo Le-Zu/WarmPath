@@ -21,6 +21,7 @@ CREATE TABLE users (
     bio             TEXT,
     linkedin_url    VARCHAR(500),
     resume_url      VARCHAR(500),
+    profile_picture_url VARCHAR(500),
     profile_complete BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
@@ -290,7 +291,8 @@ SELECT
     u2.first_name,
     u2.last_name,
     u2.major,
-    u2.year
+    u2.year,
+    u2.profile_picture_url
 FROM connections c
 JOIN users u1 ON u1.user_id = c.user_id_a
 JOIN users u2 ON u2.user_id = c.user_id_b
@@ -308,7 +310,8 @@ SELECT
     u1.first_name,
     u1.last_name,
     u1.major,
-    u1.year
+    u1.year,
+    u1.profile_picture_url
 FROM connections c
 JOIN users u1 ON u1.user_id = c.user_id_a
 JOIN users u2 ON u2.user_id = c.user_id_b
