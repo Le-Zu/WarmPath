@@ -2,8 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import { verifyToken, AuthRequest } from './middleware/authMiddleware';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import "dotenv/config";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 const app = express();
 const PORT = process.env.PORT || 5000;
 

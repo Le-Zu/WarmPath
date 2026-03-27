@@ -13,7 +13,7 @@ import psycopg2
 from faker import Faker
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 fake = Faker()
 
