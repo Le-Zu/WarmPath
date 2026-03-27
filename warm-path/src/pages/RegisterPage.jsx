@@ -2,8 +2,7 @@ import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { Link, useNavigate } from "react-router-dom";
-
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import apiUrl from "../apiConfig";
 
 export default function RegisterPage() {
    const navigate = useNavigate();
@@ -33,6 +32,7 @@ export default function RegisterPage() {
          );
          const user = userCredential.user;
          const token = await user.getIdToken();
+         
          const res = await fetch(`${apiUrl}/api/users`, {
             method: "POST",
             headers: {
@@ -40,10 +40,20 @@ export default function RegisterPage() {
                "Content-Type": "application/json",
             },
          });
-         //navigate("/profile"); //For later
+
+         if (res.ok) {
+            setbackendMessage("Registration successful! Redirecting...");
+            // setTimeout(() => navigate("/"), 2000); // Redirect after success
+         } else {
+            const errorData = await res.json();
+            setbackendMessage(`Backend sync failed: ${errorData.message || res.statusText}`);
+         }
       } catch (err) {
          console.error("Register error", err);
-         setbackendMessage(`Register failed: ${err.message}`);
+         let message = `Register failed: ${err.message}`;
+         if (err.code === 'auth/email-already-in-use') message = "This email is already registered.";
+         if (err.code === 'auth/weak-password') message = "Password should be at least 6 characters.";
+         setbackendMessage(message);
       }
    };
 

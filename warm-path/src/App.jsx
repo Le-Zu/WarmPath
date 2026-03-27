@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Import pages and components
 import HomePage from "./pages/HomePage"; // Page
-import LoginTest from "./pages/logintest"; // component
+import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 //import ProtectRoute from './components/ProtectedRoute.jsx'; // component
 
@@ -14,8 +14,8 @@ export default function App() {
             {/* The Home Page */}
             <Route index element={<HomePage />} />
 
-            {/* The Login Test Page --Accessible to anyone (for now)*/}
-            <Route path="/logintest" element={<LoginTest />} />
+            {/* The Login Page */}
+            <Route path="/logintest" element={<LoginPage />} />
 
             <Route path="/register" element={<RegisterPage />} />
 
