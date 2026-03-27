@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { verifyToken, AuthRequest } from './middleware/authMiddleware';
+import { verifyToken, dbUserMiddleware, AuthRequest } from './middleware/authMiddleware';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,20 +18,25 @@ app.get('/api/ping', (req, res) => {
     res.json({ message: 'PONG: WarmPath API is up and running!' });
 });
 
-// -- Protected route
-app.get('/api/test-auth', verifyToken, (req: AuthRequest, res) => {
+// -- Protected routes
+// Use dbUserMiddleware after verifyToken to populate the user's DB ID for RLS
+app.use('/api', verifyToken, dbUserMiddleware);
+
+app.get('/api/test-auth', (req: AuthRequest, res) => {
     
     const userUid = req.user?.uid;
     const userEmail = req.user?.email;
+    const dbUserId = req.dbUser?.user_id;
 
-    console.log(`Secure request received from: ${userEmail}`);
+    console.log(`Secure request received from: ${userEmail} (DB ID: ${dbUserId})`);
 
     res.json({
         message: "Authenticated request successful!",
         userUid,
-        userEmail
+        userEmail,
+        dbUserId
     });
-    })
+});
 
     // Starts the server
 app.listen(PORT, () => {
