@@ -226,6 +226,7 @@ def seed():
                         if source == "linkedin_import" else None)
         resume_url   = (f"https://resumes.uni.edu/{uid}.pdf"
                         if source == "resume_import" else None)
+        profile_picture_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed={uid}"
         linkedin_at  = days_ago(random.randint(5, 30)) if source == "linkedin_import" else None
         resume_at    = days_ago(random.randint(5, 30)) if source == "resume_import"   else None
 
@@ -233,14 +234,14 @@ def seed():
             INSERT INTO users (
                 user_id, is_active, email, password_hash,
                 first_name, last_name, year, major, bio,
-                linkedin_url, resume_url, profile_complete,
+                linkedin_url, resume_url, profile_picture_url, profile_complete,
                 profile_source, linkedin_import_at, resume_parsed_at,
                 created_at, updated_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             uid, True, email, hash_password("Password123!"),
             first, last, year, major, bio,
-            linkedin_url, resume_url, True,
+            linkedin_url, resume_url, profile_picture_url, True,
             source, linkedin_at, resume_at,
             days_ago(random.randint(30, 90)),
             days_ago(random.randint(1, 10)),

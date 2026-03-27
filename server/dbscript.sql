@@ -21,6 +21,7 @@ CREATE TABLE users (
     bio             TEXT,
     linkedin_url    VARCHAR(500),
     resume_url      VARCHAR(500),
+    profile_picture_url VARCHAR(500),
     profile_complete BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
