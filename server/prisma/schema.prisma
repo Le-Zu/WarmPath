@@ -1,6 +1,25 @@
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// ============================================================
+// Prisma Schema — Network Platform
+// Aligned with all 8 core features + like-to-have features
+//
+// Naming conventions:
+//   - snake_case fields, PascalCase model names
+//   - lowercase enum values with @@map
+//   - dbgenerated("gen_random_uuid()") for PKs
+//
+// Relation policy:
+//   - onDelete: Restrict  — records preserved on deactivation
+//   - onUpdate: Cascade   — PK changes propagate automatically
+//   - Every FK has a named @relation (20 total)
+//
+// Deactivation policy (replaces cascade deletes):
+//   - Users.is_active = false → account frozen at app layer
+//   - Display name becomes "Frozen_User"
+//   - Profile fields hidden at application layer
+//
+// Constraints not expressible in Prisma PSL are noted with
+// -- RAW CONSTRAINT comments for use in migration SQL files.
+// ============================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -10,72 +29,527 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  phone     String?  @unique
-  firstName String?
-  lastName  String?
-  bio       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================================
+// ENUMS
+// ============================================================
 
-  // 1. The Standard Social Graph (Who knows Who)
-  // This self-relation is needed for your "Path Discovery" algorithm
-  friends  Connection[] @relation("UserFriends")
-  friendOf Connection[] @relation("ConnectedUsers")
+// F1 + F2 + F6 — interest/experience/intent categories
+// Values aligned with SQL script; extended with experience types
+enum IntentCategory {
+  class
+  internship
+  research
+  club
+  skill
+  other       // covers uncategorised / SQL year CHECK 'other'
+  full_time
+  part_time
+  volunteer
+  project
 
-  // 2. The triangular "Warm Intro" Relations
-  introsRequested   Introduction[] @relation("RequesterRelation")
-  introsTargeted    Introduction[] @relation("TargetRelation")
-  introsConnected Introduction[] @relation("ConnecterRelation")
-
-  // 3. The TriadrRelation")
+  @@map("intent_category")
 }
 
-// Model for standard 1-to-1 connections (The baseline network)
-model Connection {
-  id         String @id @default(uuid())
-  createdAt DateTime @default(now())
+// Privacy Settings (like-to-have)
+enum RequestPermission {
+  anyone
+  connections
+  connections_of_connections
+  nobody
 
-  userId    String
-  connectedId String
-
-  user      User @relation("UserFriends", fields: [userId], references: [id])
-  connected User @relation("ConnectedUsers", fields: [connectedId], references: [id])
-
-  //Ensures User A can't add User B as a friend more than once
-  @@unique([userId, connectedId])
+  @@map("request_permission")
 }
 
-// Model for the Wam Intro (The Triangular Transaction)
+// F1 — Connection status
+enum ConnectionStatus {
+  pending
+  accepted
+  declined
+  blocked
 
-model Introduction {
-  id String @id @default(uuid())
-  status IntroStatus @default(PENDING)
-  
-  // The Triad Foreign Keys
-  requesterId String
-  targetId String
-  connecterId String
-
-  //The Triad Relations
-  requester User @relation("RequesterRelation", fields: [requesterId], references: [id])
-  target User @relation("TargetRelation", fields: [targetId], references: [id])
-  connector User @relation("ConnecterRelation", fields: [connecterId], references: [id])
-
-  //The Data Payload
-  intentContext String? // The "Context Pre-Read " the requestor sends to the connector
-  icebreaker String? // The prompt logic text generated once the intro is approved
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  @@map("connection_status")
 }
 
-// Enum to strictly track the state of the intro
-enum IntroStatus {
-  PENDING // Requester asked Connector
-  ACCEPTED // Connector vouched, Chat unlocks
-  REJECTED // Connector declined the intro
+// F4 + F5 — Intro request lifecycle
+// Values aligned with SQL: pending → approved → declined/withdrawn
+enum RequestStatus {
+  pending
+  approved
+  declined
+  withdrawn
+  expired
+  completed
+
+  @@map("request_status")
+}
+
+// F8 — Conversation channel type
+// chat = in-platform window, email = async email thread
+enum ConversationType {
+  chat
+  email
+
+  @@map("conversation_type")
+}
+
+// F8 — Conversation lifecycle
+// connector_left: connector made intro and stepped out
+enum ConversationStatus {
+  active
+  connector_left
+  closed
+
+  @@map("conversation_status")
+}
+
+// F8 — Role of each participant in a conversation
+enum ParticipantRole {
+  requester
+  connector
+  target
+
+  @@map("participant_role")
+}
+
+// Notifications inbox (like-to-have)
+// Values aligned with SQL script
+enum NotificationType {
+  intro_request
+  request_approved
+  request_declined
+  new_message
+  connector_prompt
+  connection_accepted
+
+  @@map("notification_type")
+}
+
+// F6 — Connector prompt lifecycle
+// volunteered = connector named someone; dismissed = skipped
+enum PromptStatus {
+  pending
+  volunteered
+  dismissed
+
+  @@map("prompt_status")
+}
+
+// Profile Creation (like-to-have) — how the profile was populated
+enum ProfileSource {
+  manual
+  linkedin_import
+  resume_import
+
+  @@map("profile_source")
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+// ------------------------------------------------------------
+// Users
+// Core identity. All features depend on this table.
+// F1: source of connections
+// F2: source of intents
+// F3: nodes in path discovery
+// F4/F5: requester, connector, target roles
+// Profile creation (A/B): manual entry or import
+//
+// RAW CONSTRAINT (migration SQL):
+//   CREATE INDEX idx_users_email ON users(email);
+// ------------------------------------------------------------
+model Users {
+  user_id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Deactivation — replaces cascade deletes
+  is_active        Boolean       @default(true)
+
+  // Auth
+  email            String        @unique @db.VarChar(255)
+  password_hash    String        @db.VarChar(255)
+
+  // Profile (hidden at app layer when is_active = false)
+  first_name       String        @db.VarChar(100)
+  last_name        String        @db.VarChar(100)
+  // RAW CONSTRAINT: CHECK (year IN ('freshman','sophomore','junior','senior','grad','other'))
+  year             String?       @db.VarChar(20)
+  major            String?       @db.VarChar(100)
+  bio              String?       @db.Text
+  linkedin_url     String?       @db.VarChar(500)
+  resume_url       String?       @db.VarChar(500)
+  profile_picture_url String?    @db.VarChar(500)
+  profile_complete Boolean       @default(false)
+
+  // Profile creation tracking (like-to-have F: Profile Creation A/B)
+  profile_source   ProfileSource @default(manual)
+  linkedin_import_at DateTime?   // set when LinkedIn import is run
+  resume_parsed_at   DateTime?   // set when resume parser completes
+
+  created_at       DateTime      @default(now())
+  // @updatedAt is equivalent to the trg_users_updated_at trigger in SQL
+  updated_at       DateTime      @default(now()) @updatedAt
+
+  // ── Relations ──────────────────────────────────────────────
+
+  // Profile data (1:M)
+  interests            UserInterests[]           @relation("HasInterests")
+  experiences          UserExperiences[]         @relation("HasExperiences")
+  // privacy_settings auto-created at app layer on user insert
+  // (equivalent to trg_new_user_privacy — handle in service layer)
+  privacy_settings     PrivacySettings?          @relation("HasPrivacySetting")
+  intents              Intents[]                 @relation("HasIntents")
+  notifications        Notifications[]           @relation("ReceivesNotifications")
+
+  // Connections — user appears as either side (F1)
+  connections_a        Connections[]             @relation("InitiatedConnections")
+  connections_b        Connections[]             @relation("ReceivedConnections")
+
+  // Intro requests — three roles (F4/F5)
+  requests_sent        IntroRequests[]           @relation("RequestedIntros")
+  requests_to_connect  IntroRequests[]           @relation("FacilitatedIntros")
+  requests_targeted    IntroRequests[]           @relation("TargetedIntros")
+
+  // Conversations & messages (F8)
+  conversation_participants ConversationParticipants[] @relation("ParticipatesIn")
+  messages_sent             Messages[]                 @relation("SentMessages")
+
+  // Connector prompts — connector or volunteered target (F6)
+  connector_prompts    ConnectorPrompts[]         @relation("AssignedPrompts")
+  volunteer_prompts    ConnectorPrompts[]         @relation("VolunteeredPrompts")
+
+  @@map("users")
+}
+
+// ------------------------------------------------------------
+// UserInterests
+// Profile building block — what a user is interested in / good at.
+// Used in F7 pre-read summaries and F3 path relevance.
+//
+// RAW CONSTRAINT (migration SQL):
+//   CREATE INDEX idx_user_interests_user ON user_interests(user_id);
+// ------------------------------------------------------------
+model UserInterests {
+  interest_id String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String         @db.Uuid
+  category    IntentCategory
+  label       String         @db.VarChar(200)
+
+  user Users @relation("HasInterests", fields: [user_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@map("user_interests")
+}
+
+// ------------------------------------------------------------
+// UserExperiences
+// Profile building block — work/academic/volunteer history.
+// Used in F7 pre-read summaries.
+//
+// RAW CONSTRAINT (migration SQL):
+//   CREATE INDEX idx_user_experiences_user ON user_experiences(user_id);
+// ------------------------------------------------------------
+model UserExperiences {
+  experience_id String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String         @db.Uuid
+  type          IntentCategory
+  title         String         @db.VarChar(200)
+  organization  String?        @db.VarChar(200)
+  start_date    DateTime?      @db.Date
+  end_date      DateTime?      @db.Date    // NULL = current/ongoing
+  description   String?        @db.Text
+
+  user Users @relation("HasExperiences", fields: [user_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@map("user_experiences")
+}
+
+// ------------------------------------------------------------
+// PrivacySettings
+// One row per user — auto-created at app layer on user insert.
+// Controls who can request an intro (like-to-have feature).
+// ------------------------------------------------------------
+model PrivacySettings {
+  privacy_id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String            @unique @db.Uuid
+  who_can_request         RequestPermission @default(connections_of_connections)
+  show_in_discovery       Boolean           @default(true)
+  allow_connector_prompts Boolean           @default(true)
+
+  user Users @relation("HasPrivacySetting", fields: [user_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("privacy_settings")
+}
+
+// ------------------------------------------------------------
+// Connections  (F1 — Manual Connection Adding)
+// Bidirectional peer relationship. user_id_a < user_id_b enforced
+// in migration SQL to prevent duplicate pairs.
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CONSTRAINT chk_no_self_connection CHECK (user_id_a <> user_id_b)
+//   CONSTRAINT chk_ordered_ids        CHECK (user_id_a < user_id_b)
+//   CONSTRAINT warmth_range           CHECK (warmth_score BETWEEN 1 AND 5)
+//   CREATE INDEX idx_connections_a ON connections(user_id_a);
+//   CREATE INDEX idx_connections_b ON connections(user_id_b);
+// ------------------------------------------------------------
+model Connections {
+  connection_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id_a     String           @db.Uuid
+  user_id_b     String           @db.Uuid
+  // F1: context is required — "CS 499 group", "Debate club", etc.
+  context       String           @db.Text
+  // F3: warmth_score used to rank paths (1 = weak, 5 = strong)
+  warmth_score  Int?             @db.SmallInt
+  status        ConnectionStatus @default(pending)
+  created_at    DateTime         @default(now())
+  accepted_at   DateTime?
+
+  user_a Users @relation("InitiatedConnections", fields: [user_id_a], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  user_b Users @relation("ReceivedConnections",  fields: [user_id_b], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([user_id_a, user_id_b], name: "uq_connection_pair")
+  @@index([user_id_a])
+  @@index([user_id_b])
+  @@map("connections")
+}
+
+// ------------------------------------------------------------
+// Intents  (F2 — Intent Declaration)
+// User must have an active intent before browsing (F2 gate).
+// Only one intent may be active per user at a time.
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CREATE UNIQUE INDEX uq_one_active_intent
+//       ON intents(user_id) WHERE is_active = TRUE;
+//   CREATE INDEX idx_intents_user   ON intents(user_id);
+//   CREATE INDEX idx_intents_active ON intents(is_active) WHERE is_active = TRUE;
+//   -- trg_one_active_intent: deactivates old intent on new insert
+//   --   (handle at service layer: set is_active=FALSE on previous row)
+// ------------------------------------------------------------
+model Intents {
+  intent_id   String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String         @db.Uuid
+  category    IntentCategory
+  description String         @db.Text
+  is_active   Boolean        @default(true)
+  created_at  DateTime       @default(now())
+  expires_at  DateTime?
+
+  user     Users              @relation("HasIntents", fields: [user_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  // F4: requests linked to this intent
+  requests IntroRequests[]    @relation("GeneratedIntroRequests")
+  // F6: connector prompts surfaced from this intent
+  prompts  ConnectorPrompts[] @relation("GeneratedConnectorPrompts")
+
+  @@index([user_id])
+  @@map("intents")
+}
+
+// ------------------------------------------------------------
+// IntroRequests  (F4 — Intro Request, F5 — Connector Inbox)
+// Core workflow. Requester → Connector → Target.
+// Target never sees the request until connector approves.
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CONSTRAINT chk_distinct_parties CHECK (
+//       requester_id <> connector_id AND
+//       requester_id <> target_id   AND
+//       connector_id <> target_id)
+//   CREATE INDEX idx_intro_requests_requester ON intro_requests(requester_id);
+//   CREATE INDEX idx_intro_requests_connector ON intro_requests(connector_id);
+//   CREATE INDEX idx_intro_requests_target    ON intro_requests(target_id);
+//   CREATE INDEX idx_intro_requests_status    ON intro_requests(status);
+//   -- trg_intro_request_responded: set responded_at when status leaves 'pending'
+//   --   (handle at service layer)
+// ------------------------------------------------------------
+model IntroRequests {
+  request_id     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id   String        @db.Uuid
+  connector_id   String        @db.Uuid
+  target_id      String        @db.Uuid
+  intent_id      String        @db.Uuid
+  // F4: app generates draft; user may edit before sending
+  draft_message  String        @db.Text
+  edited_message String?       @db.Text    // NULL = sent as-is
+  status         RequestStatus @default(pending)
+  connector_note String?       @db.Text    // F5: connector's decline reason / edit note
+  created_at     DateTime      @default(now())
+  responded_at   DateTime?     // set at service layer when status leaves 'pending'
+
+  requester Users   @relation("RequestedIntros",  fields: [requester_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
+  connector Users   @relation("FacilitatedIntros", fields: [connector_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
+  target    Users   @relation("TargetedIntros",    fields: [target_id],    references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
+  intent    Intents @relation("GeneratedIntroRequests", fields: [intent_id], references: [intent_id], onDelete: Restrict, onUpdate: Cascade)
+
+  // F7: pre-reads generated when request is approved
+  context_prereads ContextPrereads[] @relation("RequiresPrereads")
+  // F8: conversation spawned on approval (one per request)
+  conversation     Conversations?    @relation("ResultsInConversations")
+
+  @@index([requester_id])
+  @@index([connector_id])
+  @@index([target_id])
+  @@index([status])
+  @@map("intro_requests")
+}
+
+// ------------------------------------------------------------
+// ContextPrereads  (F7 — Context Pre-Reads)
+// Generated when an intro is approved. Both parties receive
+// a brief AI summary of the other person before chatting.
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CONSTRAINT uq_preread UNIQUE (request_id, recipient_id, subject_id)
+//   CREATE INDEX idx_prereads_recipient ON context_prereads(recipient_id);
+//   CREATE INDEX idx_prereads_request   ON context_prereads(request_id);
+// ------------------------------------------------------------
+model ContextPrereads {
+  preread_id   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  request_id   String    @db.Uuid
+  // Hard FK — recipient must exist; record still preserved on deactivation (Restrict)
+  recipient_id String    @db.Uuid    // user who reads the summary
+  subject_id   String    @db.Uuid    // user whose profile is summarised
+  summary      String    @db.Text    // NOT NULL — AI-generated before delivery
+  created_at   DateTime  @default(now())
+  viewed_at    DateTime?
+
+  intro_request IntroRequests @relation("RequiresPrereads", fields: [request_id], references: [request_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([request_id, recipient_id, subject_id], name: "uq_preread")
+  @@index([recipient_id])
+  @@index([request_id])
+  @@map("context_prereads")
+}
+
+// ------------------------------------------------------------
+// Conversations  (F8 — Coffee Chats)
+// One conversation per approved intro request (enforced by
+// @unique on request_id). Supports both chat and email modes.
+// Connector may leave after warm intro (connector_left status).
+//
+// RAW CONSTRAINT (migration SQL):
+//   CREATE INDEX idx_conversations_request ON conversations(request_id);
+// ------------------------------------------------------------
+model Conversations {
+  conversation_id String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // One conversation per intro request — NOT NULL, UNIQUE
+  request_id      String             @unique @db.Uuid
+  // chat = in-platform window; email = async email thread (F8 alt)
+  type            ConversationType   @default(chat)
+  status          ConversationStatus @default(active)
+  created_at      DateTime           @default(now())
+
+  intro_request IntroRequests             @relation("ResultsInConversations", fields: [request_id], references: [request_id], onDelete: Restrict, onUpdate: Cascade)
+  participants  ConversationParticipants[] @relation("InvolvesParticipants")
+  messages      Messages[]                @relation("ContainsMessages")
+
+  @@index([request_id])
+  @@map("conversations")
+}
+
+// ------------------------------------------------------------
+// ConversationParticipants  (F8)
+// Tracks requester, connector, and target in each conversation.
+// left_at is set when connector steps out after warm intro.
+// ------------------------------------------------------------
+model ConversationParticipants {
+  participant_id  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String          @db.Uuid
+  user_id         String          @db.Uuid
+  // F8: requester / connector / target roles
+  role            ParticipantRole
+  joined_at       DateTime        @default(now())
+  // F8: connector sets left_at after making warm intro comment
+  left_at         DateTime?
+
+  conversation Conversations @relation("InvolvesParticipants", fields: [conversation_id], references: [conversation_id], onDelete: Restrict, onUpdate: Cascade)
+  user         Users         @relation("ParticipatesIn",        fields: [user_id],         references: [user_id],         onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([conversation_id, user_id], name: "uq_participant")
+  @@index([conversation_id])
+  @@index([user_id])
+  @@map("conversation_participants")
+}
+
+// ------------------------------------------------------------
+// Messages  (F8 — Coffee Chats)
+// Individual messages within a conversation.
+// is_warm_intro = true flags the connector's icebreaker message.
+// ------------------------------------------------------------
+model Messages {
+  message_id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String    @db.Uuid
+  sender_id       String    @db.Uuid
+  body            String    @db.Text
+  // F8: flags the connector's warm intro / icebreaker message
+  is_warm_intro   Boolean   @default(false)
+  sent_at         DateTime  @default(now())
+  read_at         DateTime?
+
+  conversation Conversations @relation("ContainsMessages", fields: [conversation_id], references: [conversation_id], onDelete: Restrict, onUpdate: Cascade)
+  sender       Users         @relation("SentMessages",     fields: [sender_id],       references: [user_id],         onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([conversation_id])
+  @@index([sender_id])
+  @@index([conversation_id, sent_at])
+  @@map("messages")
+}
+
+// ------------------------------------------------------------
+// Notifications  (like-to-have — Notifications Inbox)
+// reference_id + reference_type form a polymorphic hard ref
+// to the triggering record (required, not nullable).
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CREATE INDEX idx_notifications_user   ON notifications(user_id);
+//   CREATE INDEX idx_notifications_unread ON notifications(user_id) WHERE is_read = FALSE;
+// ------------------------------------------------------------
+model Notifications {
+  notification_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String           @db.Uuid
+  type            NotificationType
+  // Both fields required — every notification links to a concrete record
+  reference_id    String           @db.Uuid          // ID of the related entity
+  reference_type  String           @db.VarChar(50)   // e.g. 'intro_requests', 'messages'
+  is_read         Boolean          @default(false)
+  created_at      DateTime         @default(now())
+
+  user Users @relation("ReceivesNotifications", fields: [user_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@map("notifications")
+}
+
+// ------------------------------------------------------------
+// ConnectorPrompts  (F6 — Proactive Connector Prompts)
+// System-generated nudge to a connector when someone in their
+// network posts an intent. One prompt per connector per intent.
+//
+// RAW CONSTRAINTS (migration SQL):
+//   CONSTRAINT uq_prompt_per_connector UNIQUE (intent_id, connector_id)
+//   CREATE INDEX idx_connector_prompts_connector ON connector_prompts(connector_id);
+//   CREATE INDEX idx_connector_prompts_intent    ON connector_prompts(intent_id);
+// ------------------------------------------------------------
+model ConnectorPrompts {
+  prompt_id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  intent_id             String       @db.Uuid
+  connector_id          String       @db.Uuid
+  // F6: connector names a specific person they could introduce
+  volunteered_target_id String?      @db.Uuid
+  // pending → volunteered (named someone) | dismissed (skipped)
+  status                PromptStatus @default(pending)
+  created_at            DateTime     @default(now())
+  responded_at          DateTime?
+
+  intent           Intents @relation("GeneratedConnectorPrompts", fields: [intent_id],             references: [intent_id], onDelete: Restrict, onUpdate: Cascade)
+  connector        Users   @relation("AssignedPrompts",           fields: [connector_id],           references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
+  // SET NULL behaviour: if volunteer target deactivates, preserve the prompt
+  volunteer_target Users?  @relation("VolunteeredPrompts",        fields: [volunteered_target_id],  references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([intent_id, connector_id], name: "uq_prompt_per_connector")
+  @@index([connector_id])
+  @@index([intent_id])
+  @@map("connector_prompts")
 }
