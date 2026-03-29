@@ -166,12 +166,13 @@ model Users {
   is_active        Boolean       @default(true)
 
   // Auth
+  firebase_uid     String?       @unique @db.VarChar(128)
   email            String        @unique @db.VarChar(255)
-  password_hash    String        @db.VarChar(255)
+  password_hash    String?       @db.VarChar(255)
 
   // Profile (hidden at app layer when is_active = false)
-  first_name       String        @db.VarChar(100)
-  last_name        String        @db.VarChar(100)
+  first_name       String?       @db.VarChar(100)
+  last_name        String?       @db.VarChar(100)
   // RAW CONSTRAINT: CHECK (year IN ('freshman','sophomore','junior','senior','grad','other'))
   year             String?       @db.VarChar(20)
   major            String?       @db.VarChar(100)
