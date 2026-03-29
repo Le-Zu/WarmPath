@@ -13,12 +13,12 @@
     "preview:client": "cd warm-path && npm run preview"
   },
   "dependencies": {
-    "@prisma/client": "7.4.1"
+    "@prisma/client": "^7.6.0"
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
     "concurrently": "^8.2.2",
-    "prisma": "7.4.1"
+    "prisma": "^7.6.0"
   },
   "overrides": {
     "eslint": "^10.0.1",

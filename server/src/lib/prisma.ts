@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import "dotenv/config"
 import { getUserId } from './cls'
 
-const basePrisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const basePrisma = new PrismaClient({ adapter })
 
 // Extend the Prisma client to implement Row-Level Security (RLS)
 export const prisma = basePrisma.$extends({
