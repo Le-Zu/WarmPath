@@ -178,6 +178,7 @@ model Users {
   bio              String?       @db.Text
   linkedin_url     String?       @db.VarChar(500)
   resume_url       String?       @db.VarChar(500)
+  profile_picture_url String?    @db.VarChar(500)
   profile_complete Boolean       @default(false)
 
   // Profile creation tracking (like-to-have F: Profile Creation A/B)
