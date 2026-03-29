@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "../index.css";
+import { Link } from "react-router-dom";
 
 const intents = ["Internship", "Research", "Class Help", "Club", "Skill"];
 
@@ -78,9 +79,9 @@ export default function HomePage() {
                      <a href="#how">How It Works</a>
                   </li>
                   <li>
-                     <a href="#" className="hp-nav-cta">
+                     <Link to="/logintest" className="hp-nav-cta">
                         Get Started
-                     </a>
+                     </Link>
                   </li>
                </ul>
             </nav>

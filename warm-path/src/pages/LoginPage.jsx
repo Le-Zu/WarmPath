@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import apiUrl from "../apiConfig";
 
-export default function LoginTest() {
+export default function LoginPage() {
+   const navigate = useNavigate();
    const [email, setEmail] = useState("");
    const [password, setPassword] = useState("");
    const [backendMessage, setbackendMessage] = useState("");
@@ -27,9 +29,6 @@ export default function LoginTest() {
          //Calling this method automatically refreshes the token if it has expired
          const token = await user.getIdToken();
          setbackendMessage("Login successful. Sending token to backend...");
-
-         // Dynamically sets the API URL based on the environment
-         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
          // Send the request to Express server
          const response = await fetch(`${apiUrl}/api/test-auth`, {
@@ -63,7 +62,7 @@ export default function LoginTest() {
                src="/logo.png"
                alt="Logo"
                style={{
-                  height: "46px",
+                  height: "62px",
                   display: "block",
                   marginBottom: "2rem",
                   padding: "0.08rem 2rem",
@@ -159,7 +158,7 @@ export default function LoginTest() {
                   </button>
                   <button
                      type="button"
-                     onClick={() => {}}
+                     onClick={() => navigate("/register")}
                      onMouseEnter={() => setHovered2(true)}
                      onMouseLeave={() => setHovered2(false)}
                      style={{

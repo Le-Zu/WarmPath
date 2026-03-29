@@ -22,6 +22,9 @@ Thumbs.db
 # Npm Logs
 npm-debug.log*
 
-
+.venv
 /generated/prisma
 .vscode/settings.json
+
+# Other local folders
+s
