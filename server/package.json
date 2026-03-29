@@ -2,23 +2,27 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts"
+    "dev": "nodemon",
+    "start": "tsx src/index.ts",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^7.5.0",
+    "@prisma/adapter-pg": "7.4.1",
+    "@prisma/client": "^7.4.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
-    "prisma": "^7.5.0",
+    "pg": "^8.20.0",
+    "prisma": "^7.4.1",
     "tsx": "^4.21.0"
   },
   "overrides": {
@@ -26,17 +30,19 @@
     "hono": "^4.12.7",
     "@hono/node-server": "^1.19.11",
     "lodash": "^4.17.22",
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "effect": "^3.20.0",
+    "brace-expansion": "^5.0.5",
+    "picomatch": "^4.0.4",
+    "flatted": "^3.4.2",
+    "fast-xml-parser": "^5.5.7",
+    "node-forge": "^1.4.0",
+    "minimatch": "^10.0.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/pg": "^8.20.0",
     "nodemon": "^3.1.14"
-  },
-  "script": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "db:push": "npx prisma db push",
-    "db:studio": "npx prisma studio"
   }
 }
