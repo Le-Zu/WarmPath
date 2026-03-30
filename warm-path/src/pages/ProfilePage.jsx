@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { Link } from "react-router-dom";
+import LogoutButton from "../components/LogoutButton";
 
 export default function ProfilePage() {
    const [user, setUser] = useState(null);
@@ -44,6 +45,7 @@ export default function ProfilePage() {
                <p>
                   Logged in as <strong>{user?.email}</strong>
                </p>
+               <LogoutButton />
             </div>
          </div>
       </div>
