@@ -1,0 +1,687 @@
+/* Page layout */
+.st-page {
+  min-height: 100vh;
+  background: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--dark);
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Top navbar */
+.st-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.st-nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.st-logo {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--dark);
+  transition: color 0.3s;
+}
+
+/* User menu */
+.st-user-menu {
+  position: relative;
+}
+
+.st-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--warm);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.st-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(231, 111, 81, 0.3);
+}
+
+/* Dropdown */
+.st-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(56, 102, 65, 0.12);
+  min-width: 200px;
+  padding: 0.75rem 0;
+  z-index: 200;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.st-dropdown-name {
+  padding: 0 1rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--dark);
+}
+
+.st-dropdown-email {
+  padding: 0.15rem 1rem 0;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--mid);
+}
+
+.st-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.6rem 0;
+}
+
+.st-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--dark);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.st-dropdown-item:hover {
+  background: var(--cream);
+}
+
+.st-dropdown-item.active {
+  color: var(--warm);
+  font-weight: 500;
+}
+
+/* Content area */
+.st-content {
+  padding: 5rem 1rem 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* Card */
+.st-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(56, 102, 65, 0.1);
+  width: 100%;
+  max-width: 520px;
+  padding: 2.5rem 2rem;
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Headings */
+.st-heading {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--dark);
+  margin: 0 0 0.5rem;
+  transition: color 0.3s;
+}
+
+.st-subtext {
+  font-weight: 300;
+  color: var(--mid);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Section divider & headings */
+.st-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1.75rem 0;
+  transition: background 0.3s;
+}
+
+.st-section {
+  /* grouping wrapper */
+}
+
+.st-section-heading {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--dark);
+  margin: 0 0 1rem;
+  transition: color 0.3s;
+}
+
+/* Form fields */
+.st-field {
+  margin-bottom: 1.25rem;
+}
+
+.st-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--dark);
+  margin-bottom: 0.35rem;
+  transition: color 0.3s;
+}
+
+.st-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s, background 0.3s, color 0.3s;
+  box-sizing: border-box;
+}
+
+.st-input:focus {
+  border-color: var(--warm);
+}
+
+.st-input-readonly {
+  background: var(--cream);
+  color: var(--mid);
+  cursor: not-allowed;
+}
+
+.st-input-readonly:focus {
+  border-color: var(--border);
+}
+
+.st-input-error {
+  border-color: #c0392b;
+}
+
+.st-error {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #c0392b;
+  margin: 0.3rem 0 0;
+}
+
+.st-helper {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--mid);
+  margin-top: 0.25rem;
+}
+
+/* Password section */
+.st-change-pw {
+  background: none;
+  border: none;
+  color: var(--warm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.st-change-pw:hover {
+  color: #d45a3a;
+}
+
+.st-pw-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.st-cancel-pw {
+  background: none;
+  border: none;
+  color: var(--mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+  align-self: flex-start;
+  transition: color 0.2s;
+}
+
+.st-cancel-pw:hover {
+  color: var(--dark);
+}
+
+/* Toggle switch */
+.st-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.st-toggle-row + .st-toggle-row {
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.st-toggle-label {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--dark);
+  transition: color 0.3s;
+}
+
+.st-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.st-toggle.on {
+  background: var(--warm);
+}
+
+.st-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s;
+}
+
+.st-toggle.on .st-toggle-knob {
+  transform: translateX(20px);
+}
+
+/* Tag grid */
+.st-tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.st-tag {
+  padding: 0.45rem 1rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--dark);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.st-tag:hover {
+  border-color: var(--warm);
+  color: var(--warm);
+}
+
+.st-tag.selected {
+  background: var(--warm);
+  color: #fff;
+  border-color: var(--warm);
+}
+
+.st-tag.selected:hover {
+  background: #d45a3a;
+  border-color: #d45a3a;
+  color: #fff;
+}
+
+/* Invite row */
+.st-invite-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.st-invite-input {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.st-btn-copy {
+  padding: 0.65rem 1.25rem;
+  background: var(--warm);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+  min-width: 100px;
+}
+
+.st-btn-copy:hover {
+  background: #d45a3a;
+}
+
+/* Save row */
+.st-save-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.st-btn-primary {
+  display: inline-block;
+  padding: 0.7rem 2rem;
+  background: var(--warm);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.st-btn-primary:hover:not(:disabled) {
+  background: #d45a3a;
+  transform: translateY(-1px);
+}
+
+.st-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Danger zone */
+.st-danger-zone {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #e74c3c;
+  border-radius: 8px;
+  background: rgba(231, 76, 60, 0.04);
+}
+
+.st-danger-heading {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #c0392b;
+  margin: 0 0 1rem;
+}
+
+.st-btn-danger {
+  padding: 0.6rem 1.5rem;
+  background: none;
+  color: #c0392b;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  border: 1px solid #c0392b;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.st-btn-danger:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.st-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.st-delete-warning {
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: #c0392b;
+  line-height: 1.5;
+}
+
+.st-delete-input {
+  border-color: #c0392b;
+  max-width: 250px;
+}
+
+.st-delete-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.st-btn-danger-confirm {
+  padding: 0.6rem 1.5rem;
+  background: #c0392b;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.st-btn-danger-confirm:hover:not(:disabled) {
+  background: #a93226;
+}
+
+.st-btn-danger-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Dark mode ─── */
+.st-page.dark {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.st-page.dark .st-nav {
+  background: rgba(26, 26, 46, 0.95);
+  border-bottom-color: #2a2a4a;
+}
+
+.st-page.dark .st-logo {
+  color: #e0e0e0;
+}
+
+.st-page.dark .st-dropdown {
+  background: #252545;
+  border-color: #3a3a5a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.st-page.dark .st-dropdown-name {
+  color: #e0e0e0;
+}
+
+.st-page.dark .st-dropdown-email {
+  color: #888;
+}
+
+.st-page.dark .st-dropdown-divider {
+  background: #3a3a5a;
+}
+
+.st-page.dark .st-dropdown-item {
+  color: #ccc;
+}
+
+.st-page.dark .st-dropdown-item:hover {
+  background: #2a2a4a;
+}
+
+.st-page.dark .st-dropdown-item.active {
+  color: var(--warm);
+}
+
+.st-page.dark .st-card {
+  background: #252545;
+  border-color: #3a3a5a;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+}
+
+.st-page.dark .st-heading,
+.st-page.dark .st-section-heading {
+  color: #e0e0e0;
+}
+
+.st-page.dark .st-subtext,
+.st-page.dark .st-helper,
+.st-page.dark .st-dropdown-email {
+  color: #888;
+}
+
+.st-page.dark .st-label,
+.st-page.dark .st-toggle-label {
+  color: #ccc;
+}
+
+.st-page.dark .st-input {
+  background: #1a1a2e;
+  border-color: #3a3a5a;
+  color: #e0e0e0;
+}
+
+.st-page.dark .st-input:focus {
+  border-color: var(--warm);
+}
+
+.st-page.dark .st-input-readonly {
+  background: #1a1a2e;
+  color: #666;
+}
+
+.st-page.dark .st-divider {
+  background: #3a3a5a;
+}
+
+.st-page.dark .st-toggle {
+  background: #3a3a5a;
+}
+
+.st-page.dark .st-toggle.on {
+  background: var(--warm);
+}
+
+.st-page.dark .st-toggle-row + .st-toggle-row {
+  border-top-color: #3a3a5a;
+}
+
+.st-page.dark .st-tag {
+  background: #1a1a2e;
+  border-color: #3a3a5a;
+  color: #ccc;
+}
+
+.st-page.dark .st-tag:hover {
+  border-color: var(--warm);
+  color: var(--warm);
+}
+
+.st-page.dark .st-tag.selected {
+  background: var(--warm);
+  color: #fff;
+  border-color: var(--warm);
+}
+
+.st-page.dark .st-change-pw {
+  color: var(--warm-light);
+}
+
+.st-page.dark .st-cancel-pw {
+  color: #888;
+}
+
+.st-page.dark .st-cancel-pw:hover {
+  color: #ccc;
+}
+
+.st-page.dark .st-danger-zone {
+  background: rgba(231, 76, 60, 0.08);
+  border-color: #8b2020;
+}
+
+.st-page.dark .st-danger-heading {
+  color: #e74c3c;
+}
+
+.st-page.dark .st-btn-danger {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.st-page.dark .st-btn-danger:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.st-page.dark .st-delete-warning {
+  color: #e74c3c;
+}
+
+.st-page.dark .st-delete-input {
+  border-color: #e74c3c;
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .st-card {
+    padding: 2rem 1.25rem;
+  }
+
+  .st-invite-row {
+    flex-direction: column;
+  }
+
+  .st-delete-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -1,7 +1,58 @@
 import { useState } from 'react';
 import './OnboardingFlow.css';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
+
+const UNIVERSITY_MAP = {
+  'nyu.edu': 'New York University',
+  'columbia.edu': 'Columbia University',
+  'cornell.edu': 'Cornell University',
+  'harvard.edu': 'Harvard University',
+  'mit.edu': 'MIT',
+  'stanford.edu': 'Stanford University',
+  'yale.edu': 'Yale University',
+  'princeton.edu': 'Princeton University',
+  'upenn.edu': 'University of Pennsylvania',
+  'brown.edu': 'Brown University',
+  'dartmouth.edu': 'Dartmouth College',
+  'cuny.edu': 'CUNY',
+  'macaulay.cuny.edu': 'Macaulay Honors College, CUNY',
+  'myhunter.cuny.edu': 'Hunter College, CUNY',
+  'baruch.cuny.edu': 'Baruch College, CUNY',
+  'rutgers.edu': 'Rutgers University',
+  'stonybrook.edu': 'Stony Brook University',
+  'bu.edu': 'Boston University',
+  'umich.edu': 'University of Michigan',
+  'berkeley.edu': 'UC Berkeley',
+  'ucla.edu': 'UCLA',
+  'gatech.edu': 'Georgia Tech',
+  'cmu.edu': 'Carnegie Mellon University',
+};
+
+const GOAL_TAGS = ['Internship', 'Research', 'Study Group', 'Club', 'Mentorship', 'Side Project'];
+const FIELD_TAGS = [
+  'Computer Science', 'Business', 'Engineering', 'Design',
+  'Pre-Med', 'Biology', 'Mathematics', 'Economics',
+  'Psychology', 'Communications',
+];
+
+function getUniversityName(email) {
+  const atIndex = email.indexOf('@');
+  if (atIndex === -1) return null;
+  const domain = email.slice(atIndex + 1).toLowerCase().trim();
+  if (!domain.endsWith('.edu')) return null;
+
+  // Try full domain first, then progressively shorter
+  const parts = domain.split('.');
+  for (let i = 0; i < parts.length - 1; i++) {
+    const candidate = parts.slice(i).join('.');
+    if (UNIVERSITY_MAP[candidate]) return UNIVERSITY_MAP[candidate];
+  }
+
+  // Fallback: capitalize the first part of the domain
+  const name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  return name;
+}
 
 function StepDots({ current }) {
   return (
@@ -20,13 +71,24 @@ export default function OnboardingFlow() {
     lastName: '',
     email: '',
     password: '',
-    linkedin: '',
+    verificationCode: '',
+    selectedGoals: [],
+    selectedFields: [],
+    otherInfo: '',
     connectors: [{ name: '', relationship: '' }],
-    interests: '',
   });
 
   const set = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const toggleTag = (field, tag) =>
+    setForm((f) => {
+      const current = f[field];
+      const next = current.includes(tag)
+        ? current.filter((t) => t !== tag)
+        : [...current, tag];
+      return { ...f, [field]: next };
+    });
 
   const setConnector = (index, field) => (e) =>
     setForm((f) => {
@@ -41,6 +103,11 @@ export default function OnboardingFlow() {
       connectors: [...f.connectors, { name: '', relationship: '' }],
     }));
 
+  const emailIsEdu =
+    form.email.trim() !== '' && /\.edu$/i.test(form.email.trim());
+
+  const universityName = emailIsEdu ? getUniversityName(form.email.trim()) : null;
+
   const passwordChecks = {
     length: form.password.length >= 8,
     upper: /[A-Z]/.test(form.password),
@@ -51,7 +118,12 @@ export default function OnboardingFlow() {
   const passwordValid = Object.values(passwordChecks).every(Boolean);
 
   const canProceedFromStep0 =
-    form.firstName.trim() && form.lastName.trim() && form.email.trim() && passwordValid;
+    form.firstName.trim() && form.lastName.trim() && emailIsEdu && passwordValid;
+
+  const codeCorrect = form.verificationCode === '123456';
+  const codeAttempted = form.verificationCode.length === 6 && !codeCorrect;
+
+  const hasInterests = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -61,6 +133,7 @@ export default function OnboardingFlow() {
       <div className="ob-card">
         <StepDots current={step} />
 
+        {/* Step 0: Create Account */}
         {step === 0 && (
           <>
             <h1 className="ob-heading">Create Your Account</h1>
@@ -91,14 +164,22 @@ export default function OnboardingFlow() {
             </div>
 
             <div className="ob-field">
-              <label className="ob-label">Email</label>
+              <label className="ob-label">College / University Email</label>
               <input
-                className="ob-input"
-                type="text"
+                className={`ob-input${form.email.trim() && !emailIsEdu ? ' ob-input-error' : ''}`}
+                type="email"
                 value={form.email}
                 onChange={set('email')}
-                placeholder="jane@example.com"
+                placeholder="jane@university.edu"
               />
+              {form.email.trim() && !emailIsEdu && (
+                <p className="ob-error">Please enter a valid .edu email address</p>
+              )}
+              {universityName && (
+                <p className="ob-university-detect">
+                  It looks like you're at <strong>{universityName}</strong>
+                </p>
+              )}
             </div>
 
             <div className="ob-field">
@@ -133,44 +214,118 @@ export default function OnboardingFlow() {
           </>
         )}
 
+        {/* Step 1: Email Verification */}
         {step === 1 && (
           <>
-            <h1 className="ob-heading">LinkedIn Profile</h1>
+            <h1 className="ob-heading">Verify Your Email</h1>
             <p className="ob-subtext">
-              Optionally link your LinkedIn so we can help you connect faster.
+              We sent a 6-digit verification code to{' '}
+              <strong>{form.email}</strong>. Enter it below to continue.
             </p>
 
             <div className="ob-field">
-              <label className="ob-label">LinkedIn Profile URL</label>
+              <label className="ob-label">Verification Code</label>
               <input
-                className="ob-input"
+                className={`ob-input ob-code-input${codeAttempted ? ' ob-input-error' : ''}`}
                 type="text"
-                value={form.linkedin}
-                onChange={set('linkedin')}
-                placeholder="https://linkedin.com/in/janedoe"
+                inputMode="numeric"
+                maxLength={6}
+                value={form.verificationCode}
+                onChange={set('verificationCode')}
+                placeholder="123456"
               />
-              <p className="ob-helper">This is optional — you can skip it.</p>
+              {codeAttempted && (
+                <p className="ob-error">Incorrect code. Please try again.</p>
+              )}
+              {codeCorrect && (
+                <p className="ob-success">Email verified!</p>
+              )}
             </div>
 
             <div className="ob-actions">
               <button className="ob-btn-ghost" onClick={back}>
                 Back
               </button>
-              <button className="ob-btn-primary" onClick={next}>
+              <button
+                className="ob-btn-primary"
+                onClick={next}
+                disabled={!codeCorrect}
+              >
                 Next
               </button>
             </div>
           </>
         )}
 
+        {/* Step 2: Interests */}
         {step === 2 && (
           <>
-            <h1 className="ob-heading">Connectors &amp; Interests</h1>
+            <h1 className="ob-heading">Your Interests</h1>
             <p className="ob-subtext">
-              Add people you'd like to connect through and share your interests.
+              Help us understand what you're looking for so we can find the right connections.
             </p>
 
-            <h2 className="ob-section-label">Connectors</h2>
+            <h2 className="ob-section-label">What are you looking for?</h2>
+            <div className="ob-tag-grid">
+              {GOAL_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  className={`ob-tag${form.selectedGoals.includes(tag) ? ' selected' : ''}`}
+                  onClick={() => toggleTag('selectedGoals', tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            <h2 className="ob-section-label">What's your field?</h2>
+            <div className="ob-tag-grid">
+              {FIELD_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  className={`ob-tag${form.selectedFields.includes(tag) ? ' selected' : ''}`}
+                  onClick={() => toggleTag('selectedFields', tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            <div className="ob-field" style={{ marginTop: '1.25rem' }}>
+              <label className="ob-label">Anything else you'd like us to know?</label>
+              <textarea
+                className="ob-textarea"
+                value={form.otherInfo}
+                onChange={set('otherInfo')}
+                placeholder="Optional — tell us more about yourself..."
+                rows={3}
+              />
+            </div>
+
+            <div className="ob-actions">
+              <button className="ob-btn-ghost" onClick={back}>
+                Back
+              </button>
+              <button
+                className="ob-btn-primary"
+                onClick={next}
+                disabled={!hasInterests}
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Step 3: Connectors (skippable) */}
+        {step === 3 && (
+          <>
+            <h1 className="ob-heading">Add Connectors</h1>
+            <p className="ob-subtext">
+              Connectors are people you already know who can introduce you to others.
+              You can always add connectors later from your profile.
+            </p>
+
             {form.connectors.map((c, i) => (
               <div className="ob-connector-group" key={i}>
                 <div className="ob-field">
@@ -199,22 +354,12 @@ export default function OnboardingFlow() {
               + Add another connector
             </button>
 
-            <h2 className="ob-section-label">Interests &amp; Experience</h2>
-            <div className="ob-field">
-              <label className="ob-label">
-                Tell us about your interests and experience
-              </label>
-              <textarea
-                className="ob-textarea"
-                value={form.interests}
-                onChange={set('interests')}
-                placeholder="I'm interested in machine learning, startups, and mentoring..."
-              />
-            </div>
-
             <div className="ob-actions">
               <button className="ob-btn-ghost" onClick={back}>
                 Back
+              </button>
+              <button className="ob-btn-ghost" onClick={next}>
+                Skip for now
               </button>
               <button className="ob-btn-primary" onClick={next}>
                 Next
@@ -223,11 +368,12 @@ export default function OnboardingFlow() {
           </>
         )}
 
-        {step === 3 && (
+        {/* Step 4: Welcome */}
+        {step === 4 && (
           <div className="ob-complete">
-            <h1 className="ob-heading">Onboarding Complete</h1>
+            <h1 className="ob-heading">You're All Set!</h1>
             <p className="ob-subtext">
-              You're all set! Your warm path awaits.
+              Your first warm path is one connection away.
             </p>
             <button className="ob-btn-primary">Get Started</button>
           </div>

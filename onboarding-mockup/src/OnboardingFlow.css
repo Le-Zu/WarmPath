@@ -115,6 +115,21 @@
   border-color: var(--warm);
 }
 
+.ob-input-error {
+  border-color: #c0392b;
+}
+
+.ob-input-error:focus {
+  border-color: #c0392b;
+}
+
+.ob-error {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #c0392b;
+  margin: 0.3rem 0 0;
+}
+
 .ob-textarea {
   width: 100%;
   padding: 0.65rem 0.75rem;
@@ -252,6 +267,73 @@
   font-weight: 300;
   color: var(--mid);
   margin-top: 0.2rem;
+}
+
+/* University auto-detect */
+.ob-university-detect {
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--dark);
+  margin: 0.35rem 0 0;
+}
+
+.ob-university-detect strong {
+  font-weight: 500;
+}
+
+/* Verification code input */
+.ob-code-input {
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.5rem;
+  text-align: center;
+  max-width: 240px;
+}
+
+/* Success text */
+.ob-success {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--mid);
+  margin: 0.3rem 0 0;
+}
+
+/* Tag grid */
+.ob-tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ob-tag {
+  padding: 0.45rem 1rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--dark);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ob-tag:hover {
+  border-color: var(--warm);
+  color: var(--warm);
+}
+
+.ob-tag.selected {
+  background: var(--warm);
+  color: #fff;
+  border-color: var(--warm);
+}
+
+.ob-tag.selected:hover {
+  background: #d45a3a;
+  border-color: #d45a3a;
+  color: #fff;
 }
 
 /* Responsive */
