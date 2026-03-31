@@ -1,12 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { verifyToken, dbUserMiddleware, AuthRequest } from './middleware/authMiddleware';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { basePrisma } from './lib/prisma';
 import "dotenv/config";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -47,27 +43,45 @@ app.get('/api/test-auth', (req: AuthRequest, res) => {
 app.post('/api/users', async (req: AuthRequest, res) => {
     try {
         const { uid, email } = req.user;
-        
-        // Use Prisma to create the user in the database
-        // We use upsert so it doesn't fail if the user already exists
-        const user = await (prisma as any).user.upsert({
-            where: { id: uid },
-            update: { email: email },
+        const { first_name, last_name } = req.body;
+
+        const user = await basePrisma.users.upsert({
+            where: { email },
+            update: {
+                firebase_uid: uid,
+                ...(first_name && { first_name }),
+                ...(last_name && { last_name }),
+            },
             create: {
-                id: uid,
-                email: email,
-                // Add default values for other required fields if any
+                email,
+                firebase_uid: uid,
+                ...(first_name && { first_name }),
+                ...(last_name && { last_name }),
             },
         });
+
+        console.log(`[POST /api/users] User synced | user_id: ${user.user_id} | email: ${user.email} | firebase_uid: ${user.firebase_uid}`);
 
         res.status(201).json({
             message: "User synced successfully",
             user
         });
     } catch (error: any) {
-        console.error("Error syncing user:", error);
+        console.error('[POST /api/users] Error syncing user:', error);
         res.status(500).json({ error: "Failed to sync user with database", details: error.message });
     }
+});
+
+// Get the current authenticated user's full profile from DB
+app.get('/api/me', (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        console.log(`[GET /api/me] No DB record for Firebase user: ${req.user?.email}`);
+        return res.status(404).json({ message: 'User not found in database. Call POST /api/users to register.' });
+    }
+
+    console.log(`[GET /api/me] Profile fetched | user_id: ${req.dbUser.user_id} | email: ${req.dbUser.email} | firebase_uid: ${req.dbUser.firebase_uid} | profile_complete: ${req.dbUser.profile_complete}`);
+
+    res.json({ user: req.dbUser });
 });
 
     // Starts the server
