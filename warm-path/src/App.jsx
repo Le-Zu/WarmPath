@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage"; // Page
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import OnboardingFlow from "./pages/OnboardingFlow";
+import SettingsPage from "./pages/SettingsPage";
 //import ProtectRoute from './components/ProtectedRoute.jsx'; // component
 
 export default function App() {
@@ -18,6 +20,10 @@ export default function App() {
             <Route path="/logintest" element={<LoginPage />} />
 
             <Route path="/register" element={<RegisterPage />} />
+
+            <Route path="/onboarding" element={<OnboardingFlow />} />
+
+            <Route path="/settings" element={<SettingsPage />} />
 
             {/* WIP Dashboard for later */}
             {/* <Route path="/dashboard" element={
