@@ -14,37 +14,17 @@ export default function LoginPage() {
 
    const handleLoginAndFetch = async (e) => {
       e.preventDefault();
-      setbackendMessage("Logging in...");
+      setbackendMessage("");
       try {
-         // log the user into Firebase
-         const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password,
-         );
-         const user = userCredential.user;
-         setbackendMessage(`Logged in as ${user.email}`);
-
-         // Request the secure ID token for this specific user
-         //Calling this method automatically refreshes the token if it has expired
-         const token = await user.getIdToken();
-         setbackendMessage("Login successful. Sending token to backend...");
-
-         // Send the request to Express server
-         const response = await fetch(`${apiUrl}/api/test-auth`, {
-            method: "GET",
-            headers: {
-               Authorization: `Bearer ${token}`,
-               "Content-Type": "application/json",
-            },
-         });
-
-         // Read the backend's response
-         const data = await response.json();
-         setbackendMessage(`Backend says: ${JSON.stringify(data)}`);
+         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+         navigate("/home");
       } catch (error) {
-         console.error("Login error during auth or fetch:", error);
-         setbackendMessage(`Login failed: ${error.message}`);
+         console.error("Login error:", error);
+         if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+            setbackendMessage("Incorrect email or password.");
+         } else {
+            setbackendMessage(`Login failed: ${error.message}`);
+         }
       }
    };
 
@@ -179,7 +159,7 @@ export default function LoginPage() {
                      Create new account
                   </button>
                </form>
-               <div
+               {/* <div
                   style={{
                      marginTop: "20px",
                      padding: "10px",
@@ -188,7 +168,12 @@ export default function LoginPage() {
                   }}
                >
                   <strong>Status:</strong> {backendMessage}
-               </div>
+               </div> */}
+               {backendMessage && (
+                  <p style={{ color: "Tomato", fontSize: "0.875rem", marginTop: "4px" }}>
+                     {backendMessage}
+                  </p>
+               )}
             </div>
          </div>
       </div>

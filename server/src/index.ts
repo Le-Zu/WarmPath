@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { verifyToken, dbUserMiddleware, AuthRequest } from './middleware/authMiddleware';
 import { basePrisma } from './lib/prisma';
+import { getPathsForUser } from './services/pathDiscovery';
 import "dotenv/config";
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -76,6 +77,143 @@ app.post('/api/users', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error('[POST /api/users] Error syncing user:', error);
         res.status(500).json({ error: "Failed to sync user with database", details: error.message });
+    }
+});
+
+// Returns intro requests where the authenticated user is the connector
+app.get('/api/requests/incoming', async (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        return res.status(404).json({ message: 'User not found in database.' });
+    }
+
+    try {
+        const rows = await basePrisma.introRequests.findMany({
+            where: { connector_id: req.dbUser.user_id },
+            include: {
+                requester: { select: { first_name: true, last_name: true, major: true, year: true } },
+                target:    { select: { first_name: true, last_name: true } },
+                intent:    { select: { category: true } },
+            },
+            orderBy: { created_at: 'desc' },
+        });
+
+        const requests = rows.map((r) => ({
+            id:      r.request_id,
+            status:  r.status,
+            message: r.edited_message ?? r.draft_message,
+            intent:  r.intent.category,
+            from: {
+                name: [r.requester.first_name, r.requester.last_name].filter(Boolean).join(' '),
+                role: [r.requester.major, r.requester.year].filter(Boolean).join(', ') || null,
+            },
+            to: {
+                name: [r.target.first_name, r.target.last_name].filter(Boolean).join(' '),
+            },
+        }));
+
+        console.log(`[GET /api/requests/incoming] ${requests.length} requests for user_id: ${req.dbUser.user_id}`);
+        res.json({ requests });
+    } catch (error: any) {
+        console.error('[GET /api/requests/incoming] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch incoming requests', details: error.message });
+    }
+});
+
+// Updates the status of an intro request — connector only
+app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        return res.status(404).json({ message: 'User not found in database.' });
+    }
+
+    const id = req.params.id as string;
+    const { status } = req.body;
+
+    if (!['approved', 'declined'].includes(status)) {
+        return res.status(400).json({ error: 'Status must be approved or declined.' });
+    }
+
+    try {
+        const existing = await basePrisma.introRequests.findUnique({
+            where: { request_id: id },
+        });
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Request not found.' });
+        }
+
+        if (existing.connector_id !== req.dbUser.user_id) {
+            return res.status(403).json({ error: 'Only the connector can respond to this request.' });
+        }
+
+        if (existing.status !== 'pending') {
+            return res.status(409).json({ error: 'Request has already been responded to.' });
+        }
+
+        const updated = await basePrisma.introRequests.update({
+            where: { request_id: id },
+            data: { status, responded_at: new Date() },
+        });
+
+        console.log(`[PATCH /api/requests/${id}] Status set to ${status} by user_id: ${req.dbUser.user_id}`);
+        res.json({ request: updated });
+    } catch (error: any) {
+        console.error(`[PATCH /api/requests/${id}] Error:`, error);
+        res.status(500).json({ error: 'Failed to update request', details: error.message });
+    }
+});
+
+// Returns intro requests sent by the authenticated user
+app.get('/api/requests/outgoing', async (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        return res.status(404).json({ message: 'User not found in database.' });
+    }
+
+    try {
+        const rows = await basePrisma.introRequests.findMany({
+            where: { requester_id: req.dbUser.user_id },
+            include: {
+                connector: { select: { first_name: true, last_name: true } },
+                target:    { select: { first_name: true, last_name: true, major: true, year: true } },
+                intent:    { select: { category: true } },
+            },
+            orderBy: { created_at: 'desc' },
+        });
+
+        const requests = rows.map((r) => ({
+            id:        r.request_id,
+            status:    r.status,
+            sentAt:    r.created_at,
+            intent:    r.intent.category,
+            connector: {
+                name: [r.connector.first_name, r.connector.last_name].filter(Boolean).join(' '),
+            },
+            target: {
+                name: [r.target.first_name, r.target.last_name].filter(Boolean).join(' '),
+                role: [r.target.major, r.target.year].filter(Boolean).join(', ') || null,
+            },
+        }));
+
+        console.log(`[GET /api/requests/outgoing] ${requests.length} requests for user_id: ${req.dbUser.user_id}`);
+        res.json({ requests });
+    } catch (error: any) {
+        console.error('[GET /api/requests/outgoing] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch outgoing requests', details: error.message });
+    }
+});
+
+// Returns discovered warm paths for the authenticated user
+app.get('/api/paths', async (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        return res.status(404).json({ message: 'User not found in database.' });
+    }
+
+    try {
+        const paths = await getPathsForUser(req.dbUser.user_id);
+        console.log(`[GET /api/paths] ${paths.length} paths found for user_id: ${req.dbUser.user_id}`);
+        res.json({ paths });
+    } catch (error: any) {
+        console.error('[GET /api/paths] Error fetching paths:', error);
+        res.status(500).json({ error: 'Failed to fetch paths', details: error.message });
     }
 });
 

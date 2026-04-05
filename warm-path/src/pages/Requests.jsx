@@ -1,8 +1,30 @@
-import { useState } from 'react';
-import { mockRequests } from '../data/mockData.js';
+import { useState, useEffect } from 'react';
+import apiFetch from '../api/client.js';
+
 export default function Requests() {
-  const [reqs, setReqs] = useState(mockRequests);
-  const act = (id, status) => setReqs(r => r.map(x => x.id === id ? { ...x, status } : x));
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiFetch('/api/requests/incoming')
+      .then(({ requests }) => setReqs(requests))
+      .catch((err) => {
+        console.error('[Requests] Failed to fetch incoming requests:', err);
+        setError(err.message);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const act = (id, status) => {
+    apiFetch(`/api/requests/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+      .then(() => setReqs(r => r.map(x => x.id === id ? { ...x, status } : x)))
+      .catch((err) => console.error(`[Requests] Failed to update request ${id}:`, err));
+  };
+
+  if (loading) return <div className="app-page">Loading inbox...</div>;
+  if (error)   return <div className="app-page">Failed to load requests.</div>;
+
   return (
     <div className="app-page">
       <div className="app-eyebrow">— Connector inbox</div>

@@ -51,7 +51,7 @@ export default function RegisterPage() {
 
          if (res.ok) {
             setbackendMessage("Registration successful! Redirecting...");
-            // setTimeout(() => navigate("/"), 2000); // Redirect after success
+            setTimeout(() => navigate("/onboarding"), 1500);
          } else {
             const errorData = await res.json();
             setbackendMessage(`Backend sync failed: ${errorData.message || res.statusText}`);

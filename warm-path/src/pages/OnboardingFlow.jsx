@@ -366,7 +366,7 @@ export default function OnboardingFlow() {
                         Your first warm path is one connection away.
                      </p>
                      <button
-                        onClick={() => navigate("/")}
+                        onClick={() => navigate("/home")}
                         onMouseEnter={() => setHoveredStart(true)}
                         onMouseLeave={() => setHoveredStart(false)}
                         style={{

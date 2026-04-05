@@ -1,10 +1,41 @@
 import { prisma } from '../lib/prisma'
 
+// Returns two-hop paths for a user, enriched with connector and target profile details
 export async function getPathsForUser(userId: string) {
-  const paths = await prisma.$queryRaw`
-    SELECT * FROM two_hop_paths_view
-    WHERE requester_id = ${userId}
-    ORDER BY avg_warmth DESC
+  const rows = await prisma.$queryRaw<any[]>`
+    SELECT
+      v.connector_id,
+      v.target_id,
+      v.requester_connector_context,
+      v.connector_target_context,
+      ROUND(v.avg_warmth) AS strength,
+      c.first_name  AS connector_first_name,
+      c.last_name   AS connector_last_name,
+      t.first_name  AS target_first_name,
+      t.last_name   AS target_last_name,
+      t.major       AS target_major,
+      t.year        AS target_year,
+      t.profile_picture_url AS target_picture_url
+    FROM two_hop_paths_view v
+    JOIN users c ON c.user_id = v.connector_id
+    JOIN users t ON t.user_id = v.target_id
+    WHERE v.requester_id = ${userId}
+    ORDER BY v.avg_warmth DESC
   `
-  return paths
+
+  return rows.map((r) => ({
+    id: `${r.connector_id}-${r.target_id}`,
+    connector: {
+      id: r.connector_id,
+      name: [r.connector_first_name, r.connector_last_name].filter(Boolean).join(' '),
+      relation: r.requester_connector_context ?? null,
+    },
+    target: {
+      id: r.target_id,
+      name: [r.target_first_name, r.target_last_name].filter(Boolean).join(' '),
+      role: [r.target_major, r.target_year].filter(Boolean).join(', ') || null,
+      pictureUrl: r.target_picture_url ?? null,
+    },
+    strength: Number(r.strength),
+  }))
 }

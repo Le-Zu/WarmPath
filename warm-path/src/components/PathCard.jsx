@@ -27,7 +27,11 @@ export default function PathCard({ path }) {
         </div>
       </div>
       <div style={{ flex: 1, paddingTop: '0.25rem' }}>
-        <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>{path.target.avatar}</div>
+        <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
+          {path.target.pictureUrl
+            ? <img src={path.target.pictureUrl} alt={path.target.name} style={{ width: '2rem', height: '2rem', borderRadius: '50%' }} />
+            : '👤'}
+        </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>{path.target.name}</div>
         <div style={{ fontSize: '0.82rem', color: '#7a6f68', marginBottom: '1rem' }}>{path.target.role}</div>
         <div style={{ fontSize: '0.75rem', color: 'var(--mid)', fontWeight: 500, marginBottom: '1rem' }}>
