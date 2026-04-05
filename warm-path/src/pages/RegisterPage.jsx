@@ -24,6 +24,14 @@ export default function RegisterPage() {
          return;
       }
 
+      if (form.email.endsWith('@dev.warmpath.com') || form.email.endsWith('@warmpath.com') || form.email.endsWith('@test.warmpath.com') 
+         || form.email.endsWith('@localhost') || form.email.endsWith('@warmpath.io') || form.email.endsWith('@warmpath.org') || form.email.endsWith('@warmpath.net')
+         || form.email.endsWith('@warmpath.tech')) { // add more email domains here if needed
+         console.log("This email domain is not available for registration.");
+         setbackendMessage("This email domain is not available for registration.");
+         return;
+      }
+
       try {
          const userCredential = await createUserWithEmailAndPassword(
             auth,
@@ -201,7 +209,7 @@ export default function RegisterPage() {
 
                   <button
                      type="button"
-                     onClick={() => navigate("/logintest")}
+                     onClick={() => navigate("/login")}
                      onMouseEnter={() => setHovered2(true)}
                      onMouseLeave={() => setHovered2(false)}
                      style={{

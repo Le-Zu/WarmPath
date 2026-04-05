@@ -79,7 +79,7 @@ export default function HomePage() {
                      <a href="#how">How It Works</a>
                   </li>
                   <li>
-                     <Link to="/logintest" className="hp-nav-cta">
+                     <Link to="/register" className="hp-nav-cta">
                         Get Started
                      </Link>
                   </li>
@@ -121,9 +121,9 @@ export default function HomePage() {
                      reach — with context at every step.
                   </p>
                   <div className="hp-actions">
-                     <a href="#" className="hp-btn-primary">
+                     <Link to="/register" className="hp-btn-primary">
                         Start Your Path
-                     </a>
+                     </Link>
                      <button
                         className="hp-btn-ghost"
                         onClick={() =>
@@ -248,13 +248,13 @@ export default function HomePage() {
                   Join WarmPath and start finding paths that actually lead
                   somewhere.
                </p>
-               <a
-                  href="#"
+               <Link
+                  to="/register"
                   className="hp-btn-primary"
                   style={{ fontSize: "1rem", padding: "1rem 2.5rem" }}
                >
                   Get Early Access
-               </a>
+               </Link>
             </section>
 
             {/* FOOTER */}
