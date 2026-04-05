@@ -37,7 +37,8 @@
     "flatted": "^3.4.2",
     "fast-xml-parser": "^5.5.7",
     "node-forge": "^1.4.0",
-    "minimatch": "^10.0.3"
+    "minimatch": "^10.0.3",
+    "defu": "6.1.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
