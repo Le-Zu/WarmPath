@@ -14,6 +14,7 @@ export default function RegisterPage() {
    const [backendMessage, setbackendMessage] = useState("");
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);
+   const [hovered3, setHovered3] = useState(false);
 
    const handleChange = (e) => {
       setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -157,7 +158,33 @@ export default function RegisterPage() {
                }}
             >
                <h2 style={{ fontSize: "1.5rem" }}>Create account</h2>
-               <button type="button" onClick={handleGoogleSignIn}>
+               <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  onMouseEnter={() => setHovered3(true)}
+                  onMouseLeave={() => setHovered3(false)}
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     justifyContent: "center",
+                     gap: "10px",
+                     backgroundColor: hovered3 ? "lightgray" : "#f2e9e4",
+                     width: "100%",
+                     padding: ".8rem 1rem",
+                     borderRadius: "100px",
+                     border: "1px solid",
+                     fontSize: "1rem",
+                     fontWeight: "bold",
+                     marginTop: ".8rem",
+                     cursor: "pointer",
+                     transition: "background-color 0.1s",
+                  }}
+               >
+                  <img
+                     src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                     alt="Google"
+                     style={{ height: "20px" }}
+                  />
                   Continue with Google
                </button>
 
