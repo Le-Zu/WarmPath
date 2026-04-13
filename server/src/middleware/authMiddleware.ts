@@ -37,15 +37,48 @@ export const verifyToken = async (req: AuthRequest, res: Response, next: NextFun
     }
 };
 
+const DEV_DOMAINS = [
+    '@warmpath.com', '@dev.warmpath.com', '@test.warmpath.com',
+    '@localhost', '@warmpath.io', '@warmpath.org', '@warmpath.net', '@warmpath.tech',
+];
+
+// Synthetic user attached to dev accounts — bypasses DB lookup entirely
+const makeDevUser = (email: string) => ({
+    user_id: '00000000-0000-0000-0000-000000000000',
+    email,
+    first_name: 'Dev',
+    last_name: 'Account',
+    is_active: true,
+    profile_complete: false,
+    firebase_uid: null,
+    major: null,
+    year: null,
+    bio: null,
+    linkedin_url: null,
+    resume_url: null,
+    profile_picture_url: null,
+    created_at: new Date(),
+    updated_at: new Date(),
+});
+
 export const dbUserMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user?.email) {
         return next();
     }
 
+    const email: string = req.user.email;
+
+    // Dev accounts skip the DB lookup and get a synthetic user
+    if (DEV_DOMAINS.some(domain => email.endsWith(domain))) {
+        req.dbUser = makeDevUser(email);
+        console.log(`[dbUserMiddleware] Dev account bypass for: ${email}`);
+        return next();
+    }
+
     try {
-        // Look up the user in our database using the email from Firebase
+        // Look up the user in the database using the email from Firebase
         const user = await prisma.users.findUnique({
-            where: { email: req.user.email }
+            where: { email }
         });
 
         if (user) {

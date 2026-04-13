@@ -8,7 +8,11 @@
     "dev": "nodemon",
     "start": "tsx src/index.ts",
     "db:push": "npx prisma db push",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "db:seed-firebase": "tsx scripts/seed-firebase-users.ts",
+    "db:migrate:views": "npx prisma db execute --file ./prisma/migrations/001_views.sql",
+    "db:migrate:rls": "npx prisma db execute --file ./prisma/migrations/002_rls.sql",
+    "db:migrate": "npm run db:migrate:views && npm run db:migrate:rls"
   },
   "keywords": [],
   "author": "",
@@ -16,19 +20,19 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "^7.7.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
     "pg": "^8.20.0",
-    "prisma": "^7.6.0",
+    "prisma": "^7.7.0",
     "tsx": "^4.21.0"
   },
   "overrides": {
     "eslint": "^10.0.1",
-    "hono": "^4.12.7",
-    "@hono/node-server": "^1.19.11",
+    "hono": "^4.12.12",
+    "@hono/node-server": "^1.19.14",
     "lodash": "^4.17.22",
     "@tootallnate/once": "^3.0.1",
     "effect": "^3.20.0",
@@ -37,7 +41,8 @@
     "flatted": "^3.4.2",
     "fast-xml-parser": "^5.5.7",
     "node-forge": "^1.4.0",
-    "minimatch": "^10.0.3"
+    "minimatch": "^10.0.3",
+    "defu": "6.1.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
