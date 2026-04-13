@@ -8,7 +8,11 @@
     "dev": "nodemon",
     "start": "tsx src/index.ts",
     "db:push": "npx prisma db push",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "db:seed-firebase": "tsx scripts/seed-firebase-users.ts",
+    "db:migrate:views": "npx prisma db execute --file ./prisma/migrations/001_views.sql",
+    "db:migrate:rls": "npx prisma db execute --file ./prisma/migrations/002_rls.sql",
+    "db:migrate": "npm run db:migrate:views && npm run db:migrate:rls"
   },
   "keywords": [],
   "author": "",
@@ -16,13 +20,13 @@
   "type": "commonjs",
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "^7.7.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
     "pg": "^8.20.0",
-    "prisma": "^7.6.0",
+    "prisma": "^7.7.0",
     "tsx": "^4.21.0"
   },
   "overrides": {

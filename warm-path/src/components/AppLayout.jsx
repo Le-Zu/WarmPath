@@ -1,21 +1,37 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { logoBase64 } from '../assets/logo.js';
 import NotificationBell from './NotificationBell.jsx';
 import UserSwitcher from './UserSwitcher.jsx';
-import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 const DEV_EMAIL_DOMAIN = '@dev.warmpath.com';
 const TEST_EMAIL_DOMAIN = '@test.warmpath.com';
 
-const intents = ['Internship', 'Research', 'Class Help', 'Club', 'Skill'];
+// Maps display labels to the DB enum values used by the paths API
+const INTENT_MAP = {
+  'Internship': 'internship',
+  'Research':   'research',
+  'Class Help': 'class',
+  'Club':       'club',
+  'Skill':      'skill',
+};
+const INTENT_LABELS = Object.keys(INTENT_MAP);
 
 export default function AppLayout() {
-  const [activeIntent, setActiveIntent] = useState('Internship');
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useAuth();
   const isDevAccount = currentUser?.email?.endsWith(DEV_EMAIL_DOMAIN) ?? false;
   const isTestAccount = currentUser?.email?.endsWith(TEST_EMAIL_DOMAIN) ?? false;
+
+  // Derive the active intent from the URL so the filter bar stays in sync on
+  // direct navigation (e.g. clicking the "Find Paths" nav link).
+  // Only highlight a pill when actually on the paths page.
+  const onPathsPage = location.pathname === '/paths';
+  const currentIntentParam = new URLSearchParams(location.search).get('intent');
+  const activeIntent = onPathsPage
+    ? (INTENT_LABELS.find(l => INTENT_MAP[l] === currentIntentParam) ?? 'Internship')
+    : null;
   return (
     <>
       {/* Cream top navbar */}
@@ -44,7 +60,7 @@ export default function AppLayout() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <NotificationBell light />
-          {isDevAccount && <UserSwitcher light />}
+          {(isDevAccount || isTestAccount || import.meta.env.DEV) && <UserSwitcher light />}
         </div>
       </nav>
 
@@ -61,8 +77,8 @@ export default function AppLayout() {
         <span style={{ color: 'rgba(242,233,228,0.75)', fontSize: '0.82rem', fontFamily: 'var(--font-sans)', marginRight: '0.5rem' }}>
           What are you looking for?
         </span>
-        {intents.map(intent => (
-          <button key={intent} onClick={() => { setActiveIntent(intent); navigate('/paths'); }}
+        {INTENT_LABELS.map(intent => (
+          <button key={intent} onClick={() => navigate('/paths?intent=' + INTENT_MAP[intent])}
             style={{
               background: activeIntent === intent ? '#e76f51' : 'transparent',
               color: activeIntent === intent ? '#fff' : 'rgba(242,233,228,0.8)',

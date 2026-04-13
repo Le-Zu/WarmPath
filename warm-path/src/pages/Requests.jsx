@@ -30,6 +30,11 @@ export default function Requests() {
       <div className="app-eyebrow">— Connector inbox</div>
       <div className="app-page-title">Intro Requests</div>
       <div className="app-page-sub">People asking you to make an introduction on their behalf.</div>
+      {reqs.length === 0 && (
+        <div style={{ color: '#7a6f68', fontSize: '0.88rem', marginTop: '0.5rem' }}>
+          Your connector inbox is empty. When someone asks you to make an introduction, it will appear here.
+        </div>
+      )}
       {reqs.map(r => (
         <div key={r.id} className="app-card" style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>

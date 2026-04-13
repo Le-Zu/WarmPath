@@ -27,9 +27,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Landing layout — public nav */}
-          <Route element={<LandingLayout />}>
-            <Route path="/" element={<HomePage />} />
-          </Route>
+          <Route path="/" element={<HomePage />} />
 
           {/* Auth pages — no layout */}
           <Route path="/login" element={<LoginPage />} />

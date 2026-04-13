@@ -48,6 +48,13 @@ export default function MyRequests() {
           </button>
         ))}
       </div>
+      {filtered.length === 0 && (
+        <div style={{ color: '#7a6f68', fontSize: '0.88rem', marginTop: '0.5rem' }}>
+          {requests.length === 0
+            ? "You haven't sent any intro requests yet. Find warm paths to get started."
+            : `No ${tab} requests.`}
+        </div>
+      )}
       {filtered.map(r => (
         <div key={r.id} className="app-card" style={{ marginBottom: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

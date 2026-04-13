@@ -180,10 +180,10 @@ export default function HomePage() {
                         <div className="hp-warmth">
                            <span>Warmth</span>
                            <div className="hp-warmth-dots">
-                              {[1, 2, 3, 4].map((i) => (
+                              {[1, 2, 3, 4].map((dot) => (
                                  <span
-                                    key={i}
-                                    className={i <= 3 ? "active" : ""}
+                                    key={dot}
+                                    className={dot <= 3 ? "active" : ""}
                                  />
                               ))}
                            </div>
@@ -208,7 +208,7 @@ export default function HomePage() {
 
                <div className="hp-features-grid">
                   {features.map((f, i) => (
-                     <div className="hp-feature-item">
+                     <div key={i} className="hp-feature-item">
                         <div className="hp-feature-num">{f.num}</div>
                         <div className="hp-feature-title">{f.title}</div>
                         <p className="hp-feature-desc">{f.desc}</p>
@@ -225,7 +225,7 @@ export default function HomePage() {
                   </h2>
                   <div className="hp-steps">
                      {steps.map((s, i) => (
-                        <div className="hp-step">
+                        <div key={i} className="hp-step">
                            <div className="hp-step-num">{s.num}</div>
                            <div className="hp-step-title">{s.title}</div>
                            <p className="hp-step-desc">{s.desc}</p>

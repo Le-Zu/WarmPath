@@ -201,15 +201,86 @@ app.get('/api/requests/outgoing', async (req: AuthRequest, res) => {
     }
 });
 
-// Returns discovered warm paths for the authenticated user
+// Creates a new intro request from the authenticated user
+app.post('/api/requests', async (req: AuthRequest, res) => {
+    if (!req.dbUser) {
+        return res.status(404).json({ message: 'User not found in database.' });
+    }
+
+    const { connectorId, targetId, message } = req.body;
+
+    if (!connectorId || !targetId || !message) {
+        return res.status(400).json({ error: 'connectorId, targetId, and message are required.' });
+    }
+
+    try {
+        const intent = await basePrisma.intents.findFirst({
+            where: { user_id: req.dbUser.user_id, is_active: true },
+        });
+
+        if (!intent) {
+            return res.status(400).json({ error: 'No active intent. Declare your intent first.' });
+        }
+
+        const request = await basePrisma.introRequests.create({
+            data: {
+                requester_id: req.dbUser.user_id,
+                connector_id: connectorId,
+                target_id: targetId,
+                intent_id: intent.intent_id,
+                draft_message: message,
+                status: 'pending',
+            },
+        });
+
+        console.log(`[POST /api/requests] Request created | request_id: ${request.request_id} | requester: ${req.dbUser.user_id}`);
+        res.status(201).json({ request });
+    } catch (error: any) {
+        console.error('[POST /api/requests] Error:', error);
+        res.status(500).json({ error: 'Failed to create request', details: error.message });
+    }
+});
+
+// Returns all active users — dev/staging only, used by the UserSwitcher
+app.get('/api/dev/users', async (req: AuthRequest, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'Not available in production.' });
+    }
+
+    try {
+        const users = await basePrisma.users.findMany({
+            where: { is_active: true },
+            select: {
+                user_id: true,
+                email: true,
+                first_name: true,
+                last_name: true,
+                major: true,
+                year: true,
+            },
+            orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
+        });
+
+        res.json({ users });
+    } catch (error: any) {
+        console.error('[GET /api/dev/users] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch users', details: error.message });
+    }
+});
+
+// Returns discovered warm paths for the authenticated user, optionally filtered by intent category
 app.get('/api/paths', async (req: AuthRequest, res) => {
     if (!req.dbUser) {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
+    const VALID_INTENTS = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const intentParam = typeof req.query.intent === 'string' ? req.query.intent : undefined;
+    const intent = intentParam && VALID_INTENTS.includes(intentParam) ? intentParam : undefined;
+
     try {
-        const paths = await getPathsForUser(req.dbUser.user_id);
-        console.log(`[GET /api/paths] ${paths.length} paths found for user_id: ${req.dbUser.user_id}`);
+        const paths = await getPathsForUser(req.dbUser.user_id, intent);
+        console.log(`[GET /api/paths] ${paths.length} paths found for user_id: ${req.dbUser.user_id}${intent ? ` (intent: ${intent})` : ''}`);
         res.json({ paths });
     } catch (error: any) {
         console.error('[GET /api/paths] Error fetching paths:', error);

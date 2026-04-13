@@ -2,6 +2,15 @@
 -- ROW LEVEL SECURITY (RLS) SETUP
 -- ==========================================
 
+-- Drop all existing policies on public tables so this file is safe to re-run
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN (SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public') LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', r.policyname, r.tablename);
+  END LOOP;
+END $$;
+
 -- 1. Create a function to get the current user ID from the session
 CREATE OR REPLACE FUNCTION get_current_user_id()
 RETURNS UUID AS $$
@@ -55,6 +64,9 @@ ALTER TABLE connector_prompts FORCE ROW LEVEL SECURITY;
 -- Anyone can see basic profile info (needed for discovery)
 CREATE POLICY "Users are visible to everyone" ON users
     FOR SELECT USING (true);
+-- Registration creates a user before a session exists, so INSERT is open
+CREATE POLICY "Anyone can register" ON users
+    FOR INSERT WITH CHECK (true);
 -- Users can only update their own profile
 CREATE POLICY "Users can only update themselves" ON users
     FOR UPDATE USING (user_id = get_current_user_id());
@@ -72,7 +84,10 @@ CREATE POLICY "Users can manage their own experiences" ON user_experiences
     FOR ALL USING (user_id = get_current_user_id());
 
 -- PRIVACY SETTINGS
--- Only the user can see/manage their own privacy settings
+-- Row is created at registration time (before session exists), so INSERT is open
+CREATE POLICY "Privacy settings can be created on registration" ON privacy_settings
+    FOR INSERT WITH CHECK (true);
+-- Only the user can read or update their own privacy settings
 CREATE POLICY "Users can manage their own privacy settings" ON privacy_settings
     FOR ALL USING (user_id = get_current_user_id());
 
