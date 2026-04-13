@@ -24,11 +24,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
+//Important: Prisma v7 removed url and directUrl from schema file. They belong in prisma.config.ts
+//
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // ============================================================
