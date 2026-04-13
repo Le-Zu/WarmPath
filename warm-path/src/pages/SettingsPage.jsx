@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
 
 const GOAL_TAGS = ["Internship", "Research", "Study Group", "Club", "Mentorship", "Side Project"];
 const FIELD_TAGS = [
@@ -43,7 +42,6 @@ function Toggle({ on, onToggle, label }) {
 }
 
 export default function SettingsPage() {
-   const [dropdownOpen, setDropdownOpen] = useState(false);
    const [showPasswordFields, setShowPasswordFields] = useState(false);
    const [copied, setCopied] = useState(false);
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -51,8 +49,6 @@ export default function SettingsPage() {
    const [hoveredSave, setHoveredSave] = useState(false);
    const [hoveredDelete, setHoveredDelete] = useState(false);
    const [hoveredDeleteConfirm, setHoveredDeleteConfirm] = useState(false);
-   const dropdownRef = useRef(null);
-
    const [form, setForm] = useState({
       firstName: "Jane",
       lastName: "Doe",
@@ -109,17 +105,6 @@ export default function SettingsPage() {
       setTimeout(() => setCopied(false), 2000);
    };
 
-   useEffect(() => {
-      const handler = (e) => {
-         if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-            setDropdownOpen(false);
-         }
-      };
-      document.addEventListener("mousedown", handler);
-      return () => document.removeEventListener("mousedown", handler);
-   }, []);
-
-   const initials = `${saved.firstName[0]}${saved.lastName[0]}`;
 
    const inputStyle = {
       backgroundColor: "#f2e9e4",
@@ -190,100 +175,6 @@ export default function SettingsPage() {
             color: "#386641",
          }}
       >
-         {/* Top nav */}
-         <nav
-            style={{
-               background: "#fff",
-               borderBottom: "1px solid #d88c9a",
-               padding: "0.75rem 2rem",
-               display: "flex",
-               justifyContent: "space-between",
-               alignItems: "center",
-            }}
-         >
-            <Link to="/" style={{ textDecoration: "none" }}>
-               <img
-                  src="/logo.png"
-                  alt="Logo"
-                  style={{ height: "40px", display: "block" }}
-               />
-            </Link>
-
-            <div ref={dropdownRef} style={{ position: "relative" }}>
-               <button
-                  onClick={() => setDropdownOpen((o) => !o)}
-                  style={{
-                     width: "40px",
-                     height: "40px",
-                     borderRadius: "50%",
-                     background: "LightSalmon",
-                     color: "#fff",
-                     border: "none",
-                     fontSize: "0.9rem",
-                     fontWeight: "bold",
-                     cursor: "pointer",
-                  }}
-               >
-                  {initials}
-               </button>
-
-               {dropdownOpen && (
-                  <div
-                     style={{
-                        position: "absolute",
-                        right: 0,
-                        top: "48px",
-                        background: "#fff",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-                        padding: "0.75rem 0",
-                        minWidth: "180px",
-                        zIndex: 10,
-                     }}
-                  >
-                     <div style={{ padding: "0.5rem 1rem", fontWeight: "bold" }}>
-                        {saved.firstName} {saved.lastName}
-                     </div>
-                     <div style={{ padding: "0 1rem 0.5rem", fontSize: "0.8rem", color: "#6a994e" }}>
-                        jane@university.edu
-                     </div>
-                     <hr style={dividerStyle} />
-                     <button
-                        style={{
-                           display: "block",
-                           width: "100%",
-                           textAlign: "left",
-                           padding: "0.5rem 1rem",
-                           border: "none",
-                           background: "none",
-                           cursor: "pointer",
-                           fontSize: "0.9rem",
-                           color: "LightSalmon",
-                           fontWeight: "bold",
-                        }}
-                     >
-                        Settings
-                     </button>
-                     <button
-                        style={{
-                           display: "block",
-                           width: "100%",
-                           textAlign: "left",
-                           padding: "0.5rem 1rem",
-                           border: "none",
-                           background: "none",
-                           cursor: "pointer",
-                           fontSize: "0.9rem",
-                           color: "#386641",
-                        }}
-                     >
-                        Log Out
-                     </button>
-                  </div>
-               )}
-            </div>
-         </nav>
-
          {/* Settings card */}
          <div
             style={{
