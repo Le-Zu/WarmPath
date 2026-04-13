@@ -188,6 +188,19 @@ export default function RegisterPage() {
                   Continue with Google
                </button>
 
+               <div
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "10px",
+                     margin: "8px",
+                  }}
+               >
+                  <hr style={{ flex: 1, borderColor: "lightgray" }} />
+                  <h7 style={{ fontSize: "0.9rem" }}>or</h7>
+                  <hr style={{ flex: 1, borderColor: "lightgray" }} />
+               </div>
+
                <form
                   onSubmit={handleRegister}
                   style={{
