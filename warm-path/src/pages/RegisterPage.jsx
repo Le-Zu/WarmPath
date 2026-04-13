@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+   createUserWithEmailAndPassword,
+   signInWithPopup,
+   GoogleAuthProvider,
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { Link, useNavigate } from "react-router-dom";
 import apiUrl from "../apiConfig";
@@ -15,32 +19,13 @@ export default function RegisterPage() {
       setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
    };
 
-   const handleRegister = async (e) => {
-      e.preventDefault();
+   const handleGoogleSignIn = async () => {
       setbackendMessage("");
-
-      if (form.password !== form.confirm) {
-         setbackendMessage("Passwords don't match.");
-         return;
-      }
-
-      if (form.email.endsWith('@dev.warmpath.com') || form.email.endsWith('@warmpath.com') || form.email.endsWith('@test.warmpath.com') 
-         || form.email.endsWith('@localhost') || form.email.endsWith('@warmpath.io') || form.email.endsWith('@warmpath.org') || form.email.endsWith('@warmpath.net')
-         || form.email.endsWith('@warmpath.tech')) { // add more email domains here if needed
-         console.log("This email domain is not available for registration.");
-         setbackendMessage("This email domain is not available for registration.");
-         return;
-      }
-
       try {
-         const userCredential = await createUserWithEmailAndPassword(
-            auth,
-            form.email,
-            form.password,
-         );
-         const user = userCredential.user;
-         const token = await user.getIdToken();
-         
+         const provider = new GoogleAuthProvider();
+         const userCredential = await signInWithPopup(auth, provider);
+         const token = await userCredential.user.getIdToken();
+
          const res = await fetch(`${apiUrl}/api/users`, {
             method: "POST",
             headers: {
@@ -54,13 +39,76 @@ export default function RegisterPage() {
             setTimeout(() => navigate("/onboarding"), 1500);
          } else {
             const errorData = await res.json();
-            setbackendMessage(`Backend sync failed: ${errorData.message || res.statusText}`);
+            setbackendMessage(
+               `Backend sync failed: ${errorData.message || res.statusText}`,
+            );
+         }
+      } catch (err) {
+         console.error("Google sign-in error", err);
+         setbackendMessage(`Google sign-in failed: ${err.message}`);
+      }
+   };
+
+   const handleRegister = async (e) => {
+      e.preventDefault();
+      setbackendMessage("");
+
+      if (form.password !== form.confirm) {
+         setbackendMessage("Passwords don't match.");
+         return;
+      }
+
+      if (
+         form.email.endsWith("@dev.warmpath.com") ||
+         form.email.endsWith("@warmpath.com") ||
+         form.email.endsWith("@test.warmpath.com") ||
+         form.email.endsWith("@localhost") ||
+         form.email.endsWith("@warmpath.io") ||
+         form.email.endsWith("@warmpath.org") ||
+         form.email.endsWith("@warmpath.net") ||
+         form.email.endsWith("@warmpath.tech")
+      ) {
+         // add more email domains here if needed
+         console.log("This email domain is not available for registration.");
+         setbackendMessage(
+            "This email domain is not available for registration.",
+         );
+         return;
+      }
+
+      try {
+         const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            form.email,
+            form.password,
+         );
+         const user = userCredential.user;
+         const token = await user.getIdToken();
+
+         const res = await fetch(`${apiUrl}/api/users`, {
+            method: "POST",
+            headers: {
+               Authorization: `Bearer ${token}`,
+               "Content-Type": "application/json",
+            },
+         });
+
+         if (res.ok) {
+            setbackendMessage("Registration successful! Redirecting...");
+            setTimeout(() => navigate("/onboarding"), 1500);
+         } else {
+            const errorData = await res.json();
+            setbackendMessage(
+               `Backend sync failed: ${errorData.message || res.statusText}`,
+            );
          }
       } catch (err) {
          console.error("Register error", err);
          let message = `Register failed: ${err.message}`;
-         if (err.code === 'auth/email-already-in-use') message = "This email is already registered.";
-         if (err.code === 'auth/weak-password') message = "Password should be at least 6 characters.";
+         if (err.code === "auth/email-already-in-use")
+            message = "This email is already registered.";
+         if (err.code === "auth/weak-password")
+            message = "Password should be at least 6 characters.";
          setbackendMessage(message);
       }
    };
@@ -109,6 +157,9 @@ export default function RegisterPage() {
                }}
             >
                <h2 style={{ fontSize: "1.5rem" }}>Create account</h2>
+               <button type="button" onClick={handleGoogleSignIn}>
+                  Continue with Google
+               </button>
 
                <form
                   onSubmit={handleRegister}
