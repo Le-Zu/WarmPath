@@ -8,11 +8,11 @@ const intents = [
 export default function Home() {
   const nav = useNavigate();
   return (
-    <div className="app-page">
-      <div className="app-eyebrow">— Declare your intent</div>
+    <div className="app-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      <div className="app-eyebrow">— Declare your intent -</div>
       <div className="app-page-title">What are you<br />looking for?</div>
       <div className="app-page-sub">Choose a goal and we'll surface the best warm paths for you.</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 480 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: 480 }}>
         {intents.map(it => (
           <button key={it.id} onClick={() => nav('/paths')}
             style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 2, padding: '1rem 1.25rem', textAlign: 'left', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s', fontFamily: 'var(--font-sans)' }}
