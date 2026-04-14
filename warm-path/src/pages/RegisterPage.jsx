@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+   createUserWithEmailAndPassword,
+   signInWithPopup,
+   GoogleAuthProvider,
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { Link, useNavigate } from "react-router-dom";
 import apiUrl from "../apiConfig";
@@ -10,37 +14,19 @@ export default function RegisterPage() {
    const [backendMessage, setbackendMessage] = useState("");
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);
+   const [hovered3, setHovered3] = useState(false);
 
    const handleChange = (e) => {
       setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
    };
 
-   const handleRegister = async (e) => {
-      e.preventDefault();
+   const handleGoogleSignIn = async () => {
       setbackendMessage("");
-
-      if (form.password !== form.confirm) {
-         setbackendMessage("Passwords don't match.");
-         return;
-      }
-
-      if (form.email.endsWith('@dev.warmpath.com') || form.email.endsWith('@warmpath.com') || form.email.endsWith('@test.warmpath.com') 
-         || form.email.endsWith('@localhost') || form.email.endsWith('@warmpath.io') || form.email.endsWith('@warmpath.org') || form.email.endsWith('@warmpath.net')
-         || form.email.endsWith('@warmpath.tech')) { // add more email domains here if needed
-         console.log("This email domain is not available for registration.");
-         setbackendMessage("This email domain is not available for registration.");
-         return;
-      }
-
       try {
-         const userCredential = await createUserWithEmailAndPassword(
-            auth,
-            form.email,
-            form.password,
-         );
-         const user = userCredential.user;
-         const token = await user.getIdToken();
-         
+         const provider = new GoogleAuthProvider();
+         const userCredential = await signInWithPopup(auth, provider);
+         const token = await userCredential.user.getIdToken();
+
          const res = await fetch(`${apiUrl}/api/users`, {
             method: "POST",
             headers: {
@@ -54,13 +40,76 @@ export default function RegisterPage() {
             setTimeout(() => navigate("/onboarding"), 1500);
          } else {
             const errorData = await res.json();
-            setbackendMessage(`Backend sync failed: ${errorData.message || res.statusText}`);
+            setbackendMessage(
+               `Backend sync failed: ${errorData.message || res.statusText}`,
+            );
+         }
+      } catch (err) {
+         console.error("Google sign-in error", err);
+         setbackendMessage(`Google sign-in failed: ${err.message}`);
+      }
+   };
+
+   const handleRegister = async (e) => {
+      e.preventDefault();
+      setbackendMessage("");
+
+      if (form.password !== form.confirm) {
+         setbackendMessage("Passwords don't match.");
+         return;
+      }
+
+      if (
+         form.email.endsWith("@dev.warmpath.com") ||
+         form.email.endsWith("@warmpath.com") ||
+         form.email.endsWith("@test.warmpath.com") ||
+         form.email.endsWith("@localhost") ||
+         form.email.endsWith("@warmpath.io") ||
+         form.email.endsWith("@warmpath.org") ||
+         form.email.endsWith("@warmpath.net") ||
+         form.email.endsWith("@warmpath.tech")
+      ) {
+         // add more email domains here if needed
+         console.log("This email domain is not available for registration.");
+         setbackendMessage(
+            "This email domain is not available for registration.",
+         );
+         return;
+      }
+
+      try {
+         const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            form.email,
+            form.password,
+         );
+         const user = userCredential.user;
+         const token = await user.getIdToken();
+
+         const res = await fetch(`${apiUrl}/api/users`, {
+            method: "POST",
+            headers: {
+               Authorization: `Bearer ${token}`,
+               "Content-Type": "application/json",
+            },
+         });
+
+         if (res.ok) {
+            setbackendMessage("Registration successful! Redirecting...");
+            setTimeout(() => navigate("/onboarding"), 1500);
+         } else {
+            const errorData = await res.json();
+            setbackendMessage(
+               `Backend sync failed: ${errorData.message || res.statusText}`,
+            );
          }
       } catch (err) {
          console.error("Register error", err);
          let message = `Register failed: ${err.message}`;
-         if (err.code === 'auth/email-already-in-use') message = "This email is already registered.";
-         if (err.code === 'auth/weak-password') message = "Password should be at least 6 characters.";
+         if (err.code === "auth/email-already-in-use")
+            message = "This email is already registered.";
+         if (err.code === "auth/weak-password")
+            message = "Password should be at least 6 characters.";
          setbackendMessage(message);
       }
    };
@@ -109,6 +158,48 @@ export default function RegisterPage() {
                }}
             >
                <h2 style={{ fontSize: "1.5rem" }}>Create account</h2>
+               <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  onMouseEnter={() => setHovered3(true)}
+                  onMouseLeave={() => setHovered3(false)}
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     justifyContent: "center",
+                     gap: "10px",
+                     backgroundColor: hovered3 ? "lightgray" : "#f2e9e4",
+                     width: "100%",
+                     padding: ".8rem 1rem",
+                     borderRadius: "100px",
+                     border: "1px solid",
+                     fontSize: "1rem",
+                     fontWeight: "bold",
+                     marginTop: ".8rem",
+                     cursor: "pointer",
+                     transition: "background-color 0.1s",
+                  }}
+               >
+                  <img
+                     src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                     alt="Google"
+                     style={{ height: "20px" }}
+                  />
+                  Continue with Google
+               </button>
+
+               <div
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     gap: "10px",
+                     margin: "8px",
+                  }}
+               >
+                  <hr style={{ flex: 1, borderColor: "lightgray" }} />
+                  <h7 style={{ fontSize: "0.9rem" }}>or</h7>
+                  <hr style={{ flex: 1, borderColor: "lightgray" }} />
+               </div>
 
                <form
                   onSubmit={handleRegister}
