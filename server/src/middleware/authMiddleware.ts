@@ -70,9 +70,13 @@ export const dbUserMiddleware = async (req: AuthRequest, res: Response, next: Ne
 
     // Dev accounts skip the DB lookup and get a synthetic user
     if (DEV_DOMAINS.some(domain => email.endsWith(domain))) {
-        req.dbUser = makeDevUser(email);
+        const devUser = makeDevUser(email);
+        req.dbUser = devUser;
         console.log(`[dbUserMiddleware] Dev account bypass for: ${email}`);
-        return next();
+        
+        return storage.run({ userId: devUser.user_id }, () => {
+            next();
+        });
     }
 
     try {
