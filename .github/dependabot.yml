@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/" # Scan root
+    schedule:
+          interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/server" # Scan server folder      
+    schedule:
+    interval: "weekly"
