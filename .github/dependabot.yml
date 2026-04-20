@@ -1,10 +1,19 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/" # Scan root
+    directory: "/"
     schedule:
-          interval: "weekly"
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
   - package-ecosystem: "npm"
-    directory: "/server" # Scan server folder      
+    directory: "/server"
     schedule:
-    interval: "weekly"
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/warm-path"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

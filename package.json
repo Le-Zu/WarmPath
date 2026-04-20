@@ -13,6 +13,7 @@
     "preview:client": "cd warm-path && npm run preview"
   },
   "dependencies": {
+    "@google/genai": "^1.50.1",
     "@prisma/client": "^7.6.0"
   },
   "devDependencies": {
