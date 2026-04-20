@@ -16,6 +16,7 @@ export default function LoginPage() {
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);
    const [hovered3, setHovered3] = useState(false);
+   const [showPassword, setShowPassword] = useState(false);
 
    const handleGoogleSignIn = async () => {
       setbackendMessage("");
@@ -172,22 +173,50 @@ export default function LoginPage() {
                         fontSize: "1rem",
                      }}
                   />
-                  <input
-                     type="password"
-                     placeholder="Password"
-                     value={password}
-                     onChange={(e) => setPassword(e.target.value)}
-                     required
-                     style={{
-                        backgroundColor: "#f2e9e4",
-                        width: "100%",
-                        marginTop: "10px",
-                        padding: "1rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid",
-                        fontSize: "1rem",
-                     }}
-                  />
+                  <div style={{ position: "relative", width: "100%" }}>
+                     <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        style={{
+                           backgroundColor: "#f2e9e4",
+                           width: "100%",
+                           marginTop: "10px",
+                           padding: "1rem 1rem",
+                           paddingRight: "3rem",
+                           borderRadius: "8px",
+                           border: "1px solid",
+                           fontSize: "1rem",
+                        }}
+                     />
+                     <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                           position: "absolute",
+                           right: "8px",
+                           top: "39%",
+                           background: "none",
+                           border: "none",
+                           cursor: "pointer",
+                           padding: "4px",
+                        }}
+                     >
+                        <img
+                           src="/eye.png"
+                           alt={
+                              showPassword ? "Hide password" : "Show password"
+                           }
+                           style={{
+                              width: "25px",
+                              height: "14px",
+                           }}
+                        />
+                     </button>
+                  </div>
+
                   <button
                      type="submit"
                      onMouseEnter={() => setHovered(true)}
