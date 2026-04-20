@@ -17,6 +17,7 @@ export default function LoginPage() {
    const [hovered2, setHovered2] = useState(false);
    const [hovered3, setHovered3] = useState(false);
    const [showPassword, setShowPassword] = useState(false);
+   const [hoveredEye, setHoveredEye] = useState(false);
 
    const handleGoogleSignIn = async () => {
       setbackendMessage("");
@@ -194,14 +195,19 @@ export default function LoginPage() {
                      <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
+                        onMouseEnter={() => setHoveredEye(true)}
+                        onMouseLeave={() => setHoveredEye(false)}
                         style={{
                            position: "absolute",
-                           right: "8px",
-                           top: "39%",
-                           background: "none",
+                           right: "5px",
+                           top: "20%",
+                           background: hoveredEye
+                              ? "rgba(0, 0, 0, 0.1)"
+                              : "none",
+                           borderRadius: "50%",
                            border: "none",
                            cursor: "pointer",
-                           padding: "4px",
+                           padding: "16px 10px",
                         }}
                      >
                         <img
