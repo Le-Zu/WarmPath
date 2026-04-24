@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+   signInWithEmailAndPassword,
+   signInWithPopup,
+   GoogleAuthProvider,
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { Link, useNavigate } from "react-router-dom";
 import apiUrl from "../apiConfig";
@@ -11,16 +15,56 @@ export default function LoginPage() {
    const [backendMessage, setbackendMessage] = useState("");
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);
+   const [hovered3, setHovered3] = useState(false);
+   const [showPassword, setShowPassword] = useState(false);
+   const [hoveredEye, setHoveredEye] = useState(false);
+
+   const handleGoogleSignIn = async () => {
+      setbackendMessage("");
+      try {
+         const provider = new GoogleAuthProvider();
+         const userCredential = await signInWithPopup(auth, provider);
+         const token = await userCredential.user.getIdToken();
+
+         const res = await fetch(`${apiUrl}/api/users`, {
+            method: "POST",
+            headers: {
+               Authorization: `Bearer ${token}`,
+               "Content-Type": "application/json",
+            },
+         });
+
+         if (res.ok) {
+            navigate("/home");
+         } else {
+            const errorData = await res.json();
+            setbackendMessage(
+               `Backend sync failed: ${errorData.message || res.statusText}`,
+            );
+         }
+      } catch (err) {
+         console.error("Google sign-in error", err);
+         setbackendMessage(`Google sign-in failed: ${err.message}`);
+      }
+   };
 
    const handleLoginAndFetch = async (e) => {
       e.preventDefault();
       setbackendMessage("");
       try {
-         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+         const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password,
+         );
          navigate("/home");
       } catch (error) {
          console.error("Login error:", error);
-         if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+         if (
+            error.code === "auth/invalid-credential" ||
+            error.code === "auth/wrong-password" ||
+            error.code === "auth/user-not-found"
+         ) {
             setbackendMessage("Incorrect email or password.");
          } else {
             setbackendMessage(`Login failed: ${error.message}`);
@@ -77,6 +121,35 @@ export default function LoginPage() {
                >
                   Sign in
                </h2>
+               <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  onMouseEnter={() => setHovered3(true)}
+                  onMouseLeave={() => setHovered3(false)}
+                  style={{
+                     display: "flex",
+                     alignItems: "center",
+                     justifyContent: "center",
+                     gap: "10px",
+                     backgroundColor: hovered3 ? "lightgray" : "#f2e9e4",
+                     width: "100%",
+                     padding: ".8rem 1rem",
+                     borderRadius: "100px",
+                     border: "1px solid",
+                     fontSize: "1rem",
+                     fontWeight: "bold",
+                     marginTop: ".8rem",
+                     cursor: "pointer",
+                     transition: "background-color 0.1s",
+                  }}
+               >
+                  <img
+                     src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                     alt="Google"
+                     style={{ height: "20px" }}
+                  />
+                  Continue with Google
+               </button>
                <form
                   onSubmit={handleLoginAndFetch}
                   style={{
@@ -101,22 +174,55 @@ export default function LoginPage() {
                         fontSize: "1rem",
                      }}
                   />
-                  <input
-                     type="password"
-                     placeholder="Password"
-                     value={password}
-                     onChange={(e) => setPassword(e.target.value)}
-                     required
-                     style={{
-                        backgroundColor: "#f2e9e4",
-                        width: "100%",
-                        marginTop: "10px",
-                        padding: "1rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid",
-                        fontSize: "1rem",
-                     }}
-                  />
+                  <div style={{ position: "relative", width: "100%" }}>
+                     <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        style={{
+                           backgroundColor: "#f2e9e4",
+                           width: "100%",
+                           marginTop: "10px",
+                           padding: "1rem 1rem",
+                           paddingRight: "3rem",
+                           borderRadius: "8px",
+                           border: "1px solid",
+                           fontSize: "1rem",
+                        }}
+                     />
+                     <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseEnter={() => setHoveredEye(true)}
+                        onMouseLeave={() => setHoveredEye(false)}
+                        style={{
+                           position: "absolute",
+                           right: "5px",
+                           top: "20%",
+                           background: hoveredEye
+                              ? "rgba(0, 0, 0, 0.1)"
+                              : "none",
+                           borderRadius: "50%",
+                           border: "none",
+                           cursor: "pointer",
+                           padding: "16px 10px",
+                        }}
+                     >
+                        <img
+                           src="/eye.png"
+                           alt={
+                              showPassword ? "Hide password" : "Show password"
+                           }
+                           style={{
+                              width: "25px",
+                              height: "14px",
+                           }}
+                        />
+                     </button>
+                  </div>
+
                   <button
                      type="submit"
                      onMouseEnter={() => setHovered(true)}
@@ -170,7 +276,13 @@ export default function LoginPage() {
                   <strong>Status:</strong> {backendMessage}
                </div> */}
                {backendMessage && (
-                  <p style={{ color: "Tomato", fontSize: "0.875rem", marginTop: "4px" }}>
+                  <p
+                     style={{
+                        color: "Tomato",
+                        fontSize: "0.875rem",
+                        marginTop: "4px",
+                     }}
+                  >
                      {backendMessage}
                   </p>
                )}

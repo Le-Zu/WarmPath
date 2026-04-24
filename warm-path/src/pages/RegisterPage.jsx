@@ -15,6 +15,10 @@ export default function RegisterPage() {
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);
    const [hovered3, setHovered3] = useState(false);
+   const [showPassword, setShowPassword] = useState(false);
+   const [showConfirm, setShowConfirm] = useState(false);
+   const [hoveredEyePassword, setHoveredEyePassword] = useState(false);
+   const [hoveredEyeConfirm, setHoveredEyeConfirm] = useState(false);
 
    const handleChange = (e) => {
       setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -228,43 +232,105 @@ export default function RegisterPage() {
                      }}
                   />
 
-                  <input
-                     name="password"
-                     type="password"
-                     placeholder="Password (at least 6 characters)"
-                     value={form.password}
-                     onChange={handleChange}
-                     required
-                     autoComplete="new-password"
-                     style={{
-                        backgroundColor: "#f2e9e4",
-                        width: "100%",
-                        marginTop: "10px",
-                        padding: "1rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid",
-                        fontSize: "1rem",
-                     }}
-                  />
+                  <div style={{ position: "relative", width: "100%" }}>
+                     <input
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password (at least 6 characters)"
+                        value={form.password}
+                        onChange={handleChange}
+                        required
+                        autoComplete="new-password"
+                        style={{
+                           backgroundColor: "#f2e9e4",
+                           width: "100%",
+                           marginTop: "10px",
+                           padding: "1rem 1rem",
+                           paddingRight: "3rem",
+                           borderRadius: "8px",
+                           border: "1px solid",
+                           fontSize: "1rem",
+                        }}
+                     />
+                     <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseEnter={() => setHoveredEyePassword(true)}
+                        onMouseLeave={() => setHoveredEyePassword(false)}
+                        style={{
+                           position: "absolute",
+                           right: "5px",
+                           top: "20%",
+                           background: hoveredEyePassword
+                              ? "rgba(0, 0, 0, 0.1)"
+                              : "none",
+                           borderRadius: "50%",
+                           border: "none",
+                           cursor: "pointer",
+                           padding: "16px 10px",
+                        }}
+                     >
+                        <img
+                           src="/eye.png"
+                           alt={
+                              showPassword ? "Hide password" : "Show password"
+                           }
+                           style={{
+                              width: "25px",
+                              height: "14px",
+                           }}
+                        />
+                     </button>
+                  </div>
 
-                  <input
-                     name="confirm"
-                     type="password"
-                     placeholder="Confirm password"
-                     value={form.confirm}
-                     onChange={handleChange}
-                     required
-                     autoComplete="new-password"
-                     style={{
-                        backgroundColor: "#f2e9e4",
-                        width: "100%",
-                        marginTop: "10px",
-                        padding: "1rem 1rem",
-                        borderRadius: "8px",
-                        border: "1px solid",
-                        fontSize: "1rem",
-                     }}
-                  />
+                  <div style={{ position: "relative", width: "100%" }}>
+                     <input
+                        name="confirm"
+                        type={showConfirm ? "text" : "password"}
+                        placeholder="Confirm password"
+                        value={form.confirm}
+                        onChange={handleChange}
+                        required
+                        autoComplete="new-password"
+                        style={{
+                           backgroundColor: "#f2e9e4",
+                           width: "100%",
+                           marginTop: "10px",
+                           padding: "1rem 1rem",
+                           paddingRight: "3rem",
+                           borderRadius: "8px",
+                           border: "1px solid",
+                           fontSize: "1rem",
+                        }}
+                     />
+                     <button
+                        type="button"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        onMouseEnter={() => setHoveredEyeConfirm(true)}
+                        onMouseLeave={() => setHoveredEyeConfirm(false)}
+                        style={{
+                           position: "absolute",
+                           right: "5px",
+                           top: "20%",
+                           background: hoveredEyeConfirm
+                              ? "rgba(0, 0, 0, 0.1)"
+                              : "none",
+                           borderRadius: "50%",
+                           border: "none",
+                           cursor: "pointer",
+                           padding: "16px 10px",
+                        }}
+                     >
+                        <img
+                           src="/eye.png"
+                           alt={showConfirm ? "Hide password" : "Show password"}
+                           style={{
+                              width: "25px",
+                              height: "14px",
+                           }}
+                        />
+                     </button>
+                  </div>
 
                   {backendMessage && (
                      <p
