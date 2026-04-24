@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PathCard from '../components/PathCard.jsx';
 import { getPaths } from '../api/paths.js';
+import { calculateBatchWarmthScores } from '../api/gemini.js';
 
 // Human-readable label for each intent enum value used in empty state copy
 const INTENT_LABELS = {
@@ -24,7 +25,17 @@ export default function Paths() {
     setLoading(true);
     setError(null);
     getPaths(intent)
-      .then(({ paths }) => setPaths(paths))
+      .then(async ({ paths: fetchedPaths }) => {
+        setPaths(fetchedPaths.map(p => ({ ...p, warmthScore: '...' })));
+        
+        if (fetchedPaths.length > 0) {
+          const scores = await calculateBatchWarmthScores(fetchedPaths.map(p => p.aiMetadata));
+          setPaths(fetchedPaths.map((p, i) => ({
+            ...p,
+            warmthScore: scores[i] ?? 'N/A'
+          })));
+        }
+      })
       .catch((err) => {
         console.error('[Paths] Failed to fetch paths:', err);
         setError(err.message);
@@ -50,7 +61,7 @@ export default function Paths() {
             ? `No warm paths for ${intentLabel} yet. Try a different intent or check back as your network grows.`
             : 'Paths appear when you have mutual connections with someone. Build your network and check back.'}
       </div>
-      {paths.map(p => <PathCard key={p.id} path={p} />)}
+      {paths.map(p => <PathCard key={p.id} path={p} score={p.warmthScore} />)}
     </div>
   );
 }

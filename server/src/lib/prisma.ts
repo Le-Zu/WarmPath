@@ -1,8 +1,14 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
-import "dotenv/config"
+import dotenv from 'dotenv'
+import path from 'path'
+
+// Force load the .env from the current directory and override any existing environment variables
+dotenv.config({ path: path.join(__dirname, '../../.env'), override: true });
+
 import { getUserId } from './cls'
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,

@@ -14,11 +14,14 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           ROUND(v.avg_warmth) AS strength,
           c.first_name  AS connector_first_name,
           c.last_name   AS connector_last_name,
+          c.bio         AS connector_bio,
           t.first_name  AS target_first_name,
           t.last_name   AS target_last_name,
           t.major       AS target_major,
           t.year        AS target_year,
-          t.profile_picture_url AS target_picture_url
+          t.bio         AS target_bio,
+          t.profile_picture_url AS target_picture_url,
+          (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
         FROM two_hop_paths_view v
         JOIN users c ON c.user_id = v.connector_id
         JOIN users t ON t.user_id = v.target_id
@@ -39,11 +42,14 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           ROUND(v.avg_warmth) AS strength,
           c.first_name  AS connector_first_name,
           c.last_name   AS connector_last_name,
+          c.bio         AS connector_bio,
           t.first_name  AS target_first_name,
           t.last_name   AS target_last_name,
           t.major       AS target_major,
           t.year        AS target_year,
-          t.profile_picture_url AS target_picture_url
+          t.bio         AS target_bio,
+          t.profile_picture_url AS target_picture_url,
+          (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
         FROM two_hop_paths_view v
         JOIN users c ON c.user_id = v.connector_id
         JOIN users t ON t.user_id = v.target_id
@@ -65,5 +71,14 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
       pictureUrl: r.target_picture_url ?? null,
     },
     strength: Number(r.strength),
-  }))
+    // Metadata block designed for easy AI prompting
+    aiMetadata: {
+      intentFilter: intentFilter ?? 'None',
+      requesterToConnector: r.requester_connector_context,
+      connectorToTarget: r.connector_target_context,
+      targetInterests: r.target_interests ?? '',
+      targetBio: r.target_bio ?? '',
+      connectorBio: r.connector_bio ?? '',
+    },
+  }));
 }
