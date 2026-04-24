@@ -14,6 +14,7 @@
     "build:client": "cd warm-path && npm run build",
     "lint:client": "cd warm-path && npm run lint",
     "preview:client": "cd warm-path && npm run preview",
+    "audit:platforms": "node scripts/check-platform-node.js",
     "audit:all": "npm audit && cd server && npm audit && cd ../warm-path && npm audit",
     "audit:fix:all": "npm audit fix && cd server && npm audit fix && cd ../warm-path && npm audit fix",
     "lint:all": "cd warm-path && npm run lint",
