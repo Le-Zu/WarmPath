@@ -2,6 +2,9 @@
   "name": "warm-path",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=25.0.0"
+  },
   "type": "module",
   "dependencies": {
     "firebase": "^12.10.0",
