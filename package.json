@@ -2,7 +2,7 @@
   "name": "warmpath-root",
   "version": "1.0.0",
   "engines": {
-    "node": ">=25.0.0"
+    "node": "24.x"
   },
   "scripts": {
     "setup": "npm install && cd server && npm install express cors dotenv prisma @prisma/client && npx prisma generate && cd ../warm-path && npm install",
@@ -29,7 +29,7 @@
     "@prisma/client": "^7.8.0"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^24.0.0",
     "concurrently": "^9.2.1",
     "prisma": "^7.8.0"
   },
