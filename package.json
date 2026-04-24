@@ -1,6 +1,9 @@
 {
   "name": "warmpath-root",
   "version": "1.0.0",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "setup": "npm install && cd server && npm install express cors dotenv prisma @prisma/client && npx prisma generate && cd ../warm-path && npm install",
     "start:client": "cd warm-path && npm run dev -- --open",
@@ -10,16 +13,26 @@
     "dev:all": "concurrently \"npm run start:server\" \"npm run start:client\" \"npm run db:ui\"",
     "build:client": "cd warm-path && npm run build",
     "lint:client": "cd warm-path && npm run lint",
-    "preview:client": "cd warm-path && npm run preview"
+    "preview:client": "cd warm-path && npm run preview",
+    "audit:platforms": "node scripts/check-platform-node.js",
+    "audit:all": "npm audit && cd server && npm audit && cd ../warm-path && npm audit",
+    "audit:fix:all": "npm audit fix && cd server && npm audit fix && cd ../warm-path && npm audit fix",
+    "lint:all": "cd warm-path && npm run lint",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed-firebase",
+    "validate": "npm run setup && npm run build:client",
+    "upgrade:all": "npx npm-check-updates -u && cd server && npx npm-check-updates -u && cd ../warm-path && npx npm-check-updates -u && cd .. && npm run refresh",
+    "clean": "rm -rf node_modules server/node_modules warm-path/node_modules",
+    "refresh": "npm run clean && rm -f package-lock.json server/package-lock.json warm-path/package-lock.json && npm run setup"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",
-    "@prisma/client": "^7.6.0"
+    "@prisma/client": "^7.8.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
-    "concurrently": "^8.2.2",
-    "prisma": "^7.6.0"
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.1",
+    "prisma": "^7.8.0"
   },
   "overrides": {
     "eslint": "^10.0.1",

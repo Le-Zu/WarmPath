@@ -3,7 +3,12 @@ name: Deploy Backend to Render
 on:
   push:
     branches:
-      - main # Change this if production branch is named differently
+      - main
+
+# Prevent multiple deployments from running at the same time
+concurrency:
+  group: render-deploy
+  cancel-in-progress: false 
 
 jobs:
   deploy:
