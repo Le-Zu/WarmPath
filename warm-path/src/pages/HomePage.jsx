@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "../index.css";
 import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 
 const intents = ["Internship", "Research", "Class Help", "Club", "Skill"];
 
@@ -64,18 +61,6 @@ const steps = [
 ];
 
 export default function HomePage() {
-   const navigate = useNavigate();
-
-   useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-         if (user) {
-            navigate("/home", { replace: true });
-         }
-      });
-
-      return () => unsubscribe();
-   }, [navigate]);
-
    const [activeIntent, setActiveIntent] = useState("Internship");
 
    return (

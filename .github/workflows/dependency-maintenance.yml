@@ -20,7 +20,10 @@ jobs:
 
       - name: Run Security Audit Fix
         run: npm run audit:fix:all
-        continue-on-error: true # Allow PR creation even if audit can't fix all
+        continue-on-error: true
+
+      - name: Validate Build
+        run: npm run validate
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
