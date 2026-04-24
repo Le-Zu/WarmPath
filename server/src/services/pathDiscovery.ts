@@ -1,11 +1,11 @@
-import { prisma } from '../lib/prisma'
+import { basePrisma } from '../lib/prisma'
 
 // Returns two-hop paths for a user, enriched with connector and target profile details.
 // When intentFilter is provided, only paths whose target has a matching interest category
 // are returned — this drives the intent filter bar on the Paths page.
 export async function getPathsForUser(userId: string, intentFilter?: string) {
   const rows = intentFilter
-    ? await prisma.$queryRaw<any[]>`
+    ? await basePrisma.$queryRaw<any[]>`
         SELECT
           v.connector_id,
           v.target_id,
@@ -33,7 +33,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           )
         ORDER BY v.avg_warmth DESC
       `
-    : await prisma.$queryRaw<any[]>`
+    : await basePrisma.$queryRaw<any[]>`
         SELECT
           v.connector_id,
           v.target_id,

@@ -10,14 +10,11 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // -- Standard Middleware --
 // Allows Vite fontend to make requests to this server
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
+app.use(cors());
 
 // Allows Express to read JSON data sent in the request body
 app.use(express.json());
