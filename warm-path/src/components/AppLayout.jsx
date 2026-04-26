@@ -87,7 +87,7 @@ export default function AppLayout() {
           alignItems: 'center',
           gap: '2rem',
         }}>
-          {[['Find Paths','/paths'],['Inbox','/requests'],['My Requests','/my-requests']].map(([label, to]) => (
+          {[['Find Paths','/paths'],['Inbox','/requests'],['My Requests','/my-requests'],['Chats','/conversations']].map(([label, to]) => (
             <NavLink key={to} to={to} style={({ isActive }) => ({
               fontFamily: 'var(--font-sans)', fontSize: '0.85rem', fontWeight: 400,
               color: isActive ? '#e76f51' : '#5a5550',

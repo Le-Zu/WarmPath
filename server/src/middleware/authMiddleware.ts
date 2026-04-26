@@ -82,7 +82,12 @@ export const dbUserMiddleware = async (req: AuthRequest, res: Response, next: Ne
     try {
         // Look up the user in the database using the email from Firebase
         const user = await prisma.users.findUnique({
-            where: { email }
+            where: { email },
+            include: {
+                interests: true,
+                experiences: true,
+                privacy_settings: true,
+            },
         });
 
         if (user) {

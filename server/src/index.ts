@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import { initSocket } from './services/socket';
 import { verifyToken, dbUserMiddleware, AuthRequest } from './middleware/authMiddleware';
 import { basePrisma } from './lib/prisma';
 import { getPathsForUser } from './services/pathDiscovery';
@@ -10,7 +12,11 @@ import path from 'path';
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.io
+initSocket(httpServer);
 
 // -- Standard Middleware --
 // Allows Vite fontend to make requests to this server
@@ -131,7 +137,7 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
     }
 
     const id = req.params.id as string;
-    const { status } = req.body;
+    const { status, edited_message, connector_note } = req.body;
 
     if (!['approved', 'declined'].includes(status)) {
         return res.status(400).json({ error: 'Status must be approved or declined.' });
@@ -156,7 +162,41 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
 
         const updated = await basePrisma.introRequests.update({
             where: { request_id: id },
-            data: { status, responded_at: new Date() },
+            data: { 
+                status, 
+                responded_at: new Date(),
+                ...(edited_message !== undefined && { edited_message }),
+                ...(connector_note !== undefined && { connector_note }),
+            },
+        });
+
+        // If approved, create the conversation
+        if (status === 'approved') {
+            const conversation = await basePrisma.conversations.create({
+                data: {
+                    request_id: id,
+                    type: 'chat',
+                    status: 'active',
+                    participants: {
+                        create: [
+                            { user_id: existing.requester_id, role: 'requester' },
+                            { user_id: existing.connector_id, role: 'connector' },
+                            { user_id: existing.target_id, role: 'target' },
+                        ],
+                    },
+                },
+            });
+            console.log(`[PATCH /api/requests/${id}] Conversation created | conversation_id: ${conversation.conversation_id}`);
+        }
+
+        // Create notification for the requester
+        await basePrisma.notifications.create({
+            data: {
+                user_id: existing.requester_id,
+                type: status === 'approved' ? 'request_approved' : 'request_declined',
+                reference_id: id,
+                reference_type: 'intro_requests',
+            }
         });
 
         console.log(`[PATCH /api/requests/${id}] Status set to ${status} by user_id: ${req.dbUser.user_id}`);
@@ -164,6 +204,310 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error(`[PATCH /api/requests/${id}] Error:`, error);
         res.status(500).json({ error: 'Failed to update request', details: error.message });
+    }
+});
+
+// Returns unread (and recent read) notifications for the authenticated user
+app.get('/api/notifications', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const notifications = await basePrisma.notifications.findMany({
+            where: { user_id: req.dbUser.user_id },
+            orderBy: { created_at: 'desc' },
+            take: 30,
+        });
+        res.json({ notifications });
+    } catch (error: any) {
+        console.error('[GET /api/notifications] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch notifications', details: error.message });
+    }
+});
+
+// Marks a notification as read
+app.patch('/api/notifications/:id', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const notification = await basePrisma.notifications.findUnique({
+            where: { notification_id: req.params.id },
+        });
+
+        if (!notification) return res.status(404).json({ error: 'Notification not found.' });
+        if (notification.user_id !== req.dbUser.user_id) return res.status(403).json({ error: 'Forbidden.' });
+
+        const updated = await basePrisma.notifications.update({
+            where: { notification_id: req.params.id },
+            data: { is_read: true },
+        });
+
+        res.json({ notification: updated });
+    } catch (error: any) {
+        console.error('[PATCH /api/notifications/:id] Error:', error);
+        res.status(500).json({ error: 'Failed to mark notification as read', details: error.message });
+    }
+});
+
+// Creates a new active intent (deactivates the previous one)
+app.post('/api/intents', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const VALID_CATEGORIES = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const { category, description, expires_at } = req.body;
+
+    if (!category || !VALID_CATEGORIES.includes(category)) {
+        return res.status(400).json({ error: 'Valid category is required.' });
+    }
+    if (!description) {
+        return res.status(400).json({ error: 'description is required.' });
+    }
+
+    try {
+        // Deactivate any existing active intent
+        await basePrisma.intents.updateMany({
+            where: { user_id: req.dbUser.user_id, is_active: true },
+            data: { is_active: false },
+        });
+
+        const intent = await basePrisma.intents.create({
+            data: {
+                user_id: req.dbUser.user_id,
+                category,
+                description,
+                is_active: true,
+                ...(expires_at && { expires_at: new Date(expires_at) }),
+            },
+        });
+
+        console.log(`[POST /api/intents] Intent created | intent_id: ${intent.intent_id} | user_id: ${req.dbUser.user_id}`);
+        res.status(201).json({ intent });
+    } catch (error: any) {
+        console.error('[POST /api/intents] Error:', error);
+        res.status(500).json({ error: 'Failed to create intent', details: error.message });
+    }
+});
+
+// Returns the authenticated user's current active intent
+app.get('/api/intents/active', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const intent = await basePrisma.intents.findFirst({
+            where: { user_id: req.dbUser.user_id, is_active: true },
+        });
+        res.json({ intent: intent ?? null });
+    } catch (error: any) {
+        console.error('[GET /api/intents/active] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch active intent', details: error.message });
+    }
+});
+
+// Returns all accepted connections for the authenticated user
+app.get('/api/connections', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const userId = req.dbUser.user_id;
+    try {
+        const connections = await basePrisma.connections.findMany({
+            where: {
+                OR: [{ user_id_a: userId }, { user_id_b: userId }],
+                status: 'accepted',
+            },
+            include: {
+                user_a: { select: { user_id: true, first_name: true, last_name: true, major: true, year: true } },
+                user_b: { select: { user_id: true, first_name: true, last_name: true, major: true, year: true } },
+            },
+        });
+
+        // Normalize: always return the other person as "peer"
+        const result = connections.map(c => ({
+            connection_id: c.connection_id,
+            context: c.context,
+            warmth_score: c.warmth_score,
+            status: c.status,
+            peer: c.user_id_a === userId ? c.user_b : c.user_a,
+        }));
+
+        res.json({ connections: result });
+    } catch (error: any) {
+        console.error('[GET /api/connections] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch connections', details: error.message });
+    }
+});
+
+// Sends a connection request to another user
+app.post('/api/connections', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { peerId, context, warmth_score } = req.body;
+    if (!peerId || !context) {
+        return res.status(400).json({ error: 'peerId and context are required.' });
+    }
+
+    // Enforce user_id_a < user_id_b ordering required by the DB constraint
+    const userId = req.dbUser.user_id;
+    const [user_id_a, user_id_b] = userId < peerId ? [userId, peerId] : [peerId, userId];
+
+    try {
+        const connection = await basePrisma.connections.create({
+            data: { 
+                user_id_a, 
+                user_id_b, 
+                context, 
+                warmth_score: warmth_score ?? null, 
+                status: 'pending' 
+            },
+        });
+
+        // Create notification for the peer
+        await basePrisma.notifications.create({
+            data: {
+                user_id: peerId,
+                type: 'connection_accepted', // Guide says connection_accepted but here it is pending... 
+                // Wait, maybe we should have a 'connection_request' type? 
+                // Checking schema or TYPE_MAP I added earlier.
+                reference_id: connection.connection_id,
+                reference_type: 'connections',
+            }
+        });
+
+        res.status(201).json({ connection });
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: 'Connection already exists.' });
+        }
+        console.error('[POST /api/connections] Error:', error);
+        res.status(500).json({ error: 'Failed to create connection', details: error.message });
+    }
+});
+
+// Accepts or declines a pending connection request
+app.patch('/api/connections/:id', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { status } = req.body;
+    if (!['accepted', 'declined'].includes(status)) {
+        return res.status(400).json({ error: 'Status must be accepted or declined.' });
+    }
+
+    try {
+        const conn = await basePrisma.connections.findUnique({
+            where: { connection_id: req.params.id },
+        });
+
+        if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+
+        const userId = req.dbUser.user_id;
+        if (conn.user_id_a !== userId && conn.user_id_b !== userId) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        const updated = await basePrisma.connections.update({
+            where: { connection_id: req.params.id },
+            data: {
+                status,
+                ...(status === 'accepted' && { accepted_at: new Date() }),
+            },
+        });
+
+        // Notify the requester
+        const requesterId = conn.user_id_a === userId ? conn.user_id_b : conn.user_id_a;
+        if (status === 'accepted') {
+             await basePrisma.notifications.create({
+                data: {
+                    user_id: requesterId,
+                    type: 'connection_accepted',
+                    reference_id: conn.connection_id,
+                    reference_type: 'connections',
+                }
+            });
+        }
+
+        res.json({ connection: updated });
+    } catch (error: any) {
+        console.error('[PATCH /api/connections/:id] Error:', error);
+        res.status(500).json({ error: 'Failed to update connection', details: error.message });
+    }
+});
+
+// Returns all conversations the authenticated user participates in
+app.get('/api/conversations', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const participants = await basePrisma.conversationParticipants.findMany({
+            where: { user_id: req.dbUser.user_id },
+            include: {
+                conversation: {
+                    include: {
+                        participants: {
+                            include: {
+                                user: { select: { user_id: true, first_name: true, last_name: true } }
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const conversations = participants.map(p => p.conversation);
+        res.json({ conversations });
+    } catch (error: any) {
+        console.error('[GET /api/conversations] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch conversations', details: error.message });
+    }
+});
+
+// Returns messages in a conversation -- user must be a participant
+app.get('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const membership = await basePrisma.conversationParticipants.findFirst({
+            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+        });
+
+        if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
+
+        const messages = await basePrisma.messages.findMany({
+            where: { conversation_id: req.params.id },
+            orderBy: { sent_at: 'asc' },
+            include: {
+                sender: { select: { first_name: true, last_name: true } }
+            },
+        });
+        res.json({ messages });
+    } catch (error: any) {
+        console.error('[GET /api/conversations/:id/messages] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch messages', details: error.message });
+    }
+});
+
+// Sends a message to a conversation
+app.post('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { body, is_warm_intro } = req.body;
+    if (!body) return res.status(400).json({ error: 'body is required.' });
+
+    try {
+        const membership = await basePrisma.conversationParticipants.findFirst({
+            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+        });
+
+        if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
+
+        const message = await basePrisma.messages.create({
+            data: {
+                conversation_id: req.params.id,
+                sender_id: req.dbUser.user_id,
+                body,
+                is_warm_intro: is_warm_intro ?? false,
+            },
+        });
+        res.status(201).json({ message });
+    } catch (error: any) {
+        console.error('[POST /api/conversations/:id/messages] Error:', error);
+        res.status(500).json({ error: 'Failed to send message', details: error.message });
     }
 });
 
@@ -235,6 +579,16 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
                 intent_id: intent.intent_id,
                 draft_message: message,
                 status: 'pending',
+            },
+        });
+
+        // Create notification for the connector
+        await basePrisma.notifications.create({
+            data: {
+                user_id: connectorId,
+                type: 'intro_request',
+                reference_id: request.request_id,
+                reference_type: 'intro_requests',
             },
         });
 
@@ -321,7 +675,35 @@ app.get('/api/me', (req: AuthRequest, res) => {
     res.json({ user: req.dbUser });
 });
 
+// Updates profile fields for the authenticated user
+app.patch('/api/me', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url'];
+    const updates: Record<string, any> = {};
+
+    for (const field of ALLOWED) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
+    if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields provided.' });
+    }
+
+    try {
+        const user = await basePrisma.users.update({
+            where: { user_id: req.dbUser.user_id },
+            data: updates,
+        });
+        console.log(`[PATCH /api/me] Profile updated for user_id: ${req.dbUser.user_id}`);
+        res.json({ user });
+    } catch (error: any) {
+        console.error('[PATCH /api/me] Error:', error);
+        res.status(500).json({ error: 'Failed to update profile', details: error.message });
+    }
+});
+
     // Starts the server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

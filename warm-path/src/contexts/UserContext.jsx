@@ -34,8 +34,20 @@ export function UserProvider({ children }) {
       .finally(() => setLoading(false));
   }, [firebaseUser]);
 
+  const refreshUser = async () => {
+    if (!firebaseUser) return;
+    try {
+      const { user } = await getMe();
+      setCurrentUser(user);
+      setError(null);
+    } catch (err) {
+      console.error('[UserContext] Failed to refresh profile:', err);
+      setError(err.message);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ currentUser, setCurrentUser, loading, error }}>
+    <UserContext.Provider value={{ currentUser, setCurrentUser, refreshUser, loading, error }}>
       {children}
     </UserContext.Provider>
   );
