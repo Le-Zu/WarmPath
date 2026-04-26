@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import apiFetch from "../api/client";
 import { useUser } from "../contexts/UserContext";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 5;
 
 const INTENT_MAP = {
    'Internship': 'internship',
@@ -33,7 +33,7 @@ const FIELD_TAGS = Object.keys(FIELD_MAP);
 function StepDots({ current }) {
    return (
       <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "1.5rem" }}>
-         {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+         {Array.from({ length: TOTAL_STEPS + 1 }, (_, i) => (
             <div
                key={i}
                style={{
@@ -55,10 +55,15 @@ export default function OnboardingFlow() {
    const [step, setStep] = useState(0);
    const [isSaving, setIsSaving] = useState(false);
    const [form, setForm] = useState({
+      firstName: "",
+      lastName: "",
+      major: "",
+      year: "",
+      bio: "",
       selectedGoals: [],
       selectedFields: [],
-      otherInfo: "",
-      connectors: [{ name: "", relationship: "" }],
+      experiences: [{ title: "", organization: "", description: "" }],
+      connectors: [{ name: "", email: "", relationship: "" }],
    });
 
    const [hoveredNext, setHoveredNext] = useState(false);
@@ -79,6 +84,19 @@ export default function OnboardingFlow() {
          return { ...f, [field]: next };
       });
 
+   const setExperience = (index, field) => (e) =>
+      setForm((f) => {
+         const experiences = [...f.experiences];
+         experiences[index] = { ...experiences[index], [field]: e.target.value };
+         return { ...f, experiences };
+      });
+
+   const addExperience = () =>
+      setForm((f) => ({
+         ...f,
+         experiences: [...f.experiences, { title: "", organization: "", description: "" }],
+      }));
+
    const setConnector = (index, field) => (e) =>
       setForm((f) => {
          const connectors = [...f.connectors];
@@ -89,35 +107,73 @@ export default function OnboardingFlow() {
    const addConnector = () =>
       setForm((f) => ({
          ...f,
-         connectors: [...f.connectors, { name: "", relationship: "" }],
+         connectors: [...f.connectors, { name: "", email: "", relationship: "" }],
       }));
-
-   const hasInterests = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
 
    const handleGetStarted = async () => {
       setIsSaving(true);
       try {
-         // 1. Save Intent
-         const category = INTENT_MAP[form.selectedGoals[0]] || FIELD_MAP[form.selectedFields[0]] || 'other';
-         const description = [
-            form.selectedGoals.length > 0 ? `Looking for: ${form.selectedGoals.join(', ')}` : '',
-            form.selectedFields.length > 0 ? `Fields of interest: ${form.selectedFields.join(', ')}` : '',
-            form.otherInfo
-         ].filter(Boolean).join('. ');
-
-         await apiFetch('/api/intents', {
-            method: 'POST',
-            body: JSON.stringify({ category, description }),
-         });
-
-         // 2. Profile Sync
+         // 1. Profile Update
          await apiFetch('/api/me', {
             method: 'PATCH',
             body: JSON.stringify({ 
-               // We don't have name inputs in onboarding yet, so just marking flow as complete
-               // is implied by the successful intent creation for now.
+               first_name: form.firstName,
+               last_name: form.lastName,
+               major: form.major,
+               year: form.year,
+               bio: form.bio,
+               profile_complete: true,
             }),
          });
+
+         // 2. Save Interests (tags)
+         const interests = [
+            ...form.selectedGoals.map(g => ({ category: INTENT_MAP[g], label: g })),
+            ...form.selectedFields.map(f => ({ category: FIELD_MAP[f], label: f })),
+         ];
+         if (interests.length > 0) {
+            await apiFetch('/api/me/interests', {
+               method: 'POST',
+               body: JSON.stringify({ interests }),
+            });
+         }
+
+         // 3. Save Experiences
+         const validExperiences = form.experiences.filter(e => e.title && e.organization);
+         if (validExperiences.length > 0) {
+            await apiFetch('/api/me/experiences', {
+               method: 'POST',
+               body: JSON.stringify({ experiences: validExperiences.map(e => ({ ...e, type: 'other' })) }),
+            });
+         }
+
+         // 4. Save Intent (using first selected goal)
+         if (form.selectedGoals.length > 0 || form.selectedFields.length > 0) {
+            const category = INTENT_MAP[form.selectedGoals[0]] || FIELD_MAP[form.selectedFields[0]] || 'other';
+            const description = [
+               form.selectedGoals.length > 0 ? `Looking for: ${form.selectedGoals.join(', ')}` : '',
+               form.selectedFields.length > 0 ? `Fields of interest: ${form.selectedFields.join(', ')}` : '',
+            ].filter(Boolean).join('. ');
+
+            await apiFetch('/api/intents', {
+               method: 'POST',
+               body: JSON.stringify({ category, description }),
+            });
+         }
+
+         // 5. Add Connectors
+         for (const conn of form.connectors) {
+            if (conn.email && conn.relationship) {
+               await apiFetch('/api/connections', {
+                  method: 'POST',
+                  body: JSON.stringify({ 
+                     email: conn.email, 
+                     context: conn.relationship,
+                     // We could also send name if the backend supported it for ghost profiles
+                  }),
+               }).catch(err => console.error("Failed to add connector:", conn.email, err));
+            }
+         }
 
          await refreshUser();
          navigate("/home");
@@ -129,8 +185,11 @@ export default function OnboardingFlow() {
       }
    };
 
-   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
+   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS + 1));
    const back = () => setStep((s) => Math.max(s - 1, 0));
+
+   const isStep0Valid = form.firstName.trim() && form.lastName.trim();
+   const isStep2Valid = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
 
    return (
       <div
@@ -181,12 +240,105 @@ export default function OnboardingFlow() {
             >
                <StepDots current={step} />
 
-               {/* Step 0: Interests */}
+               {/* Step 0: Identity */}
                {step === 0 && (
+                  <>
+                     <h2 style={{ fontSize: "1.5rem" }}>Who are you?</h2>
+                     <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+                        Let's start with the basics. How should people refer to you?
+                     </p>
+
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>First Name</label>
+                        <input
+                           type="text"
+                           value={form.firstName}
+                           onChange={set("firstName")}
+                           placeholder="Jane"
+                           style={inputStyle}
+                        />
+                     </div>
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Last Name</label>
+                        <input
+                           type="text"
+                           value={form.lastName}
+                           onChange={set("lastName")}
+                           placeholder="Doe"
+                           style={inputStyle}
+                        />
+                     </div>
+
+                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                           onClick={next}
+                           disabled={!isStep0Valid}
+                           style={{
+                              ...btnPrimary,
+                              backgroundColor: !isStep0Valid ? "#ccc" : "LightSalmon",
+                              cursor: !isStep0Valid ? "not-allowed" : "pointer"
+                           }}
+                        >
+                           Next
+                        </button>
+                     </div>
+                  </>
+               )}
+
+               {/* Step 1: Academic & Bio */}
+               {step === 1 && (
+                  <>
+                     <h2 style={{ fontSize: "1.5rem" }}>Academic Background</h2>
+                     <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+                        What are you studying and how far along are you?
+                     </p>
+
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Major</label>
+                        <input
+                           type="text"
+                           value={form.major}
+                           onChange={set("major")}
+                           placeholder="Computer Science"
+                           style={inputStyle}
+                        />
+                     </div>
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Year</label>
+                        <select value={form.year} onChange={set("year")} style={inputStyle}>
+                           <option value="">Select Year</option>
+                           <option value="freshman">Freshman</option>
+                           <option value="sophomore">Sophomore</option>
+                           <option value="junior">Junior</option>
+                           <option value="senior">Senior</option>
+                           <option value="grad">Grad Student</option>
+                           <option value="other">Other</option>
+                        </select>
+                     </div>
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Short Bio</label>
+                        <textarea
+                           value={form.bio}
+                           onChange={set("bio")}
+                           placeholder="Tell us a bit about yourself..."
+                           rows={3}
+                           style={inputStyle}
+                        />
+                     </div>
+
+                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                        <button onClick={back} style={btnSecondary}>Back</button>
+                        <button onClick={next} style={btnPrimary}>Next</button>
+                     </div>
+                  </>
+               )}
+
+               {/* Step 2: Interests */}
+               {step === 2 && (
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Your Interests</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
-                        Help us understand what you're looking for so we can find the right connections.
+                        Help us understand what you're looking for.
                      </p>
 
                      <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>What are you looking for?</h3>
@@ -196,15 +348,10 @@ export default function OnboardingFlow() {
                               key={tag}
                               onClick={() => toggleTag("selectedGoals", tag)}
                               style={{
-                                 padding: "0.45rem 1rem",
-                                 fontSize: "0.85rem",
-                                 borderRadius: "20px",
-                                 cursor: "pointer",
-                                 border: "1px solid",
+                                 ...tagStyle,
                                  borderColor: form.selectedGoals.includes(tag) ? "LightSalmon" : "#d88c9a",
                                  background: form.selectedGoals.includes(tag) ? "LightSalmon" : "#fff",
                                  color: form.selectedGoals.includes(tag) ? "#fff" : "#386641",
-                                 transition: "all 0.15s",
                               }}
                            >
                               {tag}
@@ -219,15 +366,10 @@ export default function OnboardingFlow() {
                               key={tag}
                               onClick={() => toggleTag("selectedFields", tag)}
                               style={{
-                                 padding: "0.45rem 1rem",
-                                 fontSize: "0.85rem",
-                                 borderRadius: "20px",
-                                 cursor: "pointer",
-                                 border: "1px solid",
+                                 ...tagStyle,
                                  borderColor: form.selectedFields.includes(tag) ? "LightSalmon" : "#d88c9a",
                                  background: form.selectedFields.includes(tag) ? "LightSalmon" : "#fff",
                                  color: form.selectedFields.includes(tag) ? "#fff" : "#386641",
-                                 transition: "all 0.15s",
                               }}
                            >
                               {tag}
@@ -235,45 +377,15 @@ export default function OnboardingFlow() {
                         ))}
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>
-                           Anything else you'd like us to know?
-                        </label>
-                        <textarea
-                           value={form.otherInfo}
-                           onChange={set("otherInfo")}
-                           placeholder="Optional — tell us more about yourself..."
-                           rows={3}
-                           style={{
-                              backgroundColor: "#f2e9e4",
-                              width: "100%",
-                              padding: "1rem",
-                              borderRadius: "8px",
-                              border: "1px solid",
-                              fontSize: "1rem",
-                              fontFamily: "sans-serif",
-                              resize: "vertical",
-                              boxSizing: "border-box",
-                           }}
-                        />
-                     </div>
-
                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "0.5rem" }}>
+                        <button onClick={back} style={btnSecondary}>Back</button>
                         <button
                            onClick={next}
-                           disabled={!hasInterests}
-                           onMouseEnter={() => setHoveredNext(true)}
-                           onMouseLeave={() => setHoveredNext(false)}
+                           disabled={!isStep2Valid}
                            style={{
-                              backgroundColor: !hasInterests ? "#ccc" : hoveredNext ? "#e8825a" : "LightSalmon",
-                              padding: "1rem 2rem",
-                              borderRadius: "100px",
-                              border: "1px",
-                              fontSize: "1rem",
-                              fontWeight: "bold",
-                              cursor: hasInterests ? "pointer" : "not-allowed",
-                              transition: "background-color 0.1s",
-                              color: "#fff",
+                              ...btnPrimary,
+                              backgroundColor: !isStep2Valid ? "#ccc" : "LightSalmon",
+                              cursor: !isStep2Valid ? "not-allowed" : "pointer"
                            }}
                         >
                            Next
@@ -282,162 +394,101 @@ export default function OnboardingFlow() {
                   </>
                )}
 
-               {/* Step 1: Connectors (skippable) */}
-               {step === 1 && (
+               {/* Step 3: Experience */}
+               {step === 3 && (
                   <>
-                     <h2 style={{ fontSize: "1.5rem" }}>Add Connectors</h2>
+                     <h2 style={{ fontSize: "1.5rem" }}>Experience</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
-                        Connectors are people you already know who can introduce you to others.
-                        You can always add connectors later from your profile.
+                        Add any past work or organization experience.
                      </p>
 
-                     {form.connectors.map((c, i) => (
-                        <div key={i} style={{ marginBottom: "1rem", paddingBottom: "0.5rem", borderBottom: i < form.connectors.length - 1 ? "1px solid #d88c9a" : "none" }}>
-                           <div style={{ marginBottom: "0.5rem" }}>
-                              <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>
-                                 Connector Name
-                              </label>
-                              <input
-                                 type="text"
-                                 value={c.name}
-                                 onChange={setConnector(i, "name")}
-                                 placeholder="Alex Rivera"
-                                 style={{
-                                    backgroundColor: "#f2e9e4",
-                                    width: "100%",
-                                    padding: "1rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid",
-                                    fontSize: "1rem",
-                                    boxSizing: "border-box",
-                                 }}
-                              />
-                           </div>
-                           <div>
-                              <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>
-                                 Relationship Context
-                              </label>
-                              <input
-                                 type="text"
-                                 value={c.relationship}
-                                 onChange={setConnector(i, "relationship")}
-                                 placeholder="Worked together in CS 499"
-                                 style={{
-                                    backgroundColor: "#f2e9e4",
-                                    width: "100%",
-                                    padding: "1rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid",
-                                    fontSize: "1rem",
-                                    boxSizing: "border-box",
-                                 }}
-                              />
-                           </div>
+                     {form.experiences.map((exp, i) => (
+                        <div key={i} style={{ marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: i < form.experiences.length - 1 ? "1px solid #eee" : "none" }}>
+                           <input
+                              type="text"
+                              value={exp.title}
+                              onChange={setExperience(i, "title")}
+                              placeholder="Role (e.g. Software Intern)"
+                              style={{ ...inputStyle, marginBottom: "0.5rem" }}
+                           />
+                           <input
+                              type="text"
+                              value={exp.organization}
+                              onChange={setExperience(i, "organization")}
+                              placeholder="Organization (e.g. Google)"
+                              style={inputStyle}
+                           />
                         </div>
                      ))}
 
-                     <button
-                        onClick={addConnector}
-                        onMouseEnter={() => setHoveredAdd(true)}
-                        onMouseLeave={() => setHoveredAdd(false)}
-                        style={{
-                           background: "none",
-                           border: "none",
-                           color: hoveredAdd ? "#e8825a" : "LightSalmon",
-                           cursor: "pointer",
-                           fontSize: "0.9rem",
-                           fontWeight: "bold",
-                           padding: "0.5rem 0",
-                           marginBottom: "1rem",
-                           textAlign: "left",
-                        }}
-                     >
-                        + Add another connector
-                     </button>
+                     <button onClick={addExperience} style={linkBtn}>+ Add Experience</button>
 
-                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "0.5rem" }}>
-                        <button
-                           onClick={back}
-                           onMouseEnter={() => setHoveredBack(true)}
-                           onMouseLeave={() => setHoveredBack(false)}
-                           style={{
-                              backgroundColor: hoveredBack ? "#ecc6b5" : "#f2e9e4",
-                              padding: "1rem 1.5rem",
-                              borderRadius: "100px",
-                              border: "1px solid",
-                              borderColor: "Tomato",
-                              color: "Tomato",
-                              fontSize: "1rem",
-                              fontWeight: "bold",
-                              cursor: "pointer",
-                              transition: "background-color 0.1s",
-                           }}
-                        >
-                           Back
-                        </button>
-                        <button
-                           onClick={next}
-                           onMouseEnter={() => setHoveredSkip(true)}
-                           onMouseLeave={() => setHoveredSkip(false)}
-                           style={{
-                              backgroundColor: hoveredSkip ? "#ecc6b5" : "#f2e9e4",
-                              padding: "1rem 1.5rem",
-                              borderRadius: "100px",
-                              border: "1px solid",
-                              borderColor: "Tomato",
-                              color: "Tomato",
-                              fontSize: "1rem",
-                              fontWeight: "bold",
-                              cursor: "pointer",
-                              transition: "background-color 0.1s",
-                           }}
-                        >
-                           Skip for now
-                        </button>
-                        <button
-                           onClick={next}
-                           onMouseEnter={() => setHoveredNext(true)}
-                           onMouseLeave={() => setHoveredNext(false)}
-                           style={{
-                              backgroundColor: hoveredNext ? "#e8825a" : "LightSalmon",
-                              padding: "1rem 2rem",
-                              borderRadius: "100px",
-                              border: "1px",
-                              fontSize: "1rem",
-                              fontWeight: "bold",
-                              cursor: "pointer",
-                              transition: "background-color 0.1s",
-                              color: "#fff",
-                           }}
-                        >
-                           Next
-                        </button>
+                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "1rem" }}>
+                        <button onClick={back} style={btnSecondary}>Back</button>
+                        <button onClick={next} style={btnPrimary}>Next</button>
                      </div>
                   </>
                )}
 
-               {/* Step 2: Welcome */}
-               {step === 2 && (
+               {/* Step 4: Connectors */}
+               {step === 4 && (
+                  <>
+                     <h2 style={{ fontSize: "1.5rem" }}>Add Connectors</h2>
+                     <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
+                        Who do you already know? We'll use their email to link your networks.
+                     </p>
+
+                     {form.connectors.map((c, i) => (
+                        <div key={i} style={{ marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: i < form.connectors.length - 1 ? "1px solid #eee" : "none" }}>
+                           <input
+                              type="text"
+                              value={c.name}
+                              onChange={setConnector(i, "name")}
+                              placeholder="Name"
+                              style={{ ...inputStyle, marginBottom: "0.5rem" }}
+                           />
+                           <input
+                              type="email"
+                              value={c.email}
+                              onChange={setConnector(i, "email")}
+                              placeholder="Email address"
+                              style={{ ...inputStyle, marginBottom: "0.5rem" }}
+                           />
+                           <input
+                              type="text"
+                              value={c.relationship}
+                              onChange={setConnector(i, "relationship")}
+                              placeholder="How do you know them? (e.g. CS 499 Group)"
+                              style={inputStyle}
+                           />
+                        </div>
+                     ))}
+
+                     <button onClick={addConnector} style={linkBtn}>+ Add Connector</button>
+
+                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "1rem" }}>
+                        <button onClick={back} style={btnSecondary}>Back</button>
+                        <button onClick={next} style={btnPrimary}>Next</button>
+                     </div>
+                  </>
+               )}
+
+               {/* Step 5: Welcome */}
+               {step === 5 && (
                   <div style={{ textAlign: "center", padding: "2rem 0" }}>
                      <h2 style={{ fontSize: "1.5rem" }}>You're All Set!</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
-                        Your first warm path is one connection away.
+                        Welcome to WarmPath, {form.firstName}.
                      </p>
                      <button
                         onClick={handleGetStarted}
                         disabled={isSaving}
-                        onMouseEnter={() => setHoveredStart(true)}
-                        onMouseLeave={() => setHoveredStart(false)}
                         style={{
-                           backgroundColor: isSaving ? "#ccc" : hoveredStart ? "#e8825a" : "LightSalmon",
-                           padding: "1rem 2rem",
-                           borderRadius: "100px",
-                           border: "1px",
-                           fontSize: "1rem",
-                           fontWeight: "bold",
+                           ...btnPrimary,
+                           backgroundColor: isSaving ? "#ccc" : "LightSalmon",
                            cursor: isSaving ? "not-allowed" : "pointer",
-                           transition: "background-color 0.1s",
-                           color: "#fff",
+                           width: "100%",
+                           padding: "1rem"
                         }}
                      >
                         {isSaving ? "Saving..." : "Get Started"}
@@ -449,3 +500,57 @@ export default function OnboardingFlow() {
       </div>
    );
 }
+
+const inputStyle = {
+   backgroundColor: "#f2e9e4",
+   width: "100%",
+   padding: "0.8rem 1rem",
+   borderRadius: "8px",
+   border: "1px solid #d88c9a",
+   fontSize: "1rem",
+   fontFamily: "sans-serif",
+   boxSizing: "border-box",
+};
+
+const btnPrimary = {
+   backgroundColor: "LightSalmon",
+   padding: "0.8rem 2rem",
+   borderRadius: "100px",
+   border: "none",
+   fontSize: "1rem",
+   fontWeight: "bold",
+   color: "#fff",
+   cursor: "pointer",
+   transition: "background-color 0.1s",
+};
+
+const btnSecondary = {
+   backgroundColor: "#f2e9e4",
+   padding: "0.8rem 1.5rem",
+   borderRadius: "100px",
+   border: "1px solid Tomato",
+   color: "Tomato",
+   fontSize: "1rem",
+   fontWeight: "bold",
+   cursor: "pointer",
+};
+
+const tagStyle = {
+   padding: "0.45rem 1rem",
+   fontSize: "0.85rem",
+   borderRadius: "20px",
+   cursor: "pointer",
+   border: "1px solid",
+   transition: "all 0.15s",
+};
+
+const linkBtn = {
+   background: "none",
+   border: "none",
+   color: "LightSalmon",
+   cursor: "pointer",
+   fontSize: "0.9rem",
+   fontWeight: "bold",
+   padding: "0.5rem 0",
+   textAlign: "left",
+};

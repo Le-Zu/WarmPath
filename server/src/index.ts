@@ -68,12 +68,14 @@ app.post('/api/users', async (req: AuthRequest, res) => {
             where: { email },
             update: {
                 firebase_uid: uid,
+                is_active: true, // Activate ghost profiles
                 ...(first_name && { first_name }),
                 ...(last_name && { last_name }),
             },
             create: {
                 email,
                 firebase_uid: uid,
+                is_active: true,
                 ...(first_name && { first_name }),
                 ...(last_name && { last_name }),
             },
@@ -302,7 +304,7 @@ app.get('/api/intents/active', async (req: AuthRequest, res) => {
     }
 });
 
-// Returns all accepted connections for the authenticated user
+// Returns all connections (accepted and pending) for the authenticated user
 app.get('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
@@ -311,11 +313,11 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
         const connections = await basePrisma.connections.findMany({
             where: {
                 OR: [{ user_id_a: userId }, { user_id_b: userId }],
-                status: 'accepted',
+                status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, first_name: true, last_name: true, major: true, year: true } },
-                user_b: { select: { user_id: true, first_name: true, last_name: true, major: true, year: true } },
+                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
+                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
             },
         });
 
@@ -339,16 +341,37 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const { peerId, context, warmth_score } = req.body;
-    if (!peerId || !context) {
-        return res.status(400).json({ error: 'peerId and context are required.' });
+    let { peerId, email, context, warmth_score } = req.body;
+    if ((!peerId && !email) || !context) {
+        return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
 
-    // Enforce user_id_a < user_id_b ordering required by the DB constraint
-    const userId = req.dbUser.user_id;
-    const [user_id_a, user_id_b] = userId < peerId ? [userId, peerId] : [peerId, userId];
-
     try {
+        // If email is provided, resolve the peerId
+        if (!peerId && email) {
+            let peer = await basePrisma.users.findUnique({ where: { email } });
+            if (!peer) {
+                // Create a "Ghost" user (Shadow Profile)
+                peer = await basePrisma.users.create({
+                    data: {
+                        email,
+                        is_active: false, // Mark as inactive until they register
+                        profile_complete: false,
+                    }
+                });
+                console.log(`[POST /api/connections] Ghost user created for: ${email}`);
+            }
+            peerId = peer.user_id;
+        }
+
+        if (peerId === req.dbUser.user_id) {
+            return res.status(400).json({ error: 'You cannot connect with yourself.' });
+        }
+
+        // Enforce user_id_a < user_id_b ordering required by the DB constraint
+        const userId = req.dbUser.user_id;
+        const [user_id_a, user_id_b] = userId < peerId ? [userId, peerId] : [peerId, userId];
+
         const connection = await basePrisma.connections.create({
             data: { 
                 user_id_a, 
@@ -359,17 +382,18 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
             },
         });
 
-        // Create notification for the peer
-        await basePrisma.notifications.create({
-            data: {
-                user_id: peerId,
-                type: 'connection_accepted', // Guide says connection_accepted but here it is pending... 
-                // Wait, maybe we should have a 'connection_request' type? 
-                // Checking schema or TYPE_MAP I added earlier.
-                reference_id: connection.connection_id,
-                reference_type: 'connections',
-            }
-        });
+        // Create notification for the peer if they are active
+        const peer = await basePrisma.users.findUnique({ where: { user_id: peerId } });
+        if (peer?.is_active) {
+            await basePrisma.notifications.create({
+                data: {
+                    user_id: peerId,
+                    type: 'connection_accepted', 
+                    reference_id: connection.connection_id,
+                    reference_type: 'connections',
+                }
+            });
+        }
 
         res.status(201).json({ connection });
     } catch (error: any) {
@@ -675,11 +699,69 @@ app.get('/api/me', (req: AuthRequest, res) => {
     res.json({ user: req.dbUser });
 });
 
+// Batch updates interests for the authenticated user
+app.post('/api/me/interests', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { interests } = req.body; // Expecting array of { category, label }
+    if (!interests || !Array.isArray(interests)) {
+        return res.status(400).json({ error: 'interests array is required.' });
+    }
+
+    try {
+        await basePrisma.$transaction([
+            basePrisma.userInterests.deleteMany({ where: { user_id: req.dbUser.user_id } }),
+            basePrisma.userInterests.createMany({
+                data: interests.map((i: any) => ({
+                    user_id: req.dbUser.user_id,
+                    category: i.category,
+                    label: i.label,
+                })),
+            }),
+        ]);
+        res.status(201).json({ message: 'Interests updated successfully' });
+    } catch (error: any) {
+        console.error('[POST /api/me/interests] Error:', error);
+        res.status(500).json({ error: 'Failed to update interests', details: error.message });
+    }
+});
+
+// Batch updates experiences for the authenticated user
+app.post('/api/me/experiences', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { experiences } = req.body; // Expecting array of { type, title, organization, description, start_date, end_date }
+    if (!experiences || !Array.isArray(experiences)) {
+        return res.status(400).json({ error: 'experiences array is required.' });
+    }
+
+    try {
+        await basePrisma.$transaction([
+            basePrisma.userExperiences.deleteMany({ where: { user_id: req.dbUser.user_id } }),
+            basePrisma.userExperiences.createMany({
+                data: experiences.map((e: any) => ({
+                    user_id: req.dbUser.user_id,
+                    type: e.type,
+                    title: e.title,
+                    organization: e.organization || null,
+                    description: e.description || null,
+                    start_date: e.start_date ? new Date(e.start_date) : null,
+                    end_date: e.end_date ? new Date(e.end_date) : null,
+                })),
+            }),
+        ]);
+        res.status(201).json({ message: 'Experiences updated successfully' });
+    } catch (error: any) {
+        console.error('[POST /api/me/experiences] Error:', error);
+        res.status(500).json({ error: 'Failed to update experiences', details: error.message });
+    }
+});
+
 // Updates profile fields for the authenticated user
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url', 'profile_complete'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {
@@ -687,7 +769,7 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
     }
 
     if (Object.keys(updates).length === 0) {
-        return res.status(400).json({ error: 'No valid fields provided.' });
+        return res.json({ user: req.dbUser });
     }
 
     try {
@@ -704,6 +786,29 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
 });
 
     // Starts the server
-httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+const startServer = (port: number) => {
+    const server = httpServer.listen(port);
+    
+    server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`[Server] Port ${port} is occupied, trying ${port + 1}...`);
+            startServer(port + 1);
+        } else {
+            console.error('[Server] Fatal error:', err);
+        }
+    });
+
+    server.on('listening', () => {
+        console.log(`
+┌──────────────────────────────────────────────────┐
+│                                                  │
+│   🚀 WarmPath API is running!                    │
+│   📡 Port: ${port}                                  │
+│   🔗 Ping: http://localhost:${port}/api/ping        │
+│                                                  │
+└──────────────────────────────────────────────────┘
+`);
+    });
+};
+
+startServer(Number(PORT));

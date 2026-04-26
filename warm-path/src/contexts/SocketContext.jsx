@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { SocketContext } from './SocketContextInstance';
+import apiUrl from '../apiConfig';
 
 export const SocketProvider = ({ children }) => {
     const { currentUser } = useAuth();
@@ -12,7 +13,7 @@ export const SocketProvider = ({ children }) => {
 
         if (currentUser) {
             currentUser.getIdToken().then(token => {
-                activeSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+                activeSocket = io(apiUrl, {
                     auth: { token }
                 });
 

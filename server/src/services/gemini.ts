@@ -3,6 +3,9 @@ import crypto from 'crypto';
 import 'dotenv/config';
 
 const apiKey = process.env.GEMINI_API_KEY || '';
+if (!apiKey) {
+    console.error('\x1b[31m[GeminiService] ❌ ERROR: GEMINI_API_KEY is missing in server/.env\x1b[0m');
+}
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Simple in-memory cache: Map<hash, score>

@@ -55,7 +55,7 @@ export default function UserSwitcher({ light }) {
         <option value="">Switch user…</option>
         {users.map(u => (
           <option key={u.user_id} value={u.email}>
-            {[u.first_name, u.last_name].filter(Boolean).join(' ')}{u.year ? ` · ${u.year}` : ''}
+            {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email}{u.year ? ` · ${u.year}` : ''}
           </option>
         ))}
       </select>
