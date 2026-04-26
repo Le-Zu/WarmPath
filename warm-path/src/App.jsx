@@ -19,6 +19,8 @@ import Requests from "./pages/Requests.jsx";
 import MyRequests from "./pages/MyRequests.jsx";
 import Profile from "./pages/Profile.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
+import Conversations from "./pages/Conversations.jsx";
+import ChatPage from "./pages/ChatPage.jsx";
 
 export default function App() {
   return (
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/my-requests" element={<MyRequests />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/conversations" element={<Conversations />} />
+            <Route path="/chat/:id" element={<ChatPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

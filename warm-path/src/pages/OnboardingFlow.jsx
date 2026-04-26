@@ -1,14 +1,34 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import apiFetch from "../api/client";
+import { useUser } from "../contexts/UserContext";
 
 const TOTAL_STEPS = 3;
 
-const GOAL_TAGS = ["Internship", "Research", "Study Group", "Club", "Mentorship", "Side Project"];
-const FIELD_TAGS = [
-   "Computer Science", "Business", "Engineering", "Design",
-   "Pre-Med", "Biology", "Mathematics", "Economics",
-   "Psychology", "Communications",
-];
+const INTENT_MAP = {
+   'Internship': 'internship',
+   'Research':   'research',
+   'Study Group': 'class',
+   'Club':       'club',
+   'Mentorship': 'skill',
+   'Side Project': 'project',
+};
+
+const FIELD_MAP = {
+   "Computer Science": "skill",
+   "Business": "skill",
+   "Engineering": "skill",
+   "Design": "skill",
+   "Pre-Med": "research",
+   "Biology": "research",
+   "Mathematics": "class",
+   "Economics": "class",
+   "Psychology": "other",
+   "Communications": "other",
+};
+
+const GOAL_TAGS = Object.keys(INTENT_MAP);
+const FIELD_TAGS = Object.keys(FIELD_MAP);
 
 function StepDots({ current }) {
    return (
@@ -21,7 +41,7 @@ function StepDots({ current }) {
                   height: "10px",
                   borderRadius: "50%",
                   background: i === current ? "LightSalmon" : "#d88c9a",
-                  transition: "background 0.2s",
+                  transition: "background-color 0.2s",
                }}
             />
          ))}
@@ -31,7 +51,9 @@ function StepDots({ current }) {
 
 export default function OnboardingFlow() {
    const navigate = useNavigate();
+   const { refreshUser } = useUser();
    const [step, setStep] = useState(0);
+   const [isSaving, setIsSaving] = useState(false);
    const [form, setForm] = useState({
       selectedGoals: [],
       selectedFields: [],
@@ -71,6 +93,41 @@ export default function OnboardingFlow() {
       }));
 
    const hasInterests = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
+
+   const handleGetStarted = async () => {
+      setIsSaving(true);
+      try {
+         // 1. Save Intent
+         const category = INTENT_MAP[form.selectedGoals[0]] || FIELD_MAP[form.selectedFields[0]] || 'other';
+         const description = [
+            form.selectedGoals.length > 0 ? `Looking for: ${form.selectedGoals.join(', ')}` : '',
+            form.selectedFields.length > 0 ? `Fields of interest: ${form.selectedFields.join(', ')}` : '',
+            form.otherInfo
+         ].filter(Boolean).join('. ');
+
+         await apiFetch('/api/intents', {
+            method: 'POST',
+            body: JSON.stringify({ category, description }),
+         });
+
+         // 2. Profile Sync
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({ 
+               // We don't have name inputs in onboarding yet, so just marking flow as complete
+               // is implied by the successful intent creation for now.
+            }),
+         });
+
+         await refreshUser();
+         navigate("/home");
+      } catch (err) {
+         console.error("Failed to save onboarding data:", err);
+         alert("Failed to save your profile: " + err.message);
+      } finally {
+         setIsSaving(false);
+      }
+   };
 
    const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
    const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -119,6 +176,7 @@ export default function OnboardingFlow() {
                   boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
                   padding: "45px 25px",
                   borderRadius: "10px",
+                  background: "#fff"
                }}
             >
                <StepDots current={step} />
@@ -366,22 +424,23 @@ export default function OnboardingFlow() {
                         Your first warm path is one connection away.
                      </p>
                      <button
-                        onClick={() => navigate("/home")}
+                        onClick={handleGetStarted}
+                        disabled={isSaving}
                         onMouseEnter={() => setHoveredStart(true)}
                         onMouseLeave={() => setHoveredStart(false)}
                         style={{
-                           backgroundColor: hoveredStart ? "#e8825a" : "LightSalmon",
+                           backgroundColor: isSaving ? "#ccc" : hoveredStart ? "#e8825a" : "LightSalmon",
                            padding: "1rem 2rem",
                            borderRadius: "100px",
                            border: "1px",
                            fontSize: "1rem",
                            fontWeight: "bold",
-                           cursor: "pointer",
+                           cursor: isSaving ? "not-allowed" : "pointer",
                            transition: "background-color 0.1s",
                            color: "#fff",
                         }}
                      >
-                        Get Started
+                        {isSaving ? "Saving..." : "Get Started"}
                      </button>
                   </div>
                )}

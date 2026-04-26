@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "../contexts/UserContext";
+import apiFetch from "../api/client";
 
 const GOAL_TAGS = ["Internship", "Research", "Study Group", "Club", "Mentorship", "Side Project"];
 const FIELD_TAGS = [
@@ -11,6 +13,7 @@ function Toggle({ on, onToggle, label }) {
    return (
       <button
          onClick={onToggle}
+         type="button"
          aria-label={label}
          style={{
             width: "44px",
@@ -42,6 +45,7 @@ function Toggle({ on, onToggle, label }) {
 }
 
 export default function SettingsPage() {
+   const { currentUser, refreshUser } = useUser();
    const [showPasswordFields, setShowPasswordFields] = useState(false);
    const [copied, setCopied] = useState(false);
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -49,15 +53,28 @@ export default function SettingsPage() {
    const [hoveredSave, setHoveredSave] = useState(false);
    const [hoveredDelete, setHoveredDelete] = useState(false);
    const [hoveredDeleteConfirm, setHoveredDeleteConfirm] = useState(false);
+   const [isSaving, setIsSaving] = useState(false);
+   
    const [form, setForm] = useState({
-      firstName: "Jane",
-      lastName: "Doe",
+      firstName: "",
+      lastName: "",
+      bio: "",
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
    });
 
-   const [saved, setSaved] = useState({ firstName: "Jane", lastName: "Doe" });
+   useEffect(() => {
+      if (currentUser) {
+         setForm(f => ({
+            ...f,
+            firstName: currentUser.first_name || "",
+            lastName: currentUser.last_name || "",
+            bio: currentUser.bio || "",
+         }));
+      }
+   }, [currentUser]);
+
    const [openToConnections, setOpenToConnections] = useState(true);
    const [selectedGoals, setSelectedGoals] = useState(["Internship", "Research"]);
    const [selectedFields, setSelectedFields] = useState(["Computer Science"]);
@@ -80,23 +97,45 @@ export default function SettingsPage() {
       setNotifications((n) => ({ ...n, [key]: !n[key] }));
 
    const hasChanges =
-      form.firstName !== saved.firstName ||
-      form.lastName !== saved.lastName ||
-      (showPasswordFields && form.newPassword.length > 0);
+      currentUser && (
+         form.firstName !== (currentUser.first_name || "") ||
+         form.lastName !== (currentUser.last_name || "") ||
+         form.bio !== (currentUser.bio || "") ||
+         (showPasswordFields && form.newPassword.length > 0)
+      );
 
    const passwordsMatch =
       form.newPassword === form.confirmPassword && form.newPassword.length >= 8;
 
    const canSave =
+      !isSaving &&
       hasChanges &&
       form.firstName.trim() &&
       form.lastName.trim() &&
       (!showPasswordFields || (form.currentPassword && passwordsMatch));
 
-   const handleSave = () => {
-      setSaved({ firstName: form.firstName, lastName: form.lastName });
-      setShowPasswordFields(false);
-      setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
+   const handleSave = async () => {
+      if (!canSave) return;
+      setIsSaving(true);
+      try {
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({
+               first_name: form.firstName,
+               last_name: form.lastName,
+               bio: form.bio,
+            }),
+         });
+         await refreshUser();
+         setShowPasswordFields(false);
+         setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
+         alert("Settings saved successfully!");
+      } catch (err) {
+         console.error("Failed to save settings:", err);
+         alert("Failed to save settings: " + err.message);
+      } finally {
+         setIsSaving(false);
+      }
    };
 
    const handleCopy = () => {
@@ -210,14 +249,24 @@ export default function SettingsPage() {
                </div>
 
                <div style={{ marginBottom: "1rem" }}>
+                  <label style={labelStyle}>Bio</label>
+                  <textarea 
+                     style={{...inputStyle, height: '100px'}} 
+                     value={form.bio} 
+                     onChange={set("bio")}
+                     placeholder="Tell us about yourself..."
+                  />
+               </div>
+
+               <div style={{ marginBottom: "1rem" }}>
                   <label style={labelStyle}>Email</label>
-                  <input style={readonlyInputStyle} type="email" value="jane@university.edu" readOnly />
+                  <input style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
                   <p style={helperStyle}>Contact support to change your email</p>
                </div>
 
                <div style={{ marginBottom: "1rem" }}>
-                  <label style={labelStyle}>University</label>
-                  <input style={readonlyInputStyle} type="text" value="New York University" readOnly />
+                  <label style={labelStyle}>Major / University</label>
+                  <input style={readonlyInputStyle} type="text" value={currentUser?.major || "Not specified"} readOnly />
                </div>
 
                <div style={{ marginBottom: "1rem" }}>
@@ -412,7 +461,7 @@ export default function SettingsPage() {
                         color: "#fff",
                      }}
                   >
-                     Save Changes
+                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
                </div>
 

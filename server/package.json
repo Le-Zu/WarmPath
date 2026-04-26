@@ -31,18 +31,20 @@
     "firebase-admin": "^13.7.0",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",
+    "socket.io": "^4.8.3",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.20.0",
+    "@types/socket.io": "^3.0.1",
     "nodemon": "^3.1.14",
     "typescript": "^6.0.2"
   },
   "overrides": {
     "eslint": "^10.0.1",
-    "hono": "^4.12.12",
+    "hono": "^4.12.14",
     "@hono/node-server": "^1.19.14",
     "lodash": "^4.17.22",
     "@tootallnate/once": "^3.0.1",
@@ -50,10 +52,11 @@
     "brace-expansion": "^5.0.5",
     "picomatch": "^4.0.4",
     "flatted": "^3.4.2",
-    "fast-xml-parser": "^5.5.7",
+    "fast-xml-parser": "^5.7.0",
     "node-forge": "^1.4.0",
     "minimatch": "^10.0.3",
     "defu": "6.1.5",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "protobufjs": "^7.5.5"
   }
 }

@@ -38,10 +38,13 @@ body{background:var(--cream);font-family:var(--font-sans);color:var(--charcoal);
 .bell-btn:hover{color:var(--cream)}
 .bell-badge{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:var(--warm);font-size:0.6rem;color:white;display:flex;align-items:center;justify-content:center;font-weight:600}
 .bell-dropdown{position:absolute;right:0;top:calc(100% + 8px);background:var(--white);border:1px solid var(--border);border-radius:2px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
-.bell-item{padding:0.85rem 1rem;border-bottom:1px solid #f0e8e4;font-size:0.82rem;cursor:pointer;transition:background 0.1s}
+.bell-item{padding:0.85rem 1rem;border-bottom:1px solid #f0e8e4;font-size:0.82rem;cursor:pointer;transition:background 0.1s;position:relative}
 .bell-item:hover{background:var(--cream)}.bell-item:last-child{border-bottom:none}
+.bell-item.unread{background:rgba(231, 111, 81, 0.04)}
+.bell-item.read{opacity:0.7}
 .bell-item-title{font-weight:500;color:var(--charcoal);margin-bottom:2px}
 .bell-item-body{color:#7a6f68;font-size:0.77rem}
+.unread-dot{position:absolute;right:1rem;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--warm)}
 .user-switcher select{background:rgba(255,255,255,0.1);color:var(--cream);border:1px solid rgba(255,255,255,0.2);border-radius:2px;padding:0.3rem 0.6rem;font-size:0.78rem;font-family:var(--font-sans);cursor:pointer}
 textarea{width:100%;font-family:var(--font-sans);font-size:0.88rem;border:1px solid var(--border);border-radius:2px;padding:0.75rem;resize:vertical;background:var(--white);color:var(--charcoal)}
 textarea:focus{outline:2px solid var(--warm)}
