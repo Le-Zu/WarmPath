@@ -197,7 +197,7 @@ export default function RegisterPage() {
                   }}
                >
                   <hr style={{ flex: 1, borderColor: "lightgray" }} />
-                  <h7 style={{ fontSize: "0.9rem" }}>or</h7>
+                  <span style={{ fontSize: "0.9rem", color: "#386641" }}>or</span>
                   <hr style={{ flex: 1, borderColor: "lightgray" }} />
                </div>
 

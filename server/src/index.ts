@@ -13,7 +13,7 @@ dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Initialize Socket.io
 initSocket(httpServer);
@@ -679,7 +679,7 @@ app.get('/api/me', (req: AuthRequest, res) => {
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url', 'profile_complete'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {
@@ -687,7 +687,7 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
     }
 
     if (Object.keys(updates).length === 0) {
-        return res.status(400).json({ error: 'No valid fields provided.' });
+        return res.json({ user: req.dbUser });
     }
 
     try {
@@ -704,6 +704,29 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
 });
 
     // Starts the server
-httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+    const startServer = (port: number) => {
+    const server = httpServer.listen(port);
+
+    server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`[Server] Port ${port} is occupied, trying ${port + 1}...`);
+            startServer(port + 1);
+        } else {
+            console.error('[Server] Fatal error:', err);
+        }
+    });
+
+    server.on('listening', () => {
+        console.log(`
+    ┌──────────────────────────────────────────────────┐
+    │                                                  │
+    │   🚀 WarmPath API is running!                    │
+    │   📡 Port: ${port}                                  │
+    │   🔗 Ping: http://localhost:${port}/api/ping        │
+    │                                                  │
+    └──────────────────────────────────────────────────┘
+    `);
+    });
+    };
+
+    startServer(Number(PORT));

@@ -114,8 +114,7 @@ export default function OnboardingFlow() {
          await apiFetch('/api/me', {
             method: 'PATCH',
             body: JSON.stringify({ 
-               // We don't have name inputs in onboarding yet, so just marking flow as complete
-               // is implied by the successful intent creation for now.
+               profile_complete: true,
             }),
          });
 
