@@ -13,7 +13,7 @@ dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Initialize Socket.io
 initSocket(httpServer);
@@ -704,9 +704,9 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
 });
 
     // Starts the server
-    const startServer = (port: number) => {
+const startServer = (port: number) => {
     const server = httpServer.listen(port);
-
+    
     server.on('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
             console.warn(`[Server] Port ${port} is occupied, trying ${port + 1}...`);
@@ -718,15 +718,16 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
 
     server.on('listening', () => {
         console.log(`
-    ┌──────────────────────────────────────────────────┐
-    │                                                  │
-    │   🚀 WarmPath API is running!                    │
-    │   📡 Port: ${port}                                  │
-    │   🔗 Ping: http://localhost:${port}/api/ping        │
-    │                                                  │
-    └──────────────────────────────────────────────────┘
-    `);
+┌──────────────────────────────────────────────────┐
+│                                                  │
+│   🚀 WarmPath API is running!                    │
+│   📡 Port: ${port}                                  │
+│   🔗 Ping: http://localhost:${port}/api/ping        │
+│                                                  │
+└──────────────────────────────────────────────────┘
+`);
     });
-    };
+};
 
-    startServer(Number(PORT));
+startServer(Number(PORT));
+
