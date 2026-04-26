@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
    createUserWithEmailAndPassword,
    signInWithPopup,
    GoogleAuthProvider,
 } from "firebase/auth";
 import { auth } from "../firebase";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import apiUrl from "../apiConfig";
 
 export default function RegisterPage() {
    const navigate = useNavigate();
+   const location = useLocation();
    const [form, setForm] = useState({ email: "", password: "", confirm: "" });
+
+   useEffect(() => {
+      const params = new URLSearchParams(location.search);
+      const email = params.get('email');
+      if (email) {
+         setForm(f => ({ ...f, email }));
+      }
+   }, [location]);
    const [backendMessage, setbackendMessage] = useState("");
    const [hovered, setHovered] = useState(false);
    const [hovered2, setHovered2] = useState(false);

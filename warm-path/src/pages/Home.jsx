@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiFetch from '../api/client';
+import ProfileCompletionNudge from '../components/ProfileCompletionNudge';
 
 const intents = [
   { id: 'internship', label: '💼  Internship', desc: 'Find someone with industry experience in your target field' },
@@ -35,6 +36,7 @@ export default function Home() {
 
   return (
     <div className="app-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+      <ProfileCompletionNudge />
       <div className="app-eyebrow">— Declare your intent —</div>
       <div className="app-page-title">What are you<br />looking for?</div>
       <div className="app-page-sub">Choose a goal and we'll surface the best warm paths for you.</div>

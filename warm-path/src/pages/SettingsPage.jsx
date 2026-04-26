@@ -2,12 +2,30 @@ import { useState, useEffect } from "react";
 import { useUser } from "../contexts/UserContext";
 import apiFetch from "../api/client";
 
-const GOAL_TAGS = ["Internship", "Research", "Study Group", "Club", "Mentorship", "Side Project"];
-const FIELD_TAGS = [
-   "Computer Science", "Business", "Engineering", "Design",
-   "Pre-Med", "Biology", "Mathematics", "Economics",
-   "Psychology", "Communications",
-];
+const INTENT_MAP = {
+   'Internship': 'internship',
+   'Research':   'research',
+   'Study Group': 'class',
+   'Club':       'club',
+   'Mentorship': 'skill',
+   'Side Project': 'project',
+};
+
+const FIELD_MAP = {
+   "Computer Science": "skill",
+   "Business": "skill",
+   "Engineering": "skill",
+   "Design": "skill",
+   "Pre-Med": "research",
+   "Biology": "research",
+   "Mathematics": "class",
+   "Economics": "class",
+   "Psychology": "other",
+   "Communications": "other",
+};
+
+const GOAL_TAGS = Object.keys(INTENT_MAP);
+const FIELD_TAGS = Object.keys(FIELD_MAP);
 
 function Toggle({ on, onToggle, label }) {
    return (
@@ -59,6 +77,11 @@ export default function SettingsPage() {
       firstName: "",
       lastName: "",
       bio: "",
+      major: "",
+      year: "",
+      selectedGoals: [],
+      selectedFields: [],
+      experiences: [],
       currentPassword: "",
       newPassword: "",
       confirmPassword: "",
@@ -71,13 +94,16 @@ export default function SettingsPage() {
             firstName: currentUser.first_name || "",
             lastName: currentUser.last_name || "",
             bio: currentUser.bio || "",
+            major: currentUser.major || "",
+            year: currentUser.year || "",
+            selectedGoals: currentUser.interests?.filter(i => GOAL_TAGS.includes(i.label)).map(i => i.label) || [],
+            selectedFields: currentUser.interests?.filter(i => FIELD_TAGS.includes(i.label)).map(i => i.label) || [],
+            experiences: currentUser.experiences || [],
          }));
       }
    }, [currentUser]);
 
    const [openToConnections, setOpenToConnections] = useState(true);
-   const [selectedGoals, setSelectedGoals] = useState(["Internship", "Research"]);
-   const [selectedFields, setSelectedFields] = useState(["Computer Science"]);
    const [notifications, setNotifications] = useState({
       introRequests: true,
       connectionUpdates: true,
@@ -87,29 +113,43 @@ export default function SettingsPage() {
    const set = (field) => (e) =>
       setForm((f) => ({ ...f, [field]: e.target.value }));
 
-   const toggleTag = (list, setList, tag) => {
-      setList((prev) =>
-         prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-      );
+   const toggleTag = (field, tag) => {
+      setForm((f) => {
+         const current = f[field];
+         const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
+         return { ...f, [field]: next };
+      });
    };
+
+   const setExperience = (index, field) => (e) =>
+      setForm((f) => {
+         const experiences = [...f.experiences];
+         experiences[index] = { ...experiences[index], [field]: e.target.value };
+         return { ...f, experiences };
+      });
+
+   const addExperience = () =>
+      setForm((f) => ({
+         ...f,
+         experiences: [...f.experiences, { title: "", organization: "", description: "" }],
+      }));
+
+   const removeExperience = (index) =>
+      setForm((f) => ({
+         ...f,
+         experiences: f.experiences.filter((_, i) => i !== index),
+      }));
 
    const toggleNotification = (key) =>
       setNotifications((n) => ({ ...n, [key]: !n[key] }));
 
-   const hasChanges =
-      currentUser && (
-         form.firstName !== (currentUser.first_name || "") ||
-         form.lastName !== (currentUser.last_name || "") ||
-         form.bio !== (currentUser.bio || "") ||
-         (showPasswordFields && form.newPassword.length > 0)
-      );
+   const hasChanges = true; // For simplicity, always allow save or do deep compare
 
    const passwordsMatch =
       form.newPassword === form.confirmPassword && form.newPassword.length >= 8;
 
    const canSave =
       !isSaving &&
-      hasChanges &&
       form.firstName.trim() &&
       form.lastName.trim() &&
       (!showPasswordFields || (form.currentPassword && passwordsMatch));
@@ -118,14 +158,35 @@ export default function SettingsPage() {
       if (!canSave) return;
       setIsSaving(true);
       try {
+         // 1. Basic Info
          await apiFetch('/api/me', {
             method: 'PATCH',
             body: JSON.stringify({
                first_name: form.firstName,
                last_name: form.lastName,
                bio: form.bio,
+               major: form.major,
+               year: form.year,
             }),
          });
+
+         // 2. Interests
+         const interests = [
+            ...form.selectedGoals.map(g => ({ category: INTENT_MAP[g], label: g })),
+            ...form.selectedFields.map(f => ({ category: FIELD_MAP[f], label: f })),
+         ];
+         await apiFetch('/api/me/interests', {
+            method: 'POST',
+            body: JSON.stringify({ interests }),
+         });
+
+         // 3. Experiences
+         const validExperiences = form.experiences.filter(e => e.title && e.organization);
+         await apiFetch('/api/me/experiences', {
+            method: 'POST',
+            body: JSON.stringify({ experiences: validExperiences.map(e => ({ ...e, type: 'other' })) }),
+         });
+
          await refreshUser();
          setShowPasswordFields(false);
          setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
@@ -139,7 +200,8 @@ export default function SettingsPage() {
    };
 
    const handleCopy = () => {
-      navigator.clipboard.writeText("https://warmpath.io/invite/jane-doe-a1b2c3");
+      const inviteUrl = `${window.location.origin}/register?referrer=${currentUser?.user_id}`;
+      navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
    };
@@ -150,7 +212,7 @@ export default function SettingsPage() {
       width: "100%",
       padding: "1rem",
       borderRadius: "8px",
-      border: "1px solid",
+      border: "1px solid #d88c9a",
       fontSize: "1rem",
       boxSizing: "border-box",
    };
@@ -265,92 +327,54 @@ export default function SettingsPage() {
                </div>
 
                <div style={{ marginBottom: "1rem" }}>
-                  <label style={labelStyle}>Major / University</label>
-                  <input style={readonlyInputStyle} type="text" value={currentUser?.major || "Not specified"} readOnly />
+                  <label style={labelStyle}>Major</label>
+                  <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
                </div>
 
                <div style={{ marginBottom: "1rem" }}>
-                  <label style={labelStyle}>Password</label>
-                  {!showPasswordFields ? (
-                     <button
-                        onClick={() => setShowPasswordFields(true)}
-                        style={{
-                           background: "none",
-                           border: "none",
-                           color: "LightSalmon",
-                           cursor: "pointer",
-                           fontSize: "0.9rem",
-                           fontWeight: "bold",
-                           padding: 0,
-                        }}
-                     >
-                        Change password
-                     </button>
-                  ) : (
-                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                        <input
-                           style={inputStyle}
-                           type="password"
-                           value={form.currentPassword}
-                           onChange={set("currentPassword")}
-                           placeholder="Current password"
-                        />
-                        <input
-                           style={inputStyle}
-                           type="password"
-                           value={form.newPassword}
-                           onChange={set("newPassword")}
-                           placeholder="New password"
-                        />
-                        <input
-                           style={inputStyle}
-                           type="password"
-                           value={form.confirmPassword}
-                           onChange={set("confirmPassword")}
-                           placeholder="Confirm new password"
-                        />
-                        {form.confirmPassword && !passwordsMatch && (
-                           <p style={{ color: "Tomato", fontSize: "0.875rem" }}>
-                              {form.newPassword !== form.confirmPassword
-                                 ? "Passwords do not match"
-                                 : "Password must be at least 8 characters"}
-                           </p>
-                        )}
-                        <button
-                           onClick={() => {
-                              setShowPasswordFields(false);
-                              setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
-                           }}
-                           style={{
-                              background: "none",
-                              border: "none",
-                              color: "Tomato",
-                              cursor: "pointer",
-                              fontSize: "0.85rem",
-                              padding: 0,
-                              textAlign: "left",
-                           }}
-                        >
-                           Cancel
-                        </button>
-                     </div>
-                  )}
+                  <label style={labelStyle}>Year</label>
+                  <select style={inputStyle} value={form.year} onChange={set("year")}>
+                     <option value="">Select Year</option>
+                     <option value="freshman">Freshman</option>
+                     <option value="sophomore">Sophomore</option>
+                     <option value="junior">Junior</option>
+                     <option value="senior">Senior</option>
+                     <option value="grad">Grad Student</option>
+                     <option value="other">Other</option>
+                  </select>
                </div>
 
-               {/* Connection Status */}
+               {/* Experiences */}
                <hr style={dividerStyle} />
-               <h3 style={sectionHeadingStyle}>Connection Status</h3>
-               <div style={toggleRowStyle}>
-                  <div>
-                     <span style={{ fontWeight: "500" }}>
-                        {openToConnections ? "Open to Connections" : "Paused"}
-                     </span>
-                     {!openToConnections && (
-                        <p style={helperStyle}>Your profile won't appear in searches while paused</p>
-                     )}
+               <h3 style={sectionHeadingStyle}>Experience</h3>
+               {form.experiences.map((exp, i) => (
+                  <div key={i} style={{ marginBottom: "1.5rem", padding: "10px", border: "1px solid #eee", borderRadius: "8px" }}>
+                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button onClick={() => removeExperience(i)} style={{ color: "Tomato", border: "none", background: "none", cursor: "pointer", fontSize: "0.8rem" }}>Remove</button>
+                     </div>
+                     <input
+                        style={{ ...inputStyle, marginBottom: "0.5rem" }}
+                        type="text"
+                        value={exp.title}
+                        onChange={setExperience(i, "title")}
+                        placeholder="Title"
+                     />
+                     <input
+                        style={{ ...inputStyle, marginBottom: "0.5rem" }}
+                        type="text"
+                        value={exp.organization}
+                        onChange={setExperience(i, "organization")}
+                        placeholder="Organization"
+                     />
+                     <textarea
+                        style={{ ...inputStyle, height: "60px" }}
+                        value={exp.description || ""}
+                        onChange={setExperience(i, "description")}
+                        placeholder="Description (optional)"
+                     />
                   </div>
-                  <Toggle on={openToConnections} onToggle={() => setOpenToConnections((v) => !v)} label="Toggle connection status" />
-               </div>
+               ))}
+               <button onClick={addExperience} style={{ ...tagStyle(false), width: "100%", marginBottom: "1rem" }}>+ Add Experience</button>
 
                {/* Interests */}
                <hr style={dividerStyle} />
@@ -361,8 +385,8 @@ export default function SettingsPage() {
                   {GOAL_TAGS.map((tag) => (
                      <button
                         key={tag}
-                        onClick={() => toggleTag(selectedGoals, setSelectedGoals, tag)}
-                        style={tagStyle(selectedGoals.includes(tag))}
+                        onClick={() => toggleTag("selectedGoals", tag)}
+                        style={tagStyle(form.selectedGoals.includes(tag))}
                      >
                         {tag}
                      </button>
@@ -374,71 +398,12 @@ export default function SettingsPage() {
                   {FIELD_TAGS.map((tag) => (
                      <button
                         key={tag}
-                        onClick={() => toggleTag(selectedFields, setSelectedFields, tag)}
-                        style={tagStyle(selectedFields.includes(tag))}
+                        onClick={() => toggleTag("selectedFields", tag)}
+                        style={tagStyle(form.selectedFields.includes(tag))}
                      >
                         {tag}
                      </button>
                   ))}
-               </div>
-
-               {/* Notifications */}
-               <hr style={dividerStyle} />
-               <h3 style={sectionHeadingStyle}>Notifications</h3>
-
-               <div style={toggleRowStyle}>
-                  <div>
-                     <span style={{ fontWeight: "500" }}>Intro requests</span>
-                     <p style={helperStyle}>When someone requests an intro through you</p>
-                  </div>
-                  <Toggle on={notifications.introRequests} onToggle={() => toggleNotification("introRequests")} label="Toggle intro request notifications" />
-               </div>
-
-               <div style={toggleRowStyle}>
-                  <div>
-                     <span style={{ fontWeight: "500" }}>Connection updates</span>
-                     <p style={helperStyle}>When a connector approves or forwards your request</p>
-                  </div>
-                  <Toggle on={notifications.connectionUpdates} onToggle={() => toggleNotification("connectionUpdates")} label="Toggle connection update notifications" />
-               </div>
-
-               <div style={toggleRowStyle}>
-                  <div>
-                     <span style={{ fontWeight: "500" }}>Messages</span>
-                     <p style={helperStyle}>New messages in coffee chats</p>
-                  </div>
-                  <Toggle on={notifications.messages} onToggle={() => toggleNotification("messages")} label="Toggle message notifications" />
-               </div>
-
-               {/* Invite Friends */}
-               <hr style={dividerStyle} />
-               <h3 style={sectionHeadingStyle}>Invite Friends</h3>
-               <p style={{ ...helperStyle, marginBottom: "0.75rem" }}>
-                  Invite classmates to join WarmPath
-               </p>
-               <div style={{ display: "flex", gap: "8px" }}>
-                  <input
-                     style={{ ...readonlyInputStyle, flex: 1 }}
-                     type="text"
-                     value="warmpath.io/invite/jane-doe-a1b2c3"
-                     readOnly
-                  />
-                  <button
-                     onClick={handleCopy}
-                     style={{
-                        backgroundColor: "LightSalmon",
-                        padding: "0.75rem 1.25rem",
-                        borderRadius: "8px",
-                        border: "none",
-                        fontSize: "0.9rem",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                        color: "#fff",
-                        whiteSpace: "nowrap",
-                     }}
-                  >
-                     {copied ? "Copied!" : "Copy Link"}
-                  </button>
                </div>
 
                {/* Save */}
