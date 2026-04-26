@@ -16,6 +16,7 @@
     "preview:client": "cd warm-path && npm run preview",
     "audit:platforms": "node scripts/check-platform-node.js",
     "audit:all": "npm audit && cd server && npm audit && cd ../warm-path && npm audit",
+    "audit:ci": "npm audit --audit-level=high && cd server && npm audit --audit-level=high && cd ../warm-path && npm audit --audit-level=high",
     "audit:fix:all": "npm audit fix && cd server && npm audit fix && cd ../warm-path && npm audit fix",
     "lint:all": "cd warm-path && npm run lint",
     "db:migrate": "cd server && npm run db:migrate",
@@ -36,16 +37,17 @@
   },
   "overrides": {
     "eslint": "^10.0.1",
-    "hono": "^4.12.12",
+    "hono": "^4.12.14",
     "@hono/node-server": "^1.19.13",
     "lodash": "4.18.1",
     "effect": "^3.20.0",
     "brace-expansion": "^5.0.5",
     "picomatch": "^4.0.4",
     "flatted": "^3.4.2",
-    "fast-xml-parser": "^5.5.7",
+    "fast-xml-parser": "^5.7.0",
     "node-forge": "^1.4.0",
     "minimatch": "^10.0.3",
-    "defu": "6.1.5"
+    "defu": "6.1.5",
+    "protobufjs": "^7.5.5"
   }
 }
