@@ -122,16 +122,17 @@ export default function ChatPage() {
                style={{
                   fontSize: "0.85rem",
                   padding: "0.5rem 1rem",
-                  marginLeft: "670px",
+                  marginLeft: "640px",
                   borderRadius: "6px",
                   border: "1px solid #d88c9a",
+                  whiteSpace: "nowrap",
                   background: "transparent",
                   color: "#d88c9a",
                   cursor: "pointer",
                   fontWeight: "500",
                }}
             >
-               Leave Chat
+               Leave Room
             </button>
          </div>
 

@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import PathCard from "../components/PathCard.jsx";
 import { getPaths } from "../api/paths.js";
 import { calculateBatchWarmthScores } from "../api/gemini.js";
 import apiFetch from "../api/client.js";
 
+const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
+const INTENT_MAP = {
+   Internship: "internship",
+   Research: "research",
+   "Class help": "class",
+   Club: "club",
+   Skill: "skill",
+};
+
 // Human-readable label for each intent enum value used in empty state copy
-const INTENT_LABELS = {
+const INTENT_DISPLAY = {
    internship: "internship",
    research: "research",
    class: "class help",
@@ -15,8 +24,12 @@ const INTENT_LABELS = {
 };
 
 export default function Paths() {
-   const [searchParams] = useSearchParams();
+   const [searchParams, setSearchParams] = useSearchParams();
+   const navigate = useNavigate();
    const intent = searchParams.get("intent") || null;
+
+   const activeIntent =
+      INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) ?? null;
 
    const [paths, setPaths] = useState([]);
    const [loading, setLoading] = useState(true);
@@ -48,6 +61,15 @@ export default function Paths() {
          .finally(() => setLoading(false));
    }, [intent]);
 
+   const handleIntentClick = (label) => {
+      if (activeIntent === label) {
+         // Deselect
+         setSearchParams({});
+      } else {
+         navigate("/paths?intent=" + INTENT_MAP[label]);
+      }
+   };
+
    const [showAddForm, setShowAddForm] = useState(false);
    const [newConn, setNewConn] = useState({
       name: "",
@@ -71,7 +93,6 @@ export default function Paths() {
          alert("Connector added! This will help discover more paths.");
          setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
-         // Reload paths
          getPaths(intent).then(({ paths: fetchedPaths }) =>
             setPaths(fetchedPaths),
          );
@@ -85,7 +106,7 @@ export default function Paths() {
    if (loading) return <div className="app-page">Finding warm paths...</div>;
    if (error) return <div className="app-page">Failed to load paths.</div>;
 
-   const intentLabel = intent ? (INTENT_LABELS[intent] ?? intent) : null;
+   const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
 
    return (
       <div className="app-page">
@@ -101,6 +122,51 @@ export default function Paths() {
                : intentLabel
                  ? `No warm paths for ${intentLabel} yet. Try a different intent or check back as your network grows.`
                  : "Paths appear when you have mutual connections with someone. Build your network and check back."}
+         </div>
+
+         {/* Intent filter pills */}
+         <div
+            style={{
+               display: "flex",
+               alignItems: "center",
+               gap: "0.5rem",
+               flexWrap: "wrap",
+               margin: "1rem 0 1.75rem",
+            }}
+         >
+            <span
+               style={{
+                  color: "#9b8880",
+                  fontSize: "0.8rem",
+                  fontFamily: "var(--font-sans)",
+                  marginRight: "0.1rem",
+               }}
+            >
+               Looking for:
+            </span>
+            {INTENT_LABELS.map((label) => {
+               const isActive = activeIntent === label;
+               return (
+                  <button
+                     key={label}
+                     onClick={() => handleIntentClick(label)}
+                     style={{
+                        background: isActive ? "#e76f51" : "transparent",
+                        color: isActive ? "#fff" : "#9b6a5a",
+                        border: `1.5px solid ${isActive ? "#e76f51" : "rgba(155,106,90,0.35)"}`,
+                        borderRadius: "999px",
+                        padding: "0.28rem 0.9rem",
+                        fontSize: "0.8rem",
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: isActive ? 500 : 400,
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                     }}
+                  >
+                     {label}
+                  </button>
+               );
+            })}
          </div>
 
          {paths.length === 0 && (
