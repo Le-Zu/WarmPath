@@ -37,7 +37,7 @@ export default function PathCard({ path, score = '...' }) {
         </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>{path.target.name}</div>
         <div style={{ fontSize: '0.82rem', color: '#7a6f68', marginBottom: '1rem' }}>{path.target.role}</div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--mid)', fontWeight: 500, marginBottom: '1rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
           <WarmthScore score={score} />
         </div>
         <button className="btn-primary" style={{ fontSize: '0.82rem', padding: '0.5rem 1.1rem' }} onClick={() => setOpen(true)}>
