@@ -11,20 +11,25 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 --  USERS
 -- ============================================================
 CREATE TABLE users (
-    user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email           VARCHAR(255) NOT NULL UNIQUE,
-    password_hash   VARCHAR(255) NOT NULL,
-    first_name      VARCHAR(100) NOT NULL,
-    last_name       VARCHAR(100) NOT NULL,
-    year            VARCHAR(20)  CHECK (year IN ('freshman', 'sophomore', 'junior', 'senior', 'grad', 'other')),
-    major           VARCHAR(100),
-    bio             TEXT,
-    linkedin_url    VARCHAR(500),
-    resume_url      VARCHAR(500),
+    user_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    firebase_uid     VARCHAR(128) UNIQUE,
+    email            VARCHAR(255) NOT NULL UNIQUE,
+    password_hash    VARCHAR(255),
+    first_name       VARCHAR(100),
+    last_name        VARCHAR(100),
+    year             VARCHAR(20) CHECK (year IN ('freshman', 'sophomore', 'junior', 'senior', 'grad', 'other')),
+    major            VARCHAR(100),
+    bio              TEXT,
+    linkedin_url     VARCHAR(500),
+    resume_url       VARCHAR(500),
     profile_picture_url VARCHAR(500),
     profile_complete BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+    profile_source   VARCHAR(50) DEFAULT 'manual',
+    linkedin_import_at TIMESTAMP,
+    resume_parsed_at   TIMESTAMP,
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
