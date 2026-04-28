@@ -5,6 +5,7 @@ import { getPaths } from "../api/paths.js";
 import { calculateBatchWarmthScores } from "../api/gemini.js";
 import apiFetch from "../api/client.js";
 
+// Human-readable label for each intent enum value used in empty state copy
 const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
 const INTENT_MAP = {
    Internship: "internship",
@@ -14,7 +15,6 @@ const INTENT_MAP = {
    Skill: "skill",
 };
 
-// Human-readable label for each intent enum value used in empty state copy
 const INTENT_DISPLAY = {
    internship: "internship",
    research: "research",
@@ -63,7 +63,6 @@ export default function Paths() {
 
    const handleIntentClick = (label) => {
       if (activeIntent === label) {
-         // Deselect
          setSearchParams({});
       } else {
          navigate("/paths?intent=" + INTENT_MAP[label]);
@@ -124,55 +123,153 @@ export default function Paths() {
                  : "Paths appear when you have mutual connections with someone. Build your network and check back."}
          </div>
 
-         {/* Intent filter pills */}
          <div
             style={{
                display: "flex",
                alignItems: "center",
-               gap: "0.5rem",
-               flexWrap: "wrap",
+               justifyContent: "space-between",
                margin: "1rem 0 1.75rem",
             }}
          >
-            <span
+            <div
                style={{
-                  color: "#9b8880",
-                  fontSize: "0.8rem",
-                  fontFamily: "var(--font-sans)",
-                  marginRight: "0.1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flexWrap: "wrap",
                }}
             >
-               Looking for:
-            </span>
-            {INTENT_LABELS.map((label) => {
-               const isActive = activeIntent === label;
-               return (
-                  <button
-                     key={label}
-                     onClick={() => handleIntentClick(label)}
-                     style={{
-                        background: isActive ? "#e76f51" : "transparent",
-                        color: isActive ? "#fff" : "#9b6a5a",
-                        border: `1.5px solid ${isActive ? "#e76f51" : "rgba(155,106,90,0.35)"}`,
-                        borderRadius: "999px",
-                        padding: "0.28rem 0.9rem",
-                        fontSize: "0.8rem",
-                        fontFamily: "var(--font-sans)",
-                        fontWeight: isActive ? 500 : 400,
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                     }}
-                  >
-                     {label}
-                  </button>
-               );
-            })}
+               <span
+                  style={{
+                     color: "#9b8880",
+                     fontSize: "0.8rem",
+                     fontFamily: "var(--font-sans)",
+                     marginRight: "0.1rem",
+                  }}
+               >
+                  Looking for:
+               </span>
+               {INTENT_LABELS.map((label) => {
+                  const isActive = activeIntent === label;
+                  return (
+                     <button
+                        key={label}
+                        onClick={() => handleIntentClick(label)}
+                        style={{
+                           background: isActive ? "#e76f51" : "transparent",
+                           color: isActive ? "#fff" : "#9b6a5a",
+                           border: `1.5px solid ${isActive ? "#e76f51" : "rgba(155,106,90,0.35)"}`,
+                           borderRadius: "999px",
+                           padding: "0.28rem 0.9rem",
+                           fontSize: "0.8rem",
+                           fontFamily: "var(--font-sans)",
+                           fontWeight: isActive ? 500 : 400,
+                           cursor: "pointer",
+                           transition: "all 0.15s",
+                        }}
+                     >
+                        {label}
+                     </button>
+                  );
+               })}
+            </div>
+
+            <button
+               onClick={() => setShowAddForm((v) => !v)}
+               style={btnSecondary}
+            >
+               + Add a Connector
+            </button>
          </div>
+
+         {showAddForm && (
+            <div
+               style={{
+                  marginBottom: "1.5rem",
+                  padding: "1.5rem",
+                  background: "#fff",
+                  border: "1px dashed #d88c9a",
+                  borderRadius: "4px",
+               }}
+            >
+               <h3
+                  style={{
+                     fontSize: "1rem",
+                     marginBottom: "1rem",
+                     color: "var(--dark)",
+                  }}
+               >
+                  Add a Connector
+               </h3>
+               <form
+                  onSubmit={handleAddConnector}
+                  style={{ maxWidth: "360px", textAlign: "left" }}
+               >
+                  <div style={{ marginBottom: "1rem" }}>
+                     <label style={labelStyle}>Name</label>
+                     <input
+                        type="text"
+                        value={newConn.name}
+                        onChange={(e) =>
+                           setNewConn({ ...newConn, name: e.target.value })
+                        }
+                        placeholder="Alex Rivera"
+                        style={inputStyle}
+                     />
+                  </div>
+                  <div style={{ marginBottom: "1rem" }}>
+                     <label style={labelStyle}>Email *</label>
+                     <input
+                        type="email"
+                        required
+                        value={newConn.email}
+                        onChange={(e) =>
+                           setNewConn({ ...newConn, email: e.target.value })
+                        }
+                        placeholder="alex@example.com"
+                        style={inputStyle}
+                     />
+                  </div>
+                  <div style={{ marginBottom: "1rem" }}>
+                     <label style={labelStyle}>Relationship Context *</label>
+                     <input
+                        type="text"
+                        required
+                        value={newConn.relationship}
+                        onChange={(e) =>
+                           setNewConn({
+                              ...newConn,
+                              relationship: e.target.value,
+                           })
+                        }
+                        placeholder="e.g. Worked together in CS 499"
+                        style={inputStyle}
+                     />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                     <button
+                        type="submit"
+                        disabled={savingConn}
+                        style={btnPrimary}
+                     >
+                        {savingConn ? "Saving..." : "Add Connector"}
+                     </button>
+                     <button
+                        type="button"
+                        onClick={() => setShowAddForm(false)}
+                        style={btnSecondary}
+                     >
+                        Cancel
+                     </button>
+                  </div>
+               </form>
+            </div>
+         )}
 
          {paths.length === 0 && (
             <div
                style={{
-                  marginTop: "2rem",
+                  marginTop: "1rem",
                   padding: "2rem",
                   background: "#fff",
                   border: "1px dashed #d88c9a",
@@ -193,126 +290,14 @@ export default function Paths() {
                   style={{
                      fontSize: "0.88rem",
                      color: "#7a6f68",
-                     marginBottom: "1.5rem",
                      maxWidth: "400px",
-                     margin: "0 auto 1.5rem",
+                     margin: "0 auto",
                   }}
                >
                   Paths are discovered through your existing connections. Add a
                   connector you already know to help WarmPath find more paths
                   for you.
                </p>
-
-               {!showAddForm ? (
-                  <button
-                     onClick={() => setShowAddForm(true)}
-                     style={{
-                        backgroundColor: "LightSalmon",
-                        padding: "0.75rem 1.5rem",
-                        borderRadius: "100px",
-                        border: "none",
-                        color: "#fff",
-                        fontWeight: "bold",
-                        cursor: "pointer",
-                     }}
-                  >
-                     Add a Connector
-                  </button>
-               ) : (
-                  <form
-                     onSubmit={handleAddConnector}
-                     style={{
-                        maxWidth: "360px",
-                        margin: "0 auto",
-                        textAlign: "left",
-                     }}
-                  >
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label
-                           style={{
-                              fontSize: "0.75rem",
-                              fontWeight: "bold",
-                              display: "block",
-                              marginBottom: "0.3rem",
-                           }}
-                        >
-                           Name
-                        </label>
-                        <input
-                           type="text"
-                           value={newConn.name}
-                           onChange={(e) =>
-                              setNewConn({ ...newConn, name: e.target.value })
-                           }
-                           placeholder="Alex Rivera"
-                           style={inputStyle}
-                        />
-                     </div>
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label
-                           style={{
-                              fontSize: "0.75rem",
-                              fontWeight: "bold",
-                              display: "block",
-                              marginBottom: "0.3rem",
-                           }}
-                        >
-                           Email *
-                        </label>
-                        <input
-                           type="email"
-                           required
-                           value={newConn.email}
-                           onChange={(e) =>
-                              setNewConn({ ...newConn, email: e.target.value })
-                           }
-                           placeholder="alex@example.com"
-                           style={inputStyle}
-                        />
-                     </div>
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label
-                           style={{
-                              fontSize: "0.75rem",
-                              fontWeight: "bold",
-                              display: "block",
-                              marginBottom: "0.3rem",
-                           }}
-                        >
-                           Relationship Context *
-                        </label>
-                        <input
-                           type="text"
-                           required
-                           value={newConn.relationship}
-                           onChange={(e) =>
-                              setNewConn({
-                                 ...newConn,
-                                 relationship: e.target.value,
-                              })
-                           }
-                           placeholder="e.g. Worked together in CS 499"
-                           style={inputStyle}
-                        />
-                     </div>
-                     <div style={{ display: "flex", gap: "10px" }}>
-                        <button
-                           type="submit"
-                           disabled={savingConn}
-                           style={btnPrimary}
-                        >
-                           {savingConn ? "Saving..." : "Add Connector"}
-                        </button>
-                        <button
-                           type="button"
-                           onClick={() => setShowAddForm(false)}
-                           style={btnSecondary}
-                        >
-                           Cancel
-                        </button>
-                     </div>
-                  </form>
-               )}
             </div>
          )}
 
@@ -322,6 +307,13 @@ export default function Paths() {
       </div>
    );
 }
+
+const labelStyle = {
+   fontSize: "0.75rem",
+   fontWeight: "bold",
+   display: "block",
+   marginBottom: "0.3rem",
+};
 
 const inputStyle = {
    width: "100%",
