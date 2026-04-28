@@ -356,6 +356,7 @@ const btnSecondary = {
    cursor: "pointer",
 };
 
+// Small "ⓘ" icon next to the page subtitle that explains the warm score on hover/focus.
 function WarmScoreInfo() {
    const [open, setOpen] = useState(false);
 
@@ -445,71 +446,4 @@ const tooltipStyle = {
    boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
    fontWeight: 400,
    pointerEvents: "none",
-};
-
-// Small "ⓘ" icon next to the page subtitle that explains the warm score on hover/focus.
-function WarmScoreInfo() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <span
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button
-        type="button"
-        onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
-        onClick={() => setOpen((prev) => !prev)}
-        aria-label="What is the warm score?"
-        aria-describedby="warm-score-tooltip"
-        style={infoIconBtn}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.4" />
-          <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
-          <path d="M8 7v5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
-      </button>
-      {open && (
-        <span id="warm-score-tooltip" role="tooltip" style={tooltipStyle}>
-          <strong style={{ display: 'block', marginBottom: 4 }}>More flames = stronger relevance.</strong>
-          We use AI to estimate how well each connection's interests, experience, and background match what you're looking for.
-        </span>
-      )}
-    </span>
-  );
-}
-
-const infoIconBtn = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 18,
-  height: 18,
-  padding: 0,
-  border: 'none',
-  background: 'transparent',
-  color: '#7a6f68',
-  cursor: 'pointer',
-  borderRadius: '50%',
-};
-
-const tooltipStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: 'calc(100% + 10px)',
-  transform: 'translateY(-50%)',
-  zIndex: 10,
-  width: 280,
-  padding: '0.7rem 0.85rem',
-  background: 'var(--dark)',
-  color: 'var(--cream)',
-  fontSize: '0.78rem',
-  lineHeight: 1.45,
-  borderRadius: 6,
-  boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-  fontWeight: 400,
-  pointerEvents: 'none',
 };
