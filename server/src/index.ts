@@ -76,8 +76,9 @@ app.post('/api/users', async (req: AuthRequest, res) => {
                 email,
                 firebase_uid: uid,
                 is_active: true,
-                ...(first_name && { first_name }),
-                ...(last_name && { last_name }),
+                first_name: first_name || "",
+                last_name: last_name || "",
+                password_hash: null, // Explicitly null for Firebase users
             },
         });
 
