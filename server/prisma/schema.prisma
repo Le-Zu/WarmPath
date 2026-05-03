@@ -181,6 +181,7 @@ model Users {
   linkedin_url     String?       @db.VarChar(500)
   resume_url       String?       @db.VarChar(500)
   profile_picture_url String?    @db.VarChar(500)
+  banner_picture_url  String?    @db.VarChar(500)
   profile_complete Boolean       @default(false)
 
   // Profile creation tracking (like-to-have F: Profile Creation A/B)
@@ -202,6 +203,10 @@ model Users {
   privacy_settings     PrivacySettings?          @relation("HasPrivacySetting")
   intents              Intents[]                 @relation("HasIntents")
   notifications        Notifications[]           @relation("ReceivesNotifications")
+
+  // Context pre-reads (F7)
+  prereads_received    ContextPrereads[]         @relation("ReceivesPreread")
+  prereads_subject_of  ContextPrereads[]         @relation("IsSubjectOfPreread")
 
   // Connections — user appears as either side (F1)
   connections_a        Connections[]             @relation("InitiatedConnections")
@@ -418,11 +423,34 @@ model ContextPrereads {
   viewed_at    DateTime?
 
   intro_request IntroRequests @relation("RequiresPrereads", fields: [request_id], references: [request_id], onDelete: Restrict, onUpdate: Cascade)
+  recipient     Users         @relation("ReceivesPreread", fields: [recipient_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  subject       Users         @relation("IsSubjectOfPreread", fields: [subject_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([request_id, recipient_id, subject_id], name: "uq_preread")
   @@index([recipient_id])
   @@index([request_id])
   @@map("context_prereads")
+}
+
+// ------------------------------------------------------------
+// PathScores  (F3 — Warm Scores)
+// Stores pre-calculated or deterministic warmth scores for paths
+// to reduce AI API calls. Recalculated on data changes.
+// ------------------------------------------------------------
+model PathScores {
+  score_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id String   @db.Uuid
+  target_id    String   @db.Uuid
+  // intent can be 'all' or specific category
+  intent       String   @db.VarChar(50)
+  score        Int      @db.SmallInt
+  is_ai_scored Boolean  @default(false)
+  updated_at   DateTime @default(now()) @updatedAt
+
+  @@unique([requester_id, target_id, intent], name: "uq_path_score")
+  @@index([requester_id])
+  @@index([target_id])
+  @@map("path_scores")
 }
 
 // ------------------------------------------------------------

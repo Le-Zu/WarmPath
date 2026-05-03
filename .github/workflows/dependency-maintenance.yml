@@ -35,7 +35,7 @@ jobs:
             This is an automated pull request created by the Weekly Dependency Maintenance workflow.
             
             Actions performed:
-            - Ran `npm audit fix` in root, server, and warm-path directories.
+            - Ran `npm audit fix` in root, server, and frontend directories.
             - Updated `package-lock.json` files.
             
             Please review the changes and merge if tests pass.
