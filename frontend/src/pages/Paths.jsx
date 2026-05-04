@@ -283,7 +283,7 @@ export default function Paths() {
          )}
 
          {paths.map((p) => (
-            <PathCard key={p.id} path={p} score={p.warmthScore} />
+            <PathCard key={p.id} path={p} score={p.warmScore} />
          ))}
       </div>
    );

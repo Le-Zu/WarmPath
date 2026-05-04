@@ -11,7 +11,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           v.target_id,
           v.requester_connector_context,
           v.connector_target_context,
-          COALESCE(ws.score, ROUND(v.avg_connector_score)) AS strength,
+          COALESCE(
+            ws_specific.score, 
+            ws_all.score, 
+            ROUND(v.avg_connector_score), 
+            1
+          ) AS strength,
           c.first_name  AS connector_first_name,
           c.last_name   AS connector_last_name,
           c.major       AS connector_major,
@@ -29,9 +34,14 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
         JOIN users c ON c.user_id = v.connector_id
         JOIN users t ON t.user_id = v.target_id
         LEFT JOIN privacy_settings ps_target ON ps_target.user_id = v.target_id
-        LEFT JOIN warm_scores ws ON ws.requester_id = v.requester_id 
-             AND ws.target_id = v.target_id 
-             AND ws.intent = ${intentStr}
+        -- Try to find the specific intent score first
+        LEFT JOIN warm_scores ws_specific ON ws_specific.requester_id = v.requester_id 
+             AND ws_specific.target_id = v.target_id 
+             AND ws_specific.intent = ${intentStr}
+        -- Fallback to the 'all' intent score if specific is missing
+        LEFT JOIN warm_scores ws_all ON ws_all.requester_id = v.requester_id 
+             AND ws_all.target_id = v.target_id 
+             AND ws_all.intent = 'all'
         WHERE v.requester_id = ${userId}
           AND COALESCE(ps_target.discovery_mode, 'full'::discovery_mode) <> 'hidden'::discovery_mode
           AND COALESCE(ps_target.show_in_discovery, TRUE) = TRUE

@@ -40,15 +40,14 @@ function FlameSvg({ size, fill }) {
 }
 
 export default function WarmthScore({ score }) {
-    // Edge states (loading "...", "N/A", "Quota Exceeded") — out of scope per
-    // design plan. Fall back to plain text so the app doesn't break.
-    const numericScore = Number(score);
-    const isValid = Number.isInteger(numericScore) && numericScore >= 1 && numericScore <= 5;
+    // Treat null/undefined/0 as a 0 score (all gray flames)
+    const numericScore = score ? Number(score) : 0;
+    const isValid = Number.isInteger(numericScore) && numericScore >= 0 && numericScore <= 5;
 
     if (!isValid) {
         return (
             <div style={{ fontSize: '0.8rem', color: '#7a6f68' }}>
-                {String(score)}
+                {String(score || '')}
             </div>
         );
     }

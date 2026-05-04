@@ -16,7 +16,7 @@ export function usePaths(intent) {
       setError(null);
       getPaths(intent)
          .then(({ paths: fetchedPaths }) => {
-            setPaths(fetchedPaths.map((p) => ({ ...p, warmthScore: p.strength })));
+            setPaths(fetchedPaths.map((p) => ({ ...p, warmScore: p.strength })));
          })
          .catch((err) => {
             console.error("[usePaths] Failed to fetch paths:", err);

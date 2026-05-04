@@ -21,9 +21,9 @@ SELECT a.user_id          AS requester_id,
        b.connected_user_id AS target_id,
        a.context          AS requester_connector_context,
        b.context          AS connector_target_context,
-       a.connector_score     AS requester_connector_warmth,
-       b.connector_score     AS connector_target_warmth,
-       (a.connector_score + b.connector_score) / 2.0 AS avg_connector_score
+       COALESCE(a.connector_score, 3) AS requester_connector_warmth,
+       COALESCE(b.connector_score, 3) AS connector_target_warmth,
+       (COALESCE(a.connector_score, 3) + COALESCE(b.connector_score, 3)) / 2.0 AS avg_connector_score
 FROM user_connections_view a
 JOIN user_connections_view b ON a.connected_user_id = b.user_id
 WHERE a.user_id <> b.connected_user_id
