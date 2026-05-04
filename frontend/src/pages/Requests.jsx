@@ -34,10 +34,19 @@ function RequestCard({ r, onUpdate, patchRequest }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
         <div>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', color: 'var(--dark)' }}>{r.from.name} → {r.to.name}</div>
-          <div style={{ fontSize: '0.78rem', color: '#7a6f68', marginTop: '2px' }}>Re: {r.intent}</div>
+          <div style={{ fontSize: '0.78rem', color: '#7a6f68', marginTop: '2px' }}>{r.from.role} • Re: {r.intent}</div>
         </div>
         <span className={`tag tag-${r.status}`}>{r.status}</span>
       </div>
+
+      {r.message_to_connector && (
+        <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#eef3ef', borderLeft: '3px solid var(--dark)', borderRadius: '2px' }}>
+          <div className="app-eyebrow" style={{ fontSize: '0.6rem', marginBottom: '0.35rem', color: 'var(--dark)' }}>Private Note to You</div>
+          <div style={{ fontSize: '0.88rem', color: 'var(--dark)', fontStyle: 'italic', lineHeight: 1.4 }}>
+            "{r.message_to_connector}"
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>

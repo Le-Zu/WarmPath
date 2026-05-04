@@ -64,6 +64,56 @@ function Toggle({ on, onToggle, label }) {
    );
 }
 
+function InfoTooltip({ text }) {
+   const [open, setOpen] = useState(false);
+   return (
+      <span
+         style={{ position: "relative", display: "inline-flex", marginLeft: "6px", verticalAlign: "middle" }}
+         onMouseEnter={() => setOpen(true)}
+         onMouseLeave={() => setOpen(false)}
+      >
+         <span
+            style={{
+               cursor: "help",
+               color: "#6a994e",
+               fontSize: "0.75rem",
+               border: "1px solid #6a994e",
+               borderRadius: "50%",
+               width: "14px",
+               height: "14px",
+               display: "inline-flex",
+               alignItems: "center",
+               justifyContent: "center",
+               fontWeight: "bold"
+            }}
+         >
+            i
+         </span>
+         {open && (
+            <span
+               style={{
+                  position: "absolute",
+                  bottom: "120%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 100,
+                  width: "200px",
+                  padding: "8px",
+                  background: "#386641",
+                  color: "#fff",
+                  fontSize: "0.75rem",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  pointerEvents: "none",
+               }}
+            >
+               {text}
+            </span>
+         )}
+      </span>
+   );
+}
+
 export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
    const [activeTab, setActiveTab] = useState("account");
@@ -94,7 +144,7 @@ export default function SettingsPage() {
 
    const [privacyForm, setPrivacyForm] = useState({
       who_can_request: "connections_of_connections",
-      show_in_discovery: true,
+      discovery_mode: "full",
       allow_connector_prompts: true,
    });
 
@@ -120,7 +170,7 @@ export default function SettingsPage() {
          }));
          setPrivacyForm({
             who_can_request: currentUser.privacy_settings?.who_can_request || "connections_of_connections",
-            show_in_discovery: currentUser.privacy_settings?.show_in_discovery ?? true,
+            discovery_mode: currentUser.privacy_settings?.discovery_mode || "full",
             allow_connector_prompts: currentUser.privacy_settings?.allow_connector_prompts ?? true,
          });
          setProfilePreview(currentUser.profile_picture_url || "");
@@ -581,20 +631,29 @@ export default function SettingsPage() {
                         Control how you appear to others and who can interact with you.
                      </p>
 
-                     <div style={toggleRowStyle}>
-                        <div>
-                           <label style={{ ...labelStyle, marginBottom: 0 }}>Show in Discovery</label>
-                           <p style={{ ...helperStyle, marginTop: 0 }}>Appear in search results and network discovery.</p>
-                        </div>
-                        <Toggle 
-                           on={privacyForm.show_in_discovery} 
-                           onToggle={() => setPrivacy('show_in_discovery')(!privacyForm.show_in_discovery)} 
-                        />
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={labelStyle}>
+                           Discovery Mode
+                           <InfoTooltip text="'Full' shows your full name/photo. 'Anonymous' hides your last name/photo to prevent LinkedIn bypass. 'Hidden' removes you from discovery." />
+                        </label>
+                        <select 
+                           style={inputStyle} 
+                           value={privacyForm.discovery_mode} 
+                           onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
+                        >
+                           <option value="full">Full Profile</option>
+                           <option value="anonymous">Anonymous (Blind Profile)</option>
+                           <option value="hidden">Hidden</option>
+                        </select>
+                        <p style={helperStyle}>How you appear in warm path discovery results.</p>
                      </div>
 
                      <div style={toggleRowStyle}>
                         <div>
-                           <label style={{ ...labelStyle, marginBottom: 0 }}>Allow Connector Prompts</label>
+                           <label style={{ ...labelStyle, marginBottom: 0 }}>
+                              Allow Connector Prompts
+                              <InfoTooltip text="Let mutual connections suggest you as a target for people looking for introductions." />
+                           </label>
                            <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
                         </div>
                         <Toggle 
@@ -604,7 +663,10 @@ export default function SettingsPage() {
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Who can request introductions?</label>
+                        <label style={labelStyle}>
+                           Who can request introductions?
+                           <InfoTooltip text="'Connections of Connections' (2nd degree) is the default. 'Nobody' acts as a Do Not Disturb mode." />
+                        </label>
                         <select 
                            style={inputStyle} 
                            value={privacyForm.who_can_request} 
@@ -613,7 +675,7 @@ export default function SettingsPage() {
                            <option value="anyone">Anyone</option>
                            <option value="connections">Direct Connections Only</option>
                            <option value="connections_of_connections">Connections of Connections</option>
-                           <option value="nobody">Nobody</option>
+                           <option value="nobody">Nobody (DND)</option>
                         </select>
                         <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
                      </div>

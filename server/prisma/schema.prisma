@@ -61,6 +61,14 @@ enum RequestPermission {
   @@map("request_permission")
 }
 
+enum DiscoveryMode {
+  full
+  anonymous
+  hidden
+
+  @@map("discovery_mode")
+}
+
 // F1 — Connection status
 enum ConnectionStatus {
   pending
@@ -281,6 +289,7 @@ model PrivacySettings {
   privacy_id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                 String            @unique @db.Uuid
   who_can_request         RequestPermission @default(connections_of_connections)
+  discovery_mode          DiscoveryMode     @default(full)
   show_in_discovery       Boolean           @default(true)
   allow_connector_prompts Boolean           @default(true)
 
@@ -372,18 +381,19 @@ model Intents {
 //   --   (handle at service layer)
 // ------------------------------------------------------------
 model IntroRequests {
-  request_id     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requester_id   String        @db.Uuid
-  connector_id   String        @db.Uuid
-  target_id      String        @db.Uuid
-  intent_id      String        @db.Uuid
+  request_id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id         String        @db.Uuid
+  connector_id         String        @db.Uuid
+  target_id            String        @db.Uuid
+  intent_id            String        @db.Uuid
   // F4: app generates draft; user may edit before sending
-  draft_message  String        @db.Text
-  edited_message String?       @db.Text    // NULL = sent as-is
-  status         RequestStatus @default(pending)
-  connector_note String?       @db.Text    // F5: connector's decline reason / edit note
-  created_at     DateTime      @default(now())
-  responded_at   DateTime?     // set at service layer when status leaves 'pending'
+  draft_message        String        @db.Text
+  edited_message       String?       @db.Text    // NULL = sent as-is
+  message_to_connector String?       @db.Text    // Private note for the connector
+  status               RequestStatus @default(pending)
+  connector_note       String?       @db.Text    // F5: connector's decline reason / edit note
+  created_at           DateTime      @default(now())
+  responded_at         DateTime?     // set at service layer when status leaves 'pending'
 
   requester Users   @relation("RequestedIntros",  fields: [requester_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
   connector Users   @relation("FacilitatedIntros", fields: [connector_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)

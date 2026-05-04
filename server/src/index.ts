@@ -118,6 +118,7 @@ app.get('/api/requests/incoming', async (req: AuthRequest, res) => {
             message: r.edited_message ?? r.draft_message,
             draft_message:  r.draft_message,
             edited_message: r.edited_message,
+            message_to_connector: r.message_to_connector,
             intent:  r.intent.category,
             from: {
                 name: [r.requester.first_name, r.requester.last_name].filter(Boolean).join(' '),
@@ -751,7 +752,7 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
-    const { connectorId, targetId, message } = req.body;
+    const { connectorId, targetId, message, messageToConnector } = req.body;
 
     if (!connectorId || !targetId || !message) {
         return res.status(400).json({ error: 'connectorId, targetId, and message are required.' });
@@ -799,6 +800,7 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
                 target_id: targetId,
                 intent_id: intent.intent_id,
                 draft_message: message,
+                message_to_connector: messageToConnector,
                 status: 'pending',
             },
         });
@@ -1031,7 +1033,7 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
 app.patch('/api/me/privacy', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['who_can_request', 'show_in_discovery', 'allow_connector_prompts'];
+    const ALLOWED = ['who_can_request', 'show_in_discovery', 'allow_connector_prompts', 'discovery_mode'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {

@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import OnboardingFlow from "@/pages/OnboardingFlow";
+import FAQ from "@/pages/FAQ";
 
 // App pages (authenticated)
 import Home from "@/pages/Home";
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/onboarding" element={<OnboardingFlow />} />
+          <Route path="/faq" element={<FAQ />} />
 
           {/* App layout — requires auth */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
