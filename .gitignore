@@ -5,8 +5,8 @@ node_modules
 .env.*.local
 
 #Vite / Frontend Build Outputs
-warm-path/dist/
-warm-path/dist-ssr/
+frontend/dist/
+frontend/dist-ssr/
 
 # IDE / Editor Folders
 .vscode/

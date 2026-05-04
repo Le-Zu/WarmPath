@@ -5,7 +5,8 @@ import { initSocket } from './services/socket';
 import { verifyToken, dbUserMiddleware, AuthRequest } from './middleware/authMiddleware';
 import { basePrisma } from './lib/prisma';
 import { getPathsForUser } from './services/pathDiscovery';
-import { calculateBatchWarmthScores } from './services/gemini';
+import { calculateBatchWarmthScores, generateContextPreread } from './services/gemini';
+import { refreshWarmthScoresForUser } from './services/warmthScorer';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -115,6 +116,9 @@ app.get('/api/requests/incoming', async (req: AuthRequest, res) => {
             id:      r.request_id,
             status:  r.status,
             message: r.edited_message ?? r.draft_message,
+            draft_message:  r.draft_message,
+            edited_message: r.edited_message,
+            message_to_connector: r.message_to_connector,
             intent:  r.intent.category,
             from: {
                 name: [r.requester.first_name, r.requester.last_name].filter(Boolean).join(' '),
@@ -173,7 +177,7 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
             },
         });
 
-        // If approved, create the conversation
+        // If approved, create the conversation and context pre-reads
         if (status === 'approved') {
             const conversation = await basePrisma.conversations.create({
                 data: {
@@ -190,6 +194,54 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
                 },
             });
             console.log(`[PATCH /api/requests/${id}] Conversation created | conversation_id: ${conversation.conversation_id}`);
+
+            // F7: Generate Context Pre-Reads
+            try {
+                // 1. Fetch full profiles for requester and target
+                const [requester, target, intent] = await Promise.all([
+                    basePrisma.users.findUnique({ 
+                        where: { user_id: existing.requester_id },
+                        include: { experiences: true, interests: true }
+                    }),
+                    basePrisma.users.findUnique({ 
+                        where: { user_id: existing.target_id },
+                        include: { experiences: true, interests: true }
+                    }),
+                    basePrisma.intents.findUnique({ where: { intent_id: existing.intent_id } })
+                ]);
+
+                if (requester && target) {
+                    const intentStr = intent?.category || "general networking";
+                    
+                    // 2. Generate summaries in parallel
+                    const [summaryForRequester, summaryForTarget] = await Promise.all([
+                        generateContextPreread(target, `The requester is interested in: ${intentStr}`),
+                        generateContextPreread(requester, `The requester reached out about: ${intentStr}`)
+                    ]);
+
+                    // 3. Store in database
+                    await basePrisma.contextPrereads.createMany({
+                        data: [
+                            {
+                                request_id: id,
+                                recipient_id: existing.requester_id,
+                                subject_id: existing.target_id,
+                                summary: summaryForRequester
+                            },
+                            {
+                                request_id: id,
+                                recipient_id: existing.target_id,
+                                subject_id: existing.requester_id,
+                                summary: summaryForTarget
+                            }
+                        ]
+                    });
+                    console.log(`[PATCH /api/requests/${id}] Context pre-reads generated and stored.`);
+                }
+            } catch (prereadErr) {
+                console.error(`[PATCH /api/requests/${id}] Failed to generate pre-reads:`, prereadErr);
+                // We don't fail the whole request if pre-reads fail
+            }
         }
 
         // Create notification for the requester
@@ -326,7 +378,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
         const result = connections.map(c => ({
             connection_id: c.connection_id,
             context: c.context,
-            warmth_score: c.warmth_score,
+            connector_score: c.connector_score,
             status: c.status,
             peer: c.user_id_a === userId ? c.user_b : c.user_a,
         }));
@@ -342,7 +394,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    let { peerId, email, context, warmth_score } = req.body;
+    let { peerId, email, context, connector_score } = req.body;
     if ((!peerId && !email) || !context) {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
@@ -378,7 +430,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
                 user_id_a, 
                 user_id_b, 
                 context, 
-                warmth_score: warmth_score ?? null, 
+                connector_score: connector_score ?? null, 
                 status: 'pending' 
             },
         });
@@ -395,6 +447,10 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
                 }
             });
         }
+
+        // F3: Refresh warmth scores in the background
+        refreshWarmthScoresForUser(userId);
+        refreshWarmthScoresForUser(peerId);
 
         res.status(201).json({ connection });
     } catch (error: any) {
@@ -470,15 +526,97 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
                                 user: { select: { user_id: true, first_name: true, last_name: true } }
                             },
                         },
+                        intro_request: {
+                            select: {
+                                requester_id: true,
+                                target_id: true,
+                                intent: { select: { category: true } }
+                            }
+                        }
                     },
                 },
             },
         });
-        const conversations = participants.map(p => p.conversation);
+        
+        const conversations = await Promise.all(participants.map(async (p) => {
+            const conv = p.conversation;
+            const ir = conv.intro_request;
+            
+            // Fetch the warmth score for this path
+            const warmScore = await basePrisma.warmScores.findUnique({
+                where: {
+                    uq_warm_score: {
+                        requester_id: ir.requester_id,
+                        target_id: ir.target_id,
+                        intent: ir.intent.category
+                    }
+                }
+            });
+
+            return {
+                ...conv,
+                warm_score: warmScore?.score || null
+            };
+        }));
+
         res.json({ conversations });
     } catch (error: any) {
         console.error('[GET /api/conversations] Error:', error);
         res.status(500).json({ error: 'Failed to fetch conversations', details: error.message });
+    }
+});
+
+// Returns details for a specific conversation
+app.get('/api/conversations/:id', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const membership = await basePrisma.conversationParticipants.findFirst({
+            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+        });
+
+        if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
+
+        const conversation = await basePrisma.conversations.findUnique({
+            where: { conversation_id: req.params.id },
+            include: {
+                participants: {
+                    include: {
+                        user: { select: { user_id: true, first_name: true, last_name: true } }
+                    }
+                },
+                intro_request: {
+                    select: {
+                        requester_id: true,
+                        target_id: true,
+                        intent: { select: { category: true } }
+                    }
+                }
+            }
+        });
+
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found.' });
+
+        const ir = conversation.intro_request;
+        const warmScore = await basePrisma.warmScores.findUnique({
+            where: {
+                uq_warm_score: {
+                    requester_id: ir.requester_id,
+                    target_id: ir.target_id,
+                    intent: ir.intent.category
+                }
+            }
+        });
+
+        res.json({ 
+            conversation: {
+                ...conversation,
+                warm_score: warmScore?.score || null
+            } 
+        });
+    } catch (error: any) {
+        console.error('[GET /api/conversations/:id] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch conversation details', details: error.message });
     }
 });
 
@@ -536,6 +674,37 @@ app.post('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
     }
 });
 
+// Returns the context pre-read for the authenticated user in a conversation
+app.get('/api/conversations/:id/preread', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const conversation = await basePrisma.conversations.findUnique({
+            where: { conversation_id: req.params.id },
+            select: { request_id: true }
+        });
+
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found.' });
+
+        const preread = await basePrisma.contextPrereads.findFirst({
+            where: { 
+                request_id: conversation.request_id,
+                recipient_id: req.dbUser.user_id 
+            },
+            include: {
+                subject: { select: { first_name: true, last_name: true } }
+            }
+        });
+
+        if (!preread) return res.json({ preread: null });
+
+        res.json({ preread });
+    } catch (error: any) {
+        console.error('[GET /api/conversations/:id/preread] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch pre-read', details: error.message });
+    }
+});
+
 // Returns intro requests sent by the authenticated user
 app.get('/api/requests/outgoing', async (req: AuthRequest, res) => {
     if (!req.dbUser) {
@@ -558,6 +727,8 @@ app.get('/api/requests/outgoing', async (req: AuthRequest, res) => {
             status:    r.status,
             sentAt:    r.created_at,
             intent:    r.intent.category,
+            draft_message:  r.draft_message,
+            edited_message: r.edited_message,
             connector: {
                 name: [r.connector.first_name, r.connector.last_name].filter(Boolean).join(' '),
             },
@@ -581,7 +752,7 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
-    const { connectorId, targetId, message } = req.body;
+    const { connectorId, targetId, message, messageToConnector } = req.body;
 
     if (!connectorId || !targetId || !message) {
         return res.status(400).json({ error: 'connectorId, targetId, and message are required.' });
@@ -596,6 +767,32 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
             return res.status(400).json({ error: 'No active intent. Declare your intent first.' });
         }
 
+        // Check target's privacy settings
+        const targetPrivacy = await basePrisma.privacySettings.findUnique({
+            where: { user_id: targetId },
+        });
+
+        const whoCanRequest = targetPrivacy?.who_can_request || 'connections_of_connections';
+
+        if (whoCanRequest === 'nobody') {
+            return res.status(403).json({ error: 'This user is not accepting intro requests.' });
+        }
+
+        if (whoCanRequest === 'connections') {
+            const isConnected = await basePrisma.connections.findFirst({
+                where: {
+                    OR: [
+                        { user_id_a: req.dbUser.user_id, user_id_b: targetId },
+                        { user_id_a: targetId, user_id_b: req.dbUser.user_id },
+                    ],
+                    status: 'accepted',
+                },
+            });
+            if (!isConnected) {
+                return res.status(403).json({ error: 'This user only accepts requests from direct connections.' });
+            }
+        }
+
         const request = await basePrisma.introRequests.create({
             data: {
                 requester_id: req.dbUser.user_id,
@@ -603,6 +800,7 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
                 target_id: targetId,
                 intent_id: intent.intent_id,
                 draft_message: message,
+                message_to_connector: messageToConnector,
                 status: 'pending',
             },
         });
@@ -674,13 +872,47 @@ app.get('/api/paths', async (req: AuthRequest, res) => {
 
 // AI path assessment endpoint
 app.post('/api/paths/assess', async (req: AuthRequest, res) => {
-    const { pathsMetadata } = req.body;
+    const { pathsMetadata, requesterId, intent } = req.body;
     if (!pathsMetadata || !Array.isArray(pathsMetadata)) {
         return res.status(400).json({ error: 'pathsMetadata array is required' });
     }
 
     try {
         const scores = await calculateBatchWarmthScores(pathsMetadata);
+        
+        // Save to DB if metadata includes targetId
+        if (requesterId && intent) {
+            const intentStr = intent || 'all';
+            const updates = pathsMetadata.map((m, i) => {
+                if (!m.targetId) return null;
+                return basePrisma.warmScores.upsert({
+                    where: {
+                        uq_warm_score: {
+                            requester_id: requesterId,
+                            target_id: m.targetId,
+                            intent: intentStr
+                        }
+                    },
+                    update: {
+                        score: typeof scores[i] === 'number' ? scores[i] : 1,
+                        is_ai_scored: typeof scores[i] === 'number',
+                        updated_at: new Date()
+                    },
+                    create: {
+                        requester_id: requesterId,
+                        target_id: m.targetId,
+                        intent: intentStr,
+                        score: typeof scores[i] === 'number' ? scores[i] : 1,
+                        is_ai_scored: typeof scores[i] === 'number'
+                    }
+                });
+            }).filter(Boolean);
+
+            if (updates.length > 0) {
+                await Promise.all(updates);
+            }
+        }
+
         res.json({ scores });
     } catch (error: any) {
         console.error('[POST /api/paths/assess] Error:', error);
@@ -720,7 +952,11 @@ app.post('/api/me/interests', async (req: AuthRequest, res) => {
                 })),
             }),
         ]);
-        res.status(201).json({ message: 'Interests updated successfully' });
+
+        // F3: Refresh warmth scores in the background
+        refreshWarmthScoresForUser(req.dbUser.user_id);
+
+        res.status(200).json({ message: 'Interests updated successfully.' });
     } catch (error: any) {
         console.error('[POST /api/me/interests] Error:', error);
         res.status(500).json({ error: 'Failed to update interests', details: error.message });
@@ -751,7 +987,11 @@ app.post('/api/me/experiences', async (req: AuthRequest, res) => {
                 })),
             }),
         ]);
-        res.status(201).json({ message: 'Experiences updated successfully' });
+
+        // F3: Refresh warmth scores in the background
+        refreshWarmthScoresForUser(req.dbUser.user_id);
+
+        res.status(200).json({ message: 'Experiences updated successfully.' });
     } catch (error: any) {
         console.error('[POST /api/me/experiences] Error:', error);
         res.status(500).json({ error: 'Failed to update experiences', details: error.message });
@@ -762,7 +1002,7 @@ app.post('/api/me/experiences', async (req: AuthRequest, res) => {
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url', 'profile_complete'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {
@@ -778,11 +1018,47 @@ app.patch('/api/me', async (req: AuthRequest, res) => {
             where: { user_id: req.dbUser.user_id },
             data: updates,
         });
+        
+        // F3: Refresh warmth scores in the background
+        refreshWarmthScoresForUser(req.dbUser.user_id);
+
         console.log(`[PATCH /api/me] Profile updated for user_id: ${req.dbUser.user_id}`);
         res.json({ user });
     } catch (error: any) {
         console.error('[PATCH /api/me] Error:', error);
         res.status(500).json({ error: 'Failed to update profile', details: error.message });
+    }
+});
+
+app.patch('/api/me/privacy', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const ALLOWED = ['who_can_request', 'show_in_discovery', 'allow_connector_prompts', 'discovery_mode'];
+    const updates: Record<string, any> = {};
+
+    for (const field of ALLOWED) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+
+    if (Object.keys(updates).length === 0) {
+        return res.json({ privacy_settings: req.dbUser.privacy_settings });
+    }
+
+    try {
+        const privacySettings = await basePrisma.privacySettings.upsert({
+            where: { user_id: req.dbUser.user_id },
+            update: updates,
+            create: {
+                user_id: req.dbUser.user_id,
+                ...updates,
+            },
+        });
+
+        console.log(`[PATCH /api/me/privacy] Privacy settings updated for user_id: ${req.dbUser.user_id}`);
+        res.json({ privacy_settings: privacySettings });
+    } catch (error: any) {
+        console.error('[PATCH /api/me/privacy] Error:', error);
+        res.status(500).json({ error: 'Failed to update privacy settings', details: error.message });
     }
 });
 

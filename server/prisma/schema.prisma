@@ -61,6 +61,14 @@ enum RequestPermission {
   @@map("request_permission")
 }
 
+enum DiscoveryMode {
+  full
+  anonymous
+  hidden
+
+  @@map("discovery_mode")
+}
+
 // F1 — Connection status
 enum ConnectionStatus {
   pending
@@ -181,6 +189,7 @@ model Users {
   linkedin_url     String?       @db.VarChar(500)
   resume_url       String?       @db.VarChar(500)
   profile_picture_url String?    @db.VarChar(500)
+  banner_picture_url  String?    @db.VarChar(500)
   profile_complete Boolean       @default(false)
 
   // Profile creation tracking (like-to-have F: Profile Creation A/B)
@@ -202,6 +211,10 @@ model Users {
   privacy_settings     PrivacySettings?          @relation("HasPrivacySetting")
   intents              Intents[]                 @relation("HasIntents")
   notifications        Notifications[]           @relation("ReceivesNotifications")
+
+  // Context pre-reads (F7)
+  prereads_received    ContextPrereads[]         @relation("ReceivesPreread")
+  prereads_subject_of  ContextPrereads[]         @relation("IsSubjectOfPreread")
 
   // Connections — user appears as either side (F1)
   connections_a        Connections[]             @relation("InitiatedConnections")
@@ -276,6 +289,7 @@ model PrivacySettings {
   privacy_id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                 String            @unique @db.Uuid
   who_can_request         RequestPermission @default(connections_of_connections)
+  discovery_mode          DiscoveryMode     @default(full)
   show_in_discovery       Boolean           @default(true)
   allow_connector_prompts Boolean           @default(true)
 
@@ -292,7 +306,7 @@ model PrivacySettings {
 // RAW CONSTRAINTS (migration SQL):
 //   CONSTRAINT chk_no_self_connection CHECK (user_id_a <> user_id_b)
 //   CONSTRAINT chk_ordered_ids        CHECK (user_id_a < user_id_b)
-//   CONSTRAINT warmth_range           CHECK (warmth_score BETWEEN 1 AND 5)
+//   CONSTRAINT connector_score_range           CHECK (connector_score BETWEEN 1 AND 5)
 //   CREATE INDEX idx_connections_a ON connections(user_id_a);
 //   CREATE INDEX idx_connections_b ON connections(user_id_b);
 // ------------------------------------------------------------
@@ -302,8 +316,8 @@ model Connections {
   user_id_b     String           @db.Uuid
   // F1: context is required — "CS 499 group", "Debate club", etc.
   context       String           @db.Text
-  // F3: warmth_score used to rank paths (1 = weak, 5 = strong)
-  warmth_score  Int?             @db.SmallInt
+  // F3: connector_score used to rank paths (1 = weak, 5 = strong)
+  connector_score  Int?             @db.SmallInt
   status        ConnectionStatus @default(pending)
   created_at    DateTime         @default(now())
   accepted_at   DateTime?
@@ -367,18 +381,19 @@ model Intents {
 //   --   (handle at service layer)
 // ------------------------------------------------------------
 model IntroRequests {
-  request_id     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requester_id   String        @db.Uuid
-  connector_id   String        @db.Uuid
-  target_id      String        @db.Uuid
-  intent_id      String        @db.Uuid
+  request_id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id         String        @db.Uuid
+  connector_id         String        @db.Uuid
+  target_id            String        @db.Uuid
+  intent_id            String        @db.Uuid
   // F4: app generates draft; user may edit before sending
-  draft_message  String        @db.Text
-  edited_message String?       @db.Text    // NULL = sent as-is
-  status         RequestStatus @default(pending)
-  connector_note String?       @db.Text    // F5: connector's decline reason / edit note
-  created_at     DateTime      @default(now())
-  responded_at   DateTime?     // set at service layer when status leaves 'pending'
+  draft_message        String        @db.Text
+  edited_message       String?       @db.Text    // NULL = sent as-is
+  message_to_connector String?       @db.Text    // Private note for the connector
+  status               RequestStatus @default(pending)
+  connector_note       String?       @db.Text    // F5: connector's decline reason / edit note
+  created_at           DateTime      @default(now())
+  responded_at         DateTime?     // set at service layer when status leaves 'pending'
 
   requester Users   @relation("RequestedIntros",  fields: [requester_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
   connector Users   @relation("FacilitatedIntros", fields: [connector_id], references: [user_id],   onDelete: Restrict, onUpdate: Cascade)
@@ -418,11 +433,34 @@ model ContextPrereads {
   viewed_at    DateTime?
 
   intro_request IntroRequests @relation("RequiresPrereads", fields: [request_id], references: [request_id], onDelete: Restrict, onUpdate: Cascade)
+  recipient     Users         @relation("ReceivesPreread", fields: [recipient_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  subject       Users         @relation("IsSubjectOfPreread", fields: [subject_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([request_id, recipient_id, subject_id], name: "uq_preread")
   @@index([recipient_id])
   @@index([request_id])
   @@map("context_prereads")
+}
+
+// ------------------------------------------------------------
+// WarmScores  (F3 — Warm Scores)
+// Stores pre-calculated or deterministic warmth scores for paths
+// to reduce AI API calls. Recalculated on data changes.
+// ------------------------------------------------------------
+model WarmScores {
+  score_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requester_id String   @db.Uuid
+  target_id    String   @db.Uuid
+  // intent can be 'all' or specific category
+  intent       String   @db.VarChar(50)
+  score        Int      @db.SmallInt
+  is_ai_scored Boolean  @default(false)
+  updated_at   DateTime @default(now()) @updatedAt
+
+  @@unique([requester_id, target_id, intent], name: "uq_warm_score")
+  @@index([requester_id])
+  @@index([target_id])
+  @@map("warm_scores")
 }
 
 // ------------------------------------------------------------
