@@ -5,67 +5,66 @@ import UserSwitcher from './UserSwitcher.jsx';
 import { useState } from 'react';
 
 const intents = ['Internship', 'Research', 'Class Help', 'Club', 'Skill'];
+const links = [['Find Paths','/paths'],['Inbox','/requests'],['My Requests','/my-requests'],['Profile','/profile']];
 
 export default function AppLayout() {
   const [activeIntent, setActiveIntent] = useState('Internship');
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
     <>
-      {/* Cream top navbar */}
-      <nav style={{
-        background: '#f2e9e4',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 2rem',
-        height: '68px',
-        borderBottom: '1px solid #e8ddd8',
-      }}>
-        <NavLink to="/home" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src={logoBase64} alt="WarmPath" style={{ height: '46px', width: 'auto' }} />
+      <nav className="nav-cream">
+        <NavLink to="/home" className="nav-logo">
+          <img src={logoBase64} alt="WarmPath" />
         </NavLink>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          {[['Find Paths','/paths'],['Inbox','/requests'],['My Requests','/my-requests'],['Profile','/profile']].map(([label, to]) => (
-            <NavLink key={to} to={to} style={({ isActive }) => ({
-              fontFamily: 'var(--font-sans)', fontSize: '0.85rem', fontWeight: 400,
-              color: isActive ? '#e76f51' : '#5a5550',
-              textDecoration: 'none', letterSpacing: '0.01em', transition: 'color 0.15s',
-            })}>{label}</NavLink>
+        {/* Desktop links */}
+        <div className="nav-links">
+          {links.map(([label, to]) => (
+            <NavLink key={to} to={to} className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
+              {label}
+            </NavLink>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <NotificationBell light />
-          <UserSwitcher light />
+        <div className="nav-right">
+          <NotificationBell />
+          <UserSwitcher />
+          {/* Mobile hamburger */}
+          <button
+            className="nav-hamburger"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Menu"
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </nav>
 
-      {/* Dark green intent filter bar */}
-      <div style={{
-        background: '#386641',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.75rem',
-        padding: '0 2rem',
-        height: '48px',
-      }}>
-        <span style={{ color: 'rgba(242,233,228,0.75)', fontSize: '0.82rem', fontFamily: 'var(--font-sans)', marginRight: '0.5rem' }}>
-          What are you looking for?
-        </span>
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="nav-mobile-menu">
+          {links.map(([label, to]) => (
+            <NavLink
+              key={to} to={to}
+              className="nav-mobile-link"
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+
+      <div className="intent-bar">
+        <span className="intent-bar-label">What are you looking for?</span>
         {intents.map(intent => (
-          <button key={intent} onClick={() => { setActiveIntent(intent); navigate('/paths'); }}
-            style={{
-              background: activeIntent === intent ? '#e76f51' : 'transparent',
-              color: activeIntent === intent ? '#fff' : 'rgba(242,233,228,0.8)',
-              border: `1.5px solid ${activeIntent === intent ? '#e76f51' : 'rgba(242,233,228,0.35)'}`,
-              borderRadius: '999px', padding: '0.25rem 0.9rem',
-              fontSize: '0.8rem', fontFamily: 'var(--font-sans)',
-              fontWeight: activeIntent === intent ? 500 : 400,
-              cursor: 'pointer', transition: 'all 0.15s',
-            }}>
+          <button
+            key={intent}
+            className={'intent-pill' + (activeIntent === intent ? ' active' : '')}
+            onClick={() => { setActiveIntent(intent); navigate('/paths'); }}
+          >
             {intent}
           </button>
         ))}
