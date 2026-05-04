@@ -11,7 +11,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           v.target_id,
           v.requester_connector_context,
           v.connector_target_context,
-          COALESCE(ps.score, ROUND(v.avg_warmth)) AS strength,
+          COALESCE(ws.score, ROUND(v.avg_connector_score)) AS strength,
           c.first_name  AS connector_first_name,
           c.last_name   AS connector_last_name,
           c.major       AS connector_major,
@@ -29,9 +29,9 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
         JOIN users c ON c.user_id = v.connector_id
         JOIN users t ON t.user_id = v.target_id
         LEFT JOIN privacy_settings ps_target ON ps_target.user_id = v.target_id
-        LEFT JOIN path_scores ps ON ps.requester_id = v.requester_id 
-             AND ps.target_id = v.target_id 
-             AND ps.intent = ${intentStr}
+        LEFT JOIN warm_scores ws ON ws.requester_id = v.requester_id 
+             AND ws.target_id = v.target_id 
+             AND ws.intent = ${intentStr}
         WHERE v.requester_id = ${userId}
           AND COALESCE(ps_target.discovery_mode, 'full'::discovery_mode) <> 'hidden'::discovery_mode
           AND COALESCE(ps_target.show_in_discovery, TRUE) = TRUE

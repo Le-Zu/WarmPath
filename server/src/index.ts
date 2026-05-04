@@ -378,7 +378,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
         const result = connections.map(c => ({
             connection_id: c.connection_id,
             context: c.context,
-            warmth_score: c.warmth_score,
+            connector_score: c.connector_score,
             status: c.status,
             peer: c.user_id_a === userId ? c.user_b : c.user_a,
         }));
@@ -394,7 +394,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    let { peerId, email, context, warmth_score } = req.body;
+    let { peerId, email, context, connector_score } = req.body;
     if ((!peerId && !email) || !context) {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
@@ -430,7 +430,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
                 user_id_a, 
                 user_id_b, 
                 context, 
-                warmth_score: warmth_score ?? null, 
+                connector_score: connector_score ?? null, 
                 status: 'pending' 
             },
         });
@@ -543,9 +543,9 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
             const ir = conv.intro_request;
             
             // Fetch the warmth score for this path
-            const pathScore = await basePrisma.pathScores.findUnique({
+            const warmScore = await basePrisma.warmScores.findUnique({
                 where: {
-                    uq_path_score: {
+                    uq_warm_score: {
                         requester_id: ir.requester_id,
                         target_id: ir.target_id,
                         intent: ir.intent.category
@@ -555,7 +555,7 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
 
             return {
                 ...conv,
-                warmth_score: pathScore?.score || null
+                warm_score: warmScore?.score || null
             };
         }));
 
@@ -598,9 +598,9 @@ app.get('/api/conversations/:id', async (req: AuthRequest, res) => {
         if (!conversation) return res.status(404).json({ error: 'Conversation not found.' });
 
         const ir = conversation.intro_request;
-        const pathScore = await basePrisma.pathScores.findUnique({
+        const warmScore = await basePrisma.warmScores.findUnique({
             where: {
-                uq_path_score: {
+                uq_warm_score: {
                     requester_id: ir.requester_id,
                     target_id: ir.target_id,
                     intent: ir.intent.category
@@ -611,7 +611,7 @@ app.get('/api/conversations/:id', async (req: AuthRequest, res) => {
         res.json({ 
             conversation: {
                 ...conversation,
-                warmth_score: pathScore?.score || null
+                warm_score: warmScore?.score || null
             } 
         });
     } catch (error: any) {
@@ -885,9 +885,9 @@ app.post('/api/paths/assess', async (req: AuthRequest, res) => {
             const intentStr = intent || 'all';
             const updates = pathsMetadata.map((m, i) => {
                 if (!m.targetId) return null;
-                return basePrisma.pathScores.upsert({
+                return basePrisma.warmScores.upsert({
                     where: {
-                        uq_path_score: {
+                        uq_warm_score: {
                             requester_id: requesterId,
                             target_id: m.targetId,
                             intent: intentStr

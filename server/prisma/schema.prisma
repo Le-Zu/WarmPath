@@ -306,7 +306,7 @@ model PrivacySettings {
 // RAW CONSTRAINTS (migration SQL):
 //   CONSTRAINT chk_no_self_connection CHECK (user_id_a <> user_id_b)
 //   CONSTRAINT chk_ordered_ids        CHECK (user_id_a < user_id_b)
-//   CONSTRAINT warmth_range           CHECK (warmth_score BETWEEN 1 AND 5)
+//   CONSTRAINT connector_score_range           CHECK (connector_score BETWEEN 1 AND 5)
 //   CREATE INDEX idx_connections_a ON connections(user_id_a);
 //   CREATE INDEX idx_connections_b ON connections(user_id_b);
 // ------------------------------------------------------------
@@ -316,8 +316,8 @@ model Connections {
   user_id_b     String           @db.Uuid
   // F1: context is required — "CS 499 group", "Debate club", etc.
   context       String           @db.Text
-  // F3: warmth_score used to rank paths (1 = weak, 5 = strong)
-  warmth_score  Int?             @db.SmallInt
+  // F3: connector_score used to rank paths (1 = weak, 5 = strong)
+  connector_score  Int?             @db.SmallInt
   status        ConnectionStatus @default(pending)
   created_at    DateTime         @default(now())
   accepted_at   DateTime?
@@ -443,11 +443,11 @@ model ContextPrereads {
 }
 
 // ------------------------------------------------------------
-// PathScores  (F3 — Warm Scores)
+// WarmScores  (F3 — Warm Scores)
 // Stores pre-calculated or deterministic warmth scores for paths
 // to reduce AI API calls. Recalculated on data changes.
 // ------------------------------------------------------------
-model PathScores {
+model WarmScores {
   score_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   requester_id String   @db.Uuid
   target_id    String   @db.Uuid
@@ -457,10 +457,10 @@ model PathScores {
   is_ai_scored Boolean  @default(false)
   updated_at   DateTime @default(now()) @updatedAt
 
-  @@unique([requester_id, target_id, intent], name: "uq_path_score")
+  @@unique([requester_id, target_id, intent], name: "uq_warm_score")
   @@index([requester_id])
   @@index([target_id])
-  @@map("path_scores")
+  @@map("warm_scores")
 }
 
 // ------------------------------------------------------------

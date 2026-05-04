@@ -1,10 +1,10 @@
 import apiFetch from './client.js';
 
 export const getConnections = () => apiFetch('/api/connections');
-export const requestConnection = (peerId, context, warmthScore) => 
+export const requestConnection = (peerId, context, connectorScore) => 
   apiFetch('/api/connections', {
     method: 'POST',
-    body: JSON.stringify({ peerId, context, warmth_score: warmthScore }),
+    body: JSON.stringify({ peerId, context, connector_score: connectorScore }),
   });
 export const respondToConnection = (id, status) => 
   apiFetch(`/api/connections/${id}`, {

@@ -59,9 +59,9 @@ export async function refreshWarmthScoresForUser(userId: string) {
                 finalScore = calculateDeterministicWarmScore(requester, target || {}, intent);
             }
 
-            return basePrisma.pathScores.upsert({
+            return basePrisma.warmScores.upsert({
                 where: {
-                    uq_path_score: {
+                    uq_warm_score: {
                         requester_id: userId,
                         target_id: p.target.id,
                         intent: intent

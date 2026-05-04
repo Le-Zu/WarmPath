@@ -330,7 +330,7 @@ def seed():
             cur.execute("""
                 INSERT INTO connections (
                     connection_id, user_id_a, user_id_b,
-                    context, warmth_score, status,
+                    context, connector_score, status,
                     created_at, accepted_at
                 ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
             """, (

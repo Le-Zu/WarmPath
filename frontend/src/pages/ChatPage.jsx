@@ -78,10 +78,10 @@ export default function ChatPage() {
             <div className="app-page-title" style={{ marginBottom: 0 }}>
                Chat
             </div>
-            {conversation?.warmth_score && (
+            {conversation?.warm_score && (
                <div style={{ marginLeft: "1.5rem", display: "flex", alignItems: "center" }}>
                   <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Warmth</span>
-                  <WarmthScore score={conversation.warmth_score} />
+                  <WarmthScore score={conversation.warm_score} />
                </div>
             )}
             <button
