@@ -22,13 +22,16 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           c.major       AS connector_major,
           c.year        AS connector_year,
           c.bio         AS connector_bio,
+          c.updated_at  AS connector_updated_at,
           t.first_name  AS target_first_name,
           t.last_name   AS target_last_name,
           t.major       AS target_major,
           t.year        AS target_year,
           t.bio         AS target_bio,
+          t.updated_at  AS target_updated_at,
           t.profile_picture_url AS target_picture_url,
           ps_target.discovery_mode AS target_discovery_mode,
+          ws_specific.updated_at AS score_updated_at,
           (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
         FROM two_hop_paths_view v
         JOIN users c ON c.user_id = v.connector_id
@@ -86,6 +89,9 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
         targetInterests: r.target_interests ?? '',
         targetBio: r.target_bio ?? '',
         connectorBio: r.connector_bio ?? '',
+        connectorUpdatedAt: r.connector_updated_at,
+        targetUpdatedAt: r.target_updated_at,
+        scoreUpdatedAt: r.score_updated_at,
         },
         };
         });
