@@ -1,9 +1,13 @@
 import { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserContext } from "@/context/UserContext.jsx";
 import { getConnections, respondToConnection } from "@/services/connections";
+import { useToast } from "@/context/ToastContext";
 
 export default function Profile() {
+   const navigate = useNavigate();
    const { currentUser, loading, error } = useContext(UserContext);
+   const toast = useToast();
    const [connections, setConnections] = useState([]);
    const [loadingConns, setLoadingConns] = useState(false);
    const [acceptingId, setAcceptingId] = useState(null);
@@ -25,9 +29,9 @@ export default function Profile() {
          // Refresh connections list
          const data = await getConnections();
          setConnections(data.connections || []);
-         alert("Connection accepted!");
+         toast("Connection accepted!");
       } catch (err) {
-         alert("Failed to accept connection: " + err.message);
+         toast("Failed to accept connection: " + err.message, "error");
       } finally {
          setAcceptingId(null);
       }
@@ -45,7 +49,7 @@ export default function Profile() {
    const handleCopyInvite = (email) => {
       const inviteUrl = `${window.location.origin}/register?email=${encodeURIComponent(email)}`;
       navigator.clipboard.writeText(inviteUrl);
-      alert(`Invite link copied for ${email}!`);
+      toast(`Invite link copied for ${email}!`);
    };
 
    return (
@@ -110,23 +114,46 @@ export default function Profile() {
                      <span style={{ fontSize: "2.5rem" }}>👤</span>
                   )}
                </div>
-               <div>
-                  <div
-                     style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: "2rem",
-                        lineHeight: 1.2,
-                        textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                     }}
-                  >
-                     {fullName}
-                  </div>
-                  <div
-                     style={{ fontSize: "0.9rem", color: "rgba(242,233,228,0.9)", textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
-                  >
-                     {[currentUser.major, currentUser.year]
-                        .filter(Boolean)
-                        .join(" · ") || "New Member"}
+               <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                     <div>
+                        <div
+                           style={{
+                              fontFamily: "var(--font-serif)",
+                              fontSize: "2rem",
+                              lineHeight: 1.2,
+                              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                           }}
+                        >
+                           {fullName}
+                        </div>
+                        <div
+                           style={{ fontSize: "0.9rem", color: "rgba(242,233,228,0.9)", textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+                        >
+                           {[currentUser.major, currentUser.year]
+                              .filter(Boolean)
+                              .join(" · ") || "New Member"}
+                        </div>
+                     </div>
+                     <button
+                        onClick={() => navigate("/settings")}
+                        style={{
+                           background: "rgba(255,255,255,0.2)",
+                           border: "1px solid rgba(255,255,255,0.4)",
+                           borderRadius: "100px",
+                           color: "#fff",
+                           padding: "0.4rem 1rem",
+                           fontSize: "0.75rem",
+                           fontWeight: 600,
+                           cursor: "pointer",
+                           transition: "background 0.2s",
+                           backdropFilter: "blur(4px)"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                     >
+                        Edit Profile
+                     </button>
                   </div>
                </div>
             </div>

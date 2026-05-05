@@ -57,11 +57,13 @@ app.post('/api/users', async (req: AuthRequest, res) => {
     try {
         const { uid, email } = req.user;
 
-        if (email.endsWith('@dev.warmpath.com') || email.endsWith('@warmpath.com') || email.endsWith('@test.warmpath.com') 
+        if (process.env.NODE_ENV === 'production' && (
+            email.endsWith('@dev.warmpath.com') || email.endsWith('@warmpath.com') || email.endsWith('@test.warmpath.com') 
             || email.endsWith('@localhost') || email.endsWith('@warmpath.io') || email.endsWith('@warmpath.org') || email.endsWith('@warmpath.net')
-            || email.endsWith('@warmpath.tech')) { // add more email domains here if needed
-            console.log("This email domain is not permitted for registration.");
-            return res.status(403).json({ error: 'This email domain is not permitted for registration.' });
+            || email.endsWith('@warmpath.tech')
+        )) { 
+            console.log("This email domain is not permitted for registration in production.");
+            return res.status(403).json({ error: 'This email domain is not permitted for registration in production.' });
         }
         const { first_name, last_name } = req.body;
 

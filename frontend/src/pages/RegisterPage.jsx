@@ -64,14 +64,15 @@ export default function RegisterPage() {
       }
 
       if (
-         form.email.endsWith("@dev.warmpath.com") ||
+         false // Disabled domain block to allow developer testing
+         /*form.email.endsWith("@dev.warmpath.com") ||
          form.email.endsWith("@warmpath.com") ||
          form.email.endsWith("@test.warmpath.com") ||
          form.email.endsWith("@localhost") ||
          form.email.endsWith("@warmpath.io") ||
          form.email.endsWith("@warmpath.org") ||
          form.email.endsWith("@warmpath.net") ||
-         form.email.endsWith("@warmpath.tech")
+         form.email.endsWith("@warmpath.tech")*/
       ) {
          // add more email domains here if needed
          console.log("This email domain is not available for registration.");

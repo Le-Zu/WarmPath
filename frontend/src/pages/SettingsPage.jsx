@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/config/firebase";
+
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+import { useToast } from "@/context/ToastContext";
 
 const INTENT_MAP = {
    'Internship': 'internship',
@@ -116,6 +118,7 @@ function InfoTooltip({ text }) {
 
 export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
+   const toast = useToast();
    const [activeTab, setActiveTab] = useState("account");
    const [showPasswordFields, setShowPasswordFields] = useState(false);
    const [copied, setCopied] = useState(false);
@@ -231,11 +234,37 @@ export default function SettingsPage() {
       reader.readAsDataURL(file);
    };
 
-   const uploadImage = async (file, path) => {
+   const handleRemoveImage = (type) => {
+      if (type === 'profile') {
+         setProfileFile(null);
+         setProfilePreview("");
+         setForm(f => ({ ...f, profilePictureUrl: "" }));
+      } else {
+         setBannerFile(null);
+         setBannerPreview("");
+         setForm(f => ({ ...f, bannerPictureUrl: "" }));
+      }
+   };
+
+   const uploadImage = async (file) => {
       if (!file) return null;
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      return await getDownloadURL(storageRef);
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+         method: "POST",
+         body: formData,
+      });
+
+      if (!res.ok) {
+         const error = await res.json();
+         throw new Error(error.message || "Failed to upload image to Cloudinary");
+      }
+
+      const data = await res.json();
+      return data.secure_url; // This is the optimized URL
    };
 
    const canSave =
@@ -255,10 +284,10 @@ export default function SettingsPage() {
             let bannerUrl = form.bannerPictureUrl;
 
             if (profileFile) {
-               profileUrl = await uploadImage(profileFile, `users/${currentUser.user_id}/profile_${Date.now()}`);
+               profileUrl = await uploadImage(profileFile);
             }
             if (bannerFile) {
-               bannerUrl = await uploadImage(bannerFile, `users/${currentUser.user_id}/banner_${Date.now()}`);
+               bannerUrl = await uploadImage(bannerFile);
             }
 
             // 1. Basic Info
@@ -302,10 +331,10 @@ export default function SettingsPage() {
          }
 
          await refreshUser();
-         alert("Settings saved successfully!");
+         toast("Settings saved successfully!");
       } catch (err) {
          console.error("Failed to save settings:", err);
-         alert("Failed to save settings: " + err.message);
+         toast("Failed to save settings: " + err.message, "error");
       } finally {
          setIsSaving(false);
       }
@@ -437,7 +466,17 @@ export default function SettingsPage() {
                   <>
                      {/* Profile Images */}
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Profile Banner</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.35rem' }}>
+                           <label style={{ ...labelStyle, marginBottom: 0 }}>Profile Banner</label>
+                           {bannerPreview && (
+                              <button 
+                                 onClick={() => handleRemoveImage('banner')}
+                                 style={{ background: 'none', border: 'none', color: 'Tomato', fontSize: '0.75rem', cursor: 'pointer', padding: 0 }}
+                              >
+                                 Remove
+                              </button>
+                           )}
+                        </div>
                         <div 
                            style={{ 
                               width: "100%", 
@@ -467,7 +506,7 @@ export default function SettingsPage() {
                               fontSize: '0.7rem',
                               textAlign: 'center',
                               padding: '4px 0'
-                           }}>Change Banner</div>
+                           }}>{bannerPreview ? "Change Banner" : "Upload Banner"}</div>
                         </div>
                         <input id="banner-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange('banner')} />
                      </div>
@@ -503,16 +542,26 @@ export default function SettingsPage() {
                               fontSize: '0.6rem',
                               textAlign: 'center',
                               padding: '2px 0'
-                           }}>Edit</div>
+                           }}>{profilePreview ? "Edit" : "Add"}</div>
                         </div>
                         <div>
                            <label style={labelStyle}>Profile Picture</label>
-                           <button 
-                              onClick={() => document.getElementById('profile-input').click()}
-                              style={{ ...tagStyle(false), padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
-                           >
-                              Choose New Picture
-                           </button>
+                           <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button 
+                                 onClick={() => document.getElementById('profile-input').click()}
+                                 style={{ ...tagStyle(false), padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                              >
+                                 {profilePreview ? "Change Picture" : "Choose Picture"}
+                              </button>
+                              {profilePreview && (
+                                 <button 
+                                    onClick={() => handleRemoveImage('profile')}
+                                    style={{ ...tagStyle(false), padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderColor: 'Tomato', color: 'Tomato' }}
+                                 >
+                                    Remove
+                                 </button>
+                              )}
+                           </div>
                            <input id="profile-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange('profile')} />
                         </div>
                      </div>

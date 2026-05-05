@@ -3,7 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import apiFetch from "@/services/client";
 import { useUser } from "@/context/UserContext";
 
-const TOTAL_STEPS = 5;
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+import { useToast } from "@/context/ToastContext";
+
+const TOTAL_STEPS = 6;
 
 const INTENT_MAP = {
    'Internship': 'internship',
@@ -52,6 +56,7 @@ function StepDots({ current }) {
 export default function OnboardingFlow() {
    const navigate = useNavigate();
    const { refreshUser } = useUser();
+   const toast = useToast();
    const [step, setStep] = useState(0);
    const [isSaving, setIsSaving] = useState(false);
    const [form, setForm] = useState({
@@ -60,11 +65,56 @@ export default function OnboardingFlow() {
       major: "",
       year: "",
       bio: "",
+      profilePictureUrl: "",
+      bannerPictureUrl: "",
       selectedGoals: [],
       selectedFields: [],
       experiences: [{ title: "", organization: "", description: "" }],
       connectors: [{ name: "", email: "", relationship: "" }],
    });
+
+   const [profileFile, setProfileFile] = useState(null);
+   const [bannerFile, setBannerFile] = useState(null);
+   const [profilePreview, setProfilePreview] = useState("");
+   const [bannerPreview, setBannerPreview] = useState("");
+
+   const handleImageChange = (type) => (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+         if (type === 'profile') {
+            setProfileFile(file);
+            setProfilePreview(reader.result);
+         } else {
+            setBannerFile(file);
+            setBannerPreview(reader.result);
+         }
+      };
+      reader.readAsDataURL(file);
+   };
+
+   const uploadImage = async (file) => {
+      if (!file) return null;
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+         method: "POST",
+         body: formData,
+      });
+
+      if (!res.ok) {
+         const error = await res.json();
+         throw new Error(error.message || "Failed to upload image to Cloudinary");
+      }
+
+      const data = await res.json();
+      return data.secure_url;
+   };
 
    const [hoveredNext, setHoveredNext] = useState(false);
    const [hoveredBack, setHoveredBack] = useState(false);
@@ -113,6 +163,23 @@ export default function OnboardingFlow() {
    const handleGetStarted = async () => {
       setIsSaving(true);
       try {
+         // 0. Upload Images if any
+         let profileUrl = "";
+         let bannerUrl = "";
+
+         // We need a user ID for the storage path. 
+         // Since we might not have it yet (if registration is being synced), 
+         // we'll use a temporary path or fetch the user first.
+         // Actually, apiFetch('/api/me') should work to get the current user object.
+         const { user: me } = await apiFetch('/api/me');
+         
+         if (profileFile) {
+            profileUrl = await uploadImage(profileFile);
+         }
+         if (bannerFile) {
+            bannerUrl = await uploadImage(bannerFile);
+         }
+
          // 1. Profile Update
          await apiFetch('/api/me', {
             method: 'PATCH',
@@ -123,6 +190,8 @@ export default function OnboardingFlow() {
                year: form.year,
                bio: form.bio,
                profile_complete: true,
+               ...(profileUrl && { profile_picture_url: profileUrl }),
+               ...(bannerUrl && { banner_picture_url: bannerUrl }),
             }),
          });
 
@@ -179,7 +248,7 @@ export default function OnboardingFlow() {
          navigate("/home");
       } catch (err) {
          console.error("Failed to save onboarding data:", err);
-         alert("Failed to save your profile: " + err.message);
+         toast("Failed to save your profile: " + err.message, "error");
       } finally {
          setIsSaving(false);
       }
@@ -189,7 +258,7 @@ export default function OnboardingFlow() {
    const back = () => setStep((s) => Math.max(s - 1, 0));
 
    const isStep0Valid = form.firstName.trim() && form.lastName.trim();
-   const isStep2Valid = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
+   const isInterestsValid = form.selectedGoals.length > 0 || form.selectedFields.length > 0;
 
    return (
       <div
@@ -333,8 +402,117 @@ export default function OnboardingFlow() {
                   </>
                )}
 
-               {/* Step 2: Interests */}
+               {/* Step 2: Profile Customization */}
                {step === 2 && (
+                  <>
+                     <h2 style={{ fontSize: "1.5rem" }}>Customize Your Profile</h2>
+                     <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+                        Add a photo and a banner to help people recognize you.
+                     </p>
+
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.5rem" }}>Profile Banner</label>
+                        <div 
+                           style={{ 
+                              width: "100%", 
+                              height: "100px", 
+                              backgroundColor: "#f2e9e4", 
+                              borderRadius: "8px", 
+                              backgroundImage: bannerPreview ? `url(${bannerPreview})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              position: 'relative',
+                              border: "1px solid #d88c9a"
+                           }}
+                           onClick={() => document.getElementById('banner-input').click()}
+                        >
+                           {!bannerPreview && <span style={{ fontSize: '0.8rem', color: '#888' }}>Click to upload banner</span>}
+                           <div style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              width: '100%',
+                              background: 'rgba(0,0,0,0.3)',
+                              color: '#fff',
+                              fontSize: '0.7rem',
+                              textAlign: 'center',
+                              padding: '4px 0'
+                           }}>Change Banner</div>
+                        </div>
+                        <input id="banner-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange('banner')} />
+                     </div>
+
+                     <div style={{ marginBottom: "2rem", display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <div 
+                           style={{ 
+                              width: "80px", 
+                              height: "80px", 
+                              borderRadius: "50%", 
+                              backgroundColor: "#f2e9e4", 
+                              backgroundImage: profilePreview ? `url(${profilePreview})` : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              border: "1px solid #d88c9a",
+                              overflow: 'hidden',
+                              position: 'relative'
+                           }}
+                           onClick={() => document.getElementById('profile-input').click()}
+                        >
+                           {!profilePreview && <span style={{ fontSize: '1.5rem' }}>👤</span>}
+                           <div style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              width: '100%',
+                              background: 'rgba(0,0,0,0.3)',
+                              color: '#fff',
+                              fontSize: '0.6rem',
+                              textAlign: 'center',
+                              padding: '2px 0'
+                           }}>Edit</div>
+                        </div>
+                        <div>
+                           <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Profile Picture</label>
+                           <button 
+                              onClick={() => document.getElementById('profile-input').click()}
+                              style={{ ...tagStyle, padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                           >
+                              Choose Picture
+                           </button>
+                           <input id="profile-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange('profile')} />
+                        </div>
+                     </div>
+
+                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                        <button onClick={back} style={btnSecondary}>Back</button>
+                        <button 
+                           onClick={next} 
+                           onMouseEnter={() => setHoveredSkip(true)}
+                           onMouseLeave={() => setHoveredSkip(false)}
+                           style={{ 
+                              ...btnSecondary, 
+                              border: "1px solid #6a994e", 
+                              color: "#6a994e",
+                              background: hoveredSkip ? "#f7fcf8" : "transparent"
+                           }}
+                        >
+                           Skip for now
+                        </button>
+                        <button onClick={next} style={btnPrimary}>Next</button>
+                     </div>
+                  </>
+               )}
+
+               {/* Step 3: Interests */}
+               {step === 3 && (
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Your Interests</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
@@ -381,11 +559,11 @@ export default function OnboardingFlow() {
                         <button onClick={back} style={btnSecondary}>Back</button>
                         <button
                            onClick={next}
-                           disabled={!isStep2Valid}
+                           disabled={!isInterestsValid}
                            style={{
                               ...btnPrimary,
-                              backgroundColor: !isStep2Valid ? "#ccc" : "LightSalmon",
-                              cursor: !isStep2Valid ? "not-allowed" : "pointer"
+                              backgroundColor: !isInterestsValid ? "#ccc" : "LightSalmon",
+                              cursor: !isInterestsValid ? "not-allowed" : "pointer"
                            }}
                         >
                            Next
@@ -394,8 +572,8 @@ export default function OnboardingFlow() {
                   </>
                )}
 
-               {/* Step 3: Experience */}
-               {step === 3 && (
+               {/* Step 4: Experience */}
+               {step === 4 && (
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Experience</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
@@ -430,8 +608,8 @@ export default function OnboardingFlow() {
                   </>
                )}
 
-               {/* Step 4: Connectors */}
-               {step === 4 && (
+               {/* Step 5: Connectors */}
+               {step === 5 && (
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Add Connectors</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
@@ -473,8 +651,8 @@ export default function OnboardingFlow() {
                   </>
                )}
 
-               {/* Step 5: Welcome */}
-               {step === 5 && (
+               {/* Step 6: Welcome */}
+               {step === 6 && (
                   <div style={{ textAlign: "center", padding: "2rem 0" }}>
                      <h2 style={{ fontSize: "1.5rem" }}>You're All Set!</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
