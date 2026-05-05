@@ -6,6 +6,28 @@ const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 import { useToast } from "@/context/ToastContext";
 
+// Lenient LinkedIn URL validation:
+// - empty string clears the field
+// - accepts "linkedin.com/in/username", "www.linkedin.com/in/username", full URLs, etc.
+// - normalizes to canonical "https://www.linkedin.com/<path>"
+// - throws an Error with a user-friendly message if invalid
+const normalizeLinkedinUrl = (input) => {
+   const trimmed = (input || "").trim();
+   if (!trimmed) return "";
+   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+   let url;
+   try {
+      url = new URL(withProtocol);
+   } catch {
+      throw new Error("Please enter a valid LinkedIn URL (e.g., linkedin.com/in/yourname).");
+   }
+   if (!/(^|\.)linkedin\.com$/i.test(url.hostname)) {
+      throw new Error("Please enter a valid LinkedIn URL (e.g., linkedin.com/in/yourname).");
+   }
+   const path = url.pathname.replace(/\/$/, "");
+   return `https://www.linkedin.com${path}`;
+};
+
 const INTENT_MAP = {
    'Internship': 'internship',
    'Research':   'research',
@@ -135,6 +157,7 @@ export default function SettingsPage() {
       bio: "",
       major: "",
       year: "",
+      linkedinUrl: "",
       profilePictureUrl: "",
       bannerPictureUrl: "",
       selectedGoals: [],
@@ -165,6 +188,7 @@ export default function SettingsPage() {
             bio: currentUser.bio || "",
             major: currentUser.major || "",
             year: currentUser.year || "",
+            linkedinUrl: currentUser.linkedin_url || "",
             profilePictureUrl: currentUser.profile_picture_url || "",
             bannerPictureUrl: currentUser.banner_picture_url || "",
             selectedGoals: currentUser.interests?.filter(i => GOAL_TAGS.includes(i.label)).map(i => i.label) || [],
@@ -280,6 +304,16 @@ export default function SettingsPage() {
       setIsSaving(true);
       try {
          if (activeTab === "account") {
+            // Validate LinkedIn URL before any uploads so we fail fast.
+            let linkedinUrl;
+            try {
+               linkedinUrl = normalizeLinkedinUrl(form.linkedinUrl);
+            } catch (err) {
+               toast(err.message);
+               setIsSaving(false);
+               return;
+            }
+
             let profileUrl = form.profilePictureUrl;
             let bannerUrl = form.bannerPictureUrl;
 
@@ -299,6 +333,7 @@ export default function SettingsPage() {
                   bio: form.bio,
                   major: form.major,
                   year: form.year,
+                  linkedin_url: linkedinUrl,
                   profile_picture_url: profileUrl,
                   banner_picture_url: bannerUrl,
                }),
@@ -609,6 +644,17 @@ export default function SettingsPage() {
                            <option value="grad">Grad Student</option>
                            <option value="other">Other</option>
                         </select>
+                     </div>
+
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={labelStyle}>LinkedIn URL</label>
+                        <input
+                           style={inputStyle}
+                           type="url"
+                           value={form.linkedinUrl}
+                           onChange={set("linkedinUrl")}
+                           placeholder="linkedin.com/in/yourname"
+                        />
                      </div>
 
                      {/* Experiences */}
