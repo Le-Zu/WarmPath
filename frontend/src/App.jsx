@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from "@/layout/AppLayout";
 import LandingLayout from "@/layout/LandingLayout";
+import { ToastProvider } from "@/context/ToastContext";
 import '@/index.css';
 
 // Public pages
@@ -23,6 +24,7 @@ import ChatPage from "@/pages/ChatPage";
 
 export default function App() {
   return (
+      <ToastProvider>
       <BrowserRouter>
         <Routes>
           {/* Landing layout — public nav */}
@@ -47,5 +49,6 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
   );
 }

@@ -6,6 +6,7 @@ import { logoBase64 } from "@/assets/logo";
 import NotificationBell from "@/layout/NotificationBell";
 import UserSwitcher from "@/layout/UserSwitcher";
 import { useAuth } from "@/context/AuthContext";
+import { useUser } from "@/context/UserContext";
 
 const DEV_EMAIL_DOMAIN = "@dev.warmpath.com";
 const TEST_EMAIL_DOMAIN = "@test.warmpath.com";
@@ -23,10 +24,11 @@ const INTENT_LABELS = Object.keys(INTENT_MAP);
 export default function AppLayout() {
    const navigate = useNavigate();
    const location = useLocation();
-   const { currentUser } = useAuth();
-   const isDevAccount = currentUser?.email?.endsWith(DEV_EMAIL_DOMAIN) ?? false;
+   const { currentUser: authUser } = useAuth();
+   const { currentUser: dbUser } = useUser();
+   const isDevAccount = authUser?.email?.endsWith(DEV_EMAIL_DOMAIN) ?? false;
    const isTestAccount =
-      currentUser?.email?.endsWith(TEST_EMAIL_DOMAIN) ?? false;
+      authUser?.email?.endsWith(TEST_EMAIL_DOMAIN) ?? false;
 
    // Derive the active intent from the URL so the filter bar stays in sync on
    // direct navigation (e.g. clicking the "Find Paths" nav link).
@@ -59,12 +61,21 @@ export default function AppLayout() {
    };
 
    const initials = (() => {
-      const name = currentUser?.displayName?.trim();
-      if (name) {
-         const parts = name.split(/\s+/);
+      const user = dbUser || authUser;
+      if (!user) return "?";
+      
+      const firstName = dbUser?.first_name || "";
+      const lastName = dbUser?.last_name || "";
+      const displayName = authUser?.displayName || "";
+
+      if (firstName || lastName) {
+         return ((firstName[0] || "") + (lastName[0] || "")).toUpperCase();
+      }
+      if (displayName) {
+         const parts = displayName.trim().split(/\s+/);
          return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
       }
-      return currentUser?.email?.[0]?.toUpperCase() ?? "?";
+      return user.email?.[0]?.toUpperCase() ?? "?";
    })();
 
    const HIDE_INTENT_ROUTES = [
@@ -171,9 +182,19 @@ export default function AppLayout() {
                         fontSize: "0.8rem",
                         fontWeight: 500,
                         letterSpacing: "0.02em",
+                        overflow: "hidden",
+                        padding: 0
                      }}
                   >
-                     {initials}
+                     {dbUser?.profile_picture_url ? (
+                        <img 
+                           src={dbUser.profile_picture_url} 
+                           alt="Avatar" 
+                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                     ) : (
+                        initials
+                     )}
                   </button>
                   {menuOpen && (
                      <div

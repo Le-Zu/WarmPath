@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import MessageDiff from '@/components/MessageDiff';
 import { useIncomingRequests } from '@/hooks/useIncomingRequests';
+import { useToast } from '@/context/ToastContext';
 
 function RequestCard({ r, onUpdate, patchRequest }) {
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [editedMsg, setEditedMsg] = useState(r.message);
   const [note, setNote] = useState('');
@@ -23,7 +25,7 @@ function RequestCard({ r, onUpdate, patchRequest }) {
       onUpdate(r.id, status);
     } catch (err) {
       console.error(`[Requests] Failed to update request ${r.id}:`, err);
-      alert('Failed to update request: ' + err.message);
+      toast('Failed to update request: ' + err.message, 'error');
     } finally {
       setActing(false);
     }

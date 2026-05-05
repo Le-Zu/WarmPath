@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiFetch from '@/services/client';
 import ProfileCompletionNudge from '../components/ProfileCompletionNudge';
+import { useToast } from '@/context/ToastContext';
 
 const intents = [
   { id: 'internship', label: '💼  Internship', desc: 'Find someone with industry experience in your target field' },
@@ -13,6 +14,7 @@ const intents = [
 
 export default function Home() {
   const nav = useNavigate();
+  const toast = useToast();
   const [loadingId, setLoadingId] = useState(null);
 
   const handleSelect = async (id, label) => {
@@ -28,7 +30,7 @@ export default function Home() {
       nav(`/paths?intent=${id}`);
     } catch (err) {
       console.error('Failed to save intent:', err);
-      alert('Failed to set your goal: ' + err.message);
+      toast('Failed to set your goal: ' + err.message, 'error');
     } finally {
       setLoadingId(null);
     }

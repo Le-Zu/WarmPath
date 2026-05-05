@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
+import { useToast } from "@/context/ToastContext";
 
 // Human-readable label for each intent enum value
 const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
@@ -30,6 +31,7 @@ export default function Paths() {
       INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) ?? null;
 
    const { paths, loading, error, refresh } = usePaths(intent);
+   const toast = useToast();
 
    const handleIntentClick = (label) => {
       if (activeIntent === label) {
@@ -59,19 +61,16 @@ export default function Paths() {
                context: newConn.relationship,
             }),
          });
-         alert("Connector added! This will help discover more paths.");
+         toast("Connector added! This will help discover more paths.");
          setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
          refresh();
       } catch (err) {
-         alert("Failed to add connector: " + err.message);
+         toast("Failed to add connector: " + err.message, "error");
       } finally {
          setSavingConn(false);
       }
    };
-
-   if (loading) return <div className="app-page">Finding warm paths...</div>;
-   if (error) return <div className="app-page">Failed to load paths.</div>;
 
    const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
 
@@ -79,7 +78,9 @@ export default function Paths() {
       <div className="app-page">
          <div className="app-eyebrow">— Warm paths —</div>
          <div className="app-page-title">
-            {paths.length > 0
+            {loading && paths.length === 0
+               ? "Finding paths…"
+               : paths.length > 0
                ? `Found ${paths.length} paths`
                : "No paths found"}
          </div>
@@ -97,11 +98,11 @@ export default function Paths() {
                   started.
                   <WarmScoreInfo />
                </span>
-            ) : intentLabel ? (
+            ) : !loading && intentLabel ? (
                `No warm paths for ${intentLabel} yet. Try a different intent or check back as your network grows.`
-            ) : (
+            ) : !loading ? (
                "Paths appear when you have mutual connections with someone. Build your network and check back."
-            )}
+            ) : null}
          </div>
 
          <div
@@ -247,7 +248,37 @@ export default function Paths() {
             </div>
          )}
 
-         {paths.length === 0 && (
+         {error && !loading ? (
+            <div
+               style={{
+                  padding: "1.5rem 0",
+                  color: "#7a6f68",
+                  fontSize: "0.88rem",
+               }}
+            >
+               Failed to load paths.{" "}
+               <button
+                  onClick={refresh}
+                  style={{
+                     background: "none",
+                     border: "none",
+                     color: "var(--warm)",
+                     cursor: "pointer",
+                     fontSize: "0.88rem",
+                     padding: 0,
+                     textDecoration: "underline",
+                  }}
+               >
+                  Retry
+               </button>
+            </div>
+         ) : loading && paths.length === 0 ? (
+            <>
+               <PathCardSkeleton />
+               <PathCardSkeleton />
+               <PathCardSkeleton />
+            </>
+         ) : paths.length === 0 ? (
             <div
                style={{
                   marginTop: "1rem",
@@ -280,11 +311,107 @@ export default function Paths() {
                   for you.
                </p>
             </div>
+         ) : (
+            <div
+               style={{
+                  opacity: loading ? 0.55 : 1,
+                  transition: "opacity 0.2s",
+               }}
+            >
+               {paths.map((p) => (
+                  <PathCard key={p.id} path={p} score={p.warmScore} />
+               ))}
+            </div>
          )}
+      </div>
+   );
+}
 
-         {paths.map((p) => (
-            <PathCard key={p.id} path={p} score={p.warmScore} />
-         ))}
+function PathCardSkeleton() {
+   return (
+      <div
+         className="app-card"
+         style={{
+            display: "flex",
+            gap: "2.5rem",
+            alignItems: "flex-start",
+            marginBottom: "1rem",
+         }}
+      >
+         <div className="path-chain" style={{ width: "320px", flexShrink: 0 }}>
+            <div className="path-node">
+               <div className="path-dot you">YOU</div>
+               <div className="path-node-label">You</div>
+            </div>
+            <div className="path-connector-line" style={{ height: "40px" }} />
+            <div className="path-node">
+               <div className="path-dot connector">CON</div>
+               <div
+                  style={{
+                     width: 90,
+                     height: 13,
+                     borderRadius: 2,
+                     background: "#e0d8d4",
+                  }}
+               />
+            </div>
+            <div className="path-connector-line" style={{ height: "40px" }} />
+            <div className="path-node">
+               <div className="path-dot target">TGT</div>
+               <div
+                  style={{
+                     width: 110,
+                     height: 13,
+                     borderRadius: 2,
+                     background: "#e0d8d4",
+                  }}
+               />
+            </div>
+         </div>
+
+         <div
+            style={{
+               flex: 1,
+               borderLeft: "1px solid #f0e8e4",
+               paddingLeft: "2.5rem",
+            }}
+         >
+            <div
+               style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
+                  background: "#e0d8d4",
+                  marginBottom: "0.6rem",
+               }}
+            />
+            <div
+               style={{
+                  width: 130,
+                  height: 18,
+                  borderRadius: 2,
+                  background: "#e0d8d4",
+                  marginBottom: "0.4rem",
+               }}
+            />
+            <div
+               style={{
+                  width: 90,
+                  height: 13,
+                  borderRadius: 2,
+                  background: "#e0d8d4",
+                  marginBottom: "1.4rem",
+               }}
+            />
+            <div
+               style={{
+                  width: 70,
+                  height: 13,
+                  borderRadius: 2,
+                  background: "#e0d8d4",
+               }}
+            />
+         </div>
       </div>
    );
 }

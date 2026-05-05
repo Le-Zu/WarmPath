@@ -51,12 +51,13 @@ const makeDevUser = (email: string) => ({
     is_active: true,
     profile_complete: false,
     firebase_uid: null,
-    major: null,
-    year: null,
-    bio: null,
+    major: 'Engineering',
+    year: 'Senior',
+    bio: 'Synthetic developer account for local testing.',
     linkedin_url: null,
     resume_url: null,
     profile_picture_url: null,
+    banner_picture_url: null,
     created_at: new Date(),
     updated_at: new Date(),
 });
@@ -67,17 +68,6 @@ export const dbUserMiddleware = async (req: AuthRequest, res: Response, next: Ne
     }
 
     const email: string = req.user.email;
-
-    // Dev accounts skip the DB lookup and get a synthetic user
-    if (DEV_DOMAINS.some(domain => email.endsWith(domain))) {
-        const devUser = makeDevUser(email);
-        req.dbUser = devUser;
-        console.log(`[dbUserMiddleware] Dev account bypass for: ${email}`);
-        
-        return storage.run({ userId: devUser.user_id }, () => {
-            next();
-        });
-    }
 
     try {
         // Look up the user in the database using the email from Firebase
@@ -93,12 +83,23 @@ export const dbUserMiddleware = async (req: AuthRequest, res: Response, next: Ne
         if (user) {
             req.dbUser = user;
             // Wrap the rest of the request in the AsyncLocalStorage context
-            storage.run({ userId: user.user_id }, () => {
+            return storage.run({ userId: user.user_id }, () => {
                 next();
             });
-        } else {
-            next();
         }
+
+        // Dev accounts skip the DB lookup and get a synthetic user ONLY if not in DB
+        if (DEV_DOMAINS.some(domain => email.endsWith(domain))) {
+            const devUser = makeDevUser(email);
+            req.dbUser = devUser;
+            console.log(`[dbUserMiddleware] Dev account synthetic bypass for: ${email}`);
+            
+            return storage.run({ userId: devUser.user_id }, () => {
+                next();
+            });
+        }
+
+        next();
     } catch (error) {
         console.error('Error in dbUserMiddleware:', error);
         next();
