@@ -7,8 +7,8 @@ export default function PathCard({ path, score = '...' }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="app-card" style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-      <div className="path-chain" style={{ width: '320px', flexShrink: 0 }}>
+    <div className="app-card path-card-body">
+      <div className="path-chain path-chain-fixed">
         {/* You Node */}
         <div className="path-node">
           <div className="path-dot you">YOU</div>
@@ -49,7 +49,7 @@ export default function PathCard({ path, score = '...' }) {
       </div>
 
       {/* Target Info Section (Right Side) */}
-      <div style={{ flex: 1, borderLeft: '1px solid #f0e8e4', paddingLeft: '2.5rem' }}>
+      <div className="path-card-info">
         <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
           {path.target.isAnonymous
             ? <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><EyeOff size={22} strokeWidth={1.75} color="#7a6f68" /></div>

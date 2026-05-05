@@ -667,3 +667,109 @@ html {
       display: none;
    }
 }
+
+/* ── UTILITY CLASSES ── */
+.btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
+.btn-group { display: flex; gap: 0.6rem; margin-top: 1rem; }
+
+/* ── PATH CARD RESPONSIVE LAYOUT ── */
+.path-card-body {
+   display: flex;
+   gap: 2.5rem;
+   align-items: flex-start;
+   margin-bottom: 1rem;
+}
+.path-chain-fixed {
+   width: 320px;
+   flex-shrink: 0;
+}
+.path-card-info {
+   flex: 1;
+   border-left: 1px solid #f0e8e4;
+   padding-left: 2.5rem;
+}
+
+/* ── APP NAV: CENTERED LINKS ── */
+.app-nav-center-links {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   transform: translate(-50%, -50%);
+   display: flex;
+   align-items: center;
+   gap: 2rem;
+}
+.app-nav-hamburger {
+   display: none;
+   background: none;
+   border: none;
+   font-size: 1.3rem;
+   cursor: pointer;
+   color: var(--charcoal);
+   padding: 0.25rem;
+}
+.app-nav-mobile-menu {
+   background: var(--white);
+   border-bottom: 1px solid #e8ddd8;
+   z-index: 99;
+}
+.app-nav-mobile-link {
+   display: block;
+   padding: 0.9rem 1.5rem;
+   font-size: 0.88rem;
+   color: var(--charcoal);
+   text-decoration: none;
+   border-bottom: 1px solid #e8ddd8;
+   font-family: var(--font-sans);
+   transition: color 0.15s;
+}
+.app-nav-mobile-link:hover { color: var(--warm); }
+.app-nav-mobile-link:last-child { border-bottom: none; }
+.app-nav-mobile-link.active { color: var(--warm); font-weight: 500; }
+
+/* ── RESPONSIVE: Tablet ≤768px ── */
+@media (max-width: 768px) {
+   .app-nav-center-links { display: none; }
+   .app-nav-hamburger { display: block; }
+
+   .app-page { padding: 1.75rem 1.25rem; }
+   .app-page-title { font-size: 1.55rem; }
+
+   .modal-box { padding: 1.5rem; }
+   .bell-dropdown { width: 260px; }
+
+   .hp-hero-left { padding: 4rem 2rem 4rem 3rem; }
+   .hp-features { padding: 5rem 2rem; }
+   .hp-how { padding: 5rem 2rem; }
+   .hp-cta { padding: 5rem 2rem; }
+}
+
+/* ── RESPONSIVE: Mobile ≤480px ── */
+@media (max-width: 480px) {
+   .app-page { padding: 1.25rem 1rem; }
+   .app-page-title { font-size: 1.4rem; }
+   .app-page-sub { font-size: 0.82rem; }
+
+   .app-card { padding: 1.1rem; }
+
+   .path-card-body { flex-direction: column; gap: 1rem; }
+   .path-chain-fixed { width: auto; flex-shrink: 1; }
+   .path-card-info {
+      border-left: none;
+      padding-left: 0;
+      border-top: 1px solid #f0e8e4;
+      padding-top: 1rem;
+   }
+
+   .bell-dropdown { width: calc(100vw - 2rem); right: -1rem; }
+
+   .modal-overlay { padding: 0.5rem; align-items: flex-end; }
+   .modal-box { padding: 1.25rem; border-radius: 4px 4px 0 0; max-width: 100%; }
+
+   .hp-hero-left { padding: 3rem 1.5rem; }
+   .hp-banner { padding: 0.875rem 1.5rem; }
+   .hp-footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+}
+
+/* ── GLOBAL OVERFLOW FIX ── */
+html, body { overflow-x: hidden; width: 100%; }
