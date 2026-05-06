@@ -49,6 +49,19 @@ body{background:var(--cream);font-family:var(--font-sans);color:var(--charcoal);
 textarea{width:100%;font-family:var(--font-sans);font-size:0.88rem;border:1px solid var(--border);border-radius:2px;padding:0.75rem;resize:vertical;background:var(--white);color:var(--charcoal)}
 textarea:focus{outline:2px solid var(--warm)}
 
+.spinner-small {
+   width: 14px;
+   height: 14px;
+   border: 2px solid rgba(231, 111, 81, 0.2);
+   border-top-color: var(--warm);
+   border-radius: 50%;
+   animation: wp-spin 0.8s linear infinite;
+}
+
+@keyframes wp-spin {
+   to { transform: rotate(360deg); }
+}
+
 @keyframes wp-toast-in {
    from { opacity: 0; transform: translateY(8px); }
    to   { opacity: 1; transform: translateY(0); }

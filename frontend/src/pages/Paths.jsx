@@ -78,15 +78,28 @@ export default function Paths() {
       <div className="app-page">
          <div className="app-eyebrow">— Warm paths —</div>
          <div className="app-page-title">
-            {loading && paths.length === 0
-               ? "Finding paths…"
+            {loading
+               ? "Calculating warmth scores…"
                : paths.length > 0
                ? `Found ${paths.length} paths`
                : "No paths found"}
          </div>
 
          <div className="app-page-sub">
-            {paths.length > 0 ? (
+            {loading ? (
+               <span
+                  style={{
+                     display: "inline-flex",
+                     alignItems: "center",
+                     gap: "0.5rem",
+                     color: "var(--warm)",
+                     fontWeight: 500,
+                  }}
+               >
+                  <span className="spinner-small" />
+                  WarmScore AI is assessing your connections for the best matches...
+               </span>
+            ) : paths.length > 0 ? (
                <span
                   style={{
                      display: "inline-flex",
