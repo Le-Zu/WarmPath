@@ -135,6 +135,31 @@ export default function Profile() {
                               .filter(Boolean)
                               .join(" · ") || "New Member"}
                         </div>
+                        {currentUser.linkedin_url && (
+                           <a 
+                              href={currentUser.linkedin_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ 
+                                 display: 'inline-flex', 
+                                 alignItems: 'center', 
+                                 gap: '0.4rem', 
+                                 marginTop: '0.5rem', 
+                                 color: 'var(--cream)', 
+                                 fontSize: '0.8rem', 
+                                 textDecoration: 'none',
+                                 background: 'rgba(255,255,255,0.15)',
+                                 padding: '2px 8px',
+                                 borderRadius: '4px',
+                                 backdropFilter: 'blur(4px)',
+                                 transition: 'background 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+                              onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+                           >
+                              <span style={{ fontSize: '1rem' }}>🔗</span> LinkedIn Profile
+                           </a>
+                        )}
                      </div>
                      <button
                         onClick={() => navigate("/settings")}

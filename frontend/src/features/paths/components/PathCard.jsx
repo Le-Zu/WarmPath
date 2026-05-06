@@ -61,6 +61,28 @@ export default function PathCard({ path, score = '...' }) {
           {path.target.name} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}
         </div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.25rem' }}>{path.target.role}</div>
+        
+        {path.target.linkedinUrl && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <a 
+              href={path.target.linkedinUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '0.4rem', 
+                color: '#0077b5', 
+                fontSize: '0.8rem', 
+                textDecoration: 'none',
+                fontWeight: 500
+              }}
+            >
+              <span style={{ fontSize: '1rem' }}>🔗</span> LinkedIn Profile
+            </a>
+          </div>
+        )}
+
         <div style={{ marginBottom: '1.25rem' }}>
           <WarmthScore score={score} />
         </div>
