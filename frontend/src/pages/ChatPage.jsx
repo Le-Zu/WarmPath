@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Lightbulb } from "lucide-react";
 import { useSocket } from "@/context/SocketContextInstance";
 import { useUser } from "@/context/UserContext";
 import { WarmthScore } from "@/features/gemini";
@@ -71,9 +72,10 @@ export default function ChatPage() {
             <button
                className="btn-ghost"
                onClick={() => navigate("/conversations")}
-               style={{ marginRight: "1rem", padding: "0.4rem" }}
+               style={{ marginRight: "1rem", padding: "0.4rem", display: "inline-flex", alignItems: "center" }}
+               aria-label="Back to conversations"
             >
-               ←
+               <ArrowLeft size={20} strokeWidth={2} />
             </button>
             <div className="app-page-title" style={{ marginBottom: 0 }}>
                Chat
@@ -130,7 +132,7 @@ export default function ChatPage() {
                         gap: "0.5rem",
                      }}
                   >
-                     <span style={{ fontSize: "1.1rem" }}>💡</span>
+                     <Lightbulb size={18} strokeWidth={2} color="#e9c46a" />
                      <span
                         style={{
                            fontSize: "0.85rem",

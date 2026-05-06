@@ -1,9 +1,16 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from "@/layout/AppLayout";
 import LandingLayout from "@/layout/LandingLayout";
 import { ToastProvider } from "@/context/ToastContext";
+import { useAuth } from "@/context/AuthContext";
 import '@/index.css';
+
+// FAQ is reachable both logged-in (with AppLayout nav) and logged-out (no nav).
+function FAQLayoutSwitcher() {
+  const { currentUser } = useAuth();
+  return currentUser ? <AppLayout /> : <Outlet />;
+}
 
 // Public pages
 import HomePage from "@/pages/HomePage";
@@ -34,7 +41,11 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/onboarding" element={<OnboardingFlow />} />
-          <Route path="/faq" element={<FAQ />} />
+
+          {/* FAQ — public, but rendered with AppLayout when logged in */}
+          <Route element={<FAQLayoutSwitcher />}>
+            <Route path="/faq" element={<FAQ />} />
+          </Route>
 
           {/* App layout — requires auth */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

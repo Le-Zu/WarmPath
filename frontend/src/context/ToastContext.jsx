@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef } from "react";
+import { Check, X } from "lucide-react";
 
 const ToastContext = createContext(null);
 
@@ -76,8 +77,8 @@ function Toast({ toast, onDismiss }) {
             animation: "wp-toast-in 0.2s ease",
          }}
       >
-         <span style={{ fontSize: "0.9rem", flexShrink: 0, marginTop: "1px" }}>
-            {isError ? "✕" : "✓"}
+         <span style={{ flexShrink: 0, marginTop: "1px", display: "inline-flex" }}>
+            {isError ? <X size={16} strokeWidth={2.5} /> : <Check size={16} strokeWidth={2.5} />}
          </span>
          <span style={{ flex: 1 }}>{toast.message}</span>
          <button
@@ -88,14 +89,14 @@ function Toast({ toast, onDismiss }) {
                border: "none",
                color: "rgba(242,233,228,0.55)",
                cursor: "pointer",
-               fontSize: "0.9rem",
                padding: 0,
                flexShrink: 0,
                lineHeight: 1,
                marginTop: "1px",
+               display: "inline-flex",
             }}
          >
-            ×
+            <X size={14} strokeWidth={2} />
          </button>
       </div>
    );

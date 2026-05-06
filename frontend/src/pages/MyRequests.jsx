@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import MessageDiff from '@/components/MessageDiff';
 import { timeAgo } from '@/utils/formatters';
 import { useOutgoingRequests } from '@/hooks/useOutgoingRequests';
@@ -50,7 +51,7 @@ export default function MyRequests() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                <span className={`tag tag-${r.status}`}>{r.status}</span>
-               <span style={{ fontSize: '0.8rem', color: '#7a6f68' }}>{expandedId === r.id ? '↑' : '↓'}</span>
+               <span style={{ color: '#7a6f68', display: 'inline-flex' }}>{expandedId === r.id ? <ChevronUp size={16} strokeWidth={2} /> : <ChevronDown size={16} strokeWidth={2} />}</span>
             </div>
           </div>
           
