@@ -17,6 +17,13 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
             ROUND(v.avg_connector_score), 
             1
           ) AS strength,
+          CASE 
+            WHEN ws_specific.score IS NOT NULL THEN 'database_specific'
+            WHEN ws_all.score IS NOT NULL THEN 'database_all'
+            WHEN v.avg_connector_score IS NOT NULL THEN 'avg_connector'
+            ELSE 'default'
+          END AS score_source_internal,
+          COALESCE(ws_specific.is_ai_scored, ws_all.is_ai_scored, FALSE) AS is_ai_scored_internal,
           c.first_name  AS connector_first_name,
           c.last_name   AS connector_last_name,
           c.major       AS connector_major,
@@ -60,6 +67,18 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
 
         return rows.map((r) => {
         const isAnonymous = r.target_discovery_mode === 'anonymous';
+        const targetName = isAnonymous 
+          ? `${r.target_first_name} ${r.target_last_name ? r.target_last_name[0] + '.' : ''}`
+          : [r.target_first_name, r.target_last_name].filter(Boolean).join(' ');
+
+        // Log the source of the score
+        let sourceLabel = 'deterministic scoring (fallback)';
+        if (r.score_source_internal === 'database_specific' || r.score_source_internal === 'database_all') {
+            sourceLabel = r.is_ai_scored_internal ? 'read from database (AI)' : 'read from database (Deterministic)';
+        } else if (r.score_source_internal === 'avg_connector') {
+            sourceLabel = 'deterministic scoring (avg connector strength)';
+        }
+        console.log(`[PathDiscovery] Warmth score for ${targetName}: ${r.strength} (${sourceLabel})`);
 
         return {
         id: `${r.connector_id}-${r.target_id}`,
@@ -72,9 +91,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
         },
         target: {
         id: r.target_id,
-        name: isAnonymous 
-          ? `${r.target_first_name} ${r.target_last_name ? r.target_last_name[0] + '.' : ''}`
-          : [r.target_first_name, r.target_last_name].filter(Boolean).join(' '),
+        name: targetName,
         role: [r.target_major, r.target_year].filter(Boolean).join(', ') || null,
         pictureUrl: isAnonymous ? null : (r.target_picture_url ?? null),
         isAnonymous,

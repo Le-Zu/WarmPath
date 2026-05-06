@@ -80,13 +80,18 @@ export async function refreshWarmthScoresForUser(userId: string) {
             const target = targetMap.get(p.target.id);
             let finalScore: number;
             let isAi = false;
+            let sourceLabel = '';
 
             if (aiScoreMap.has(p.target.id)) {
                 finalScore = aiScoreMap.get(p.target.id)!;
                 isAi = true;
+                sourceLabel = 'AI calculated';
             } else {
                 finalScore = calculateDeterministicWarmScore(requester, target || {}, intent);
+                sourceLabel = 'deterministic scoring';
             }
+
+            console.log(`[WarmthScorer] Refreshing score for ${p.target.name}: ${finalScore} (${sourceLabel})`);
 
             return basePrisma.warmScores.upsert({
                 where: {

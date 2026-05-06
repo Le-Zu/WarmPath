@@ -285,16 +285,17 @@ app.get('/api/notifications', async (req: AuthRequest, res) => {
 app.patch('/api/notifications/:id', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     try {
         const notification = await basePrisma.notifications.findUnique({
-            where: { notification_id: req.params.id },
+            where: { notification_id: id },
         });
 
         if (!notification) return res.status(404).json({ error: 'Notification not found.' });
         if (notification.user_id !== req.dbUser.user_id) return res.status(403).json({ error: 'Forbidden.' });
 
         const updated = await basePrisma.notifications.update({
-            where: { notification_id: req.params.id },
+            where: { notification_id: id },
             data: { is_read: true },
         });
 
@@ -468,6 +469,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
 app.patch('/api/connections/:id', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     const { status } = req.body;
     if (!['accepted', 'declined'].includes(status)) {
         return res.status(400).json({ error: 'Status must be accepted or declined.' });
@@ -475,7 +477,7 @@ app.patch('/api/connections/:id', async (req: AuthRequest, res) => {
 
     try {
         const conn = await basePrisma.connections.findUnique({
-            where: { connection_id: req.params.id },
+            where: { connection_id: id },
         });
 
         if (!conn) return res.status(404).json({ error: 'Connection not found.' });
@@ -486,7 +488,7 @@ app.patch('/api/connections/:id', async (req: AuthRequest, res) => {
         }
 
         const updated = await basePrisma.connections.update({
-            where: { connection_id: req.params.id },
+            where: { connection_id: id },
             data: {
                 status,
                 ...(status === 'accepted' && { accepted_at: new Date() }),
@@ -572,15 +574,16 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
 app.get('/api/conversations/:id', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     try {
         const membership = await basePrisma.conversationParticipants.findFirst({
-            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+            where: { conversation_id: id, user_id: req.dbUser.user_id },
         });
 
         if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
 
         const conversation = await basePrisma.conversations.findUnique({
-            where: { conversation_id: req.params.id },
+            where: { conversation_id: id },
             include: {
                 participants: {
                     include: {
@@ -626,15 +629,16 @@ app.get('/api/conversations/:id', async (req: AuthRequest, res) => {
 app.get('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     try {
         const membership = await basePrisma.conversationParticipants.findFirst({
-            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+            where: { conversation_id: id, user_id: req.dbUser.user_id },
         });
 
         if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
 
         const messages = await basePrisma.messages.findMany({
-            where: { conversation_id: req.params.id },
+            where: { conversation_id: id },
             orderBy: { sent_at: 'asc' },
             include: {
                 sender: { select: { first_name: true, last_name: true } }
@@ -651,19 +655,20 @@ app.get('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
 app.post('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     const { body, is_warm_intro } = req.body;
     if (!body) return res.status(400).json({ error: 'body is required.' });
 
     try {
         const membership = await basePrisma.conversationParticipants.findFirst({
-            where: { conversation_id: req.params.id, user_id: req.dbUser.user_id },
+            where: { conversation_id: id, user_id: req.dbUser.user_id },
         });
 
         if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
 
         const message = await basePrisma.messages.create({
             data: {
-                conversation_id: req.params.id,
+                conversation_id: id,
                 sender_id: req.dbUser.user_id,
                 body,
                 is_warm_intro: is_warm_intro ?? false,
@@ -680,9 +685,10 @@ app.post('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
 app.get('/api/conversations/:id/preread', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const id = req.params.id as string;
     try {
         const conversation = await basePrisma.conversations.findUnique({
-            where: { conversation_id: req.params.id },
+            where: { conversation_id: id },
             select: { request_id: true }
         });
 
@@ -887,6 +893,7 @@ app.post('/api/paths/assess', async (req: AuthRequest, res) => {
             const intentStr = intent || 'all';
             const updates = pathsMetadata.map((m, i) => {
                 if (!m.targetId) return null;
+                console.log(`[API] AI assessed score for path to ${m.targetId}: ${scores[i]} (AI calculated)`);
                 return basePrisma.warmScores.upsert({
                     where: {
                         uq_warm_score: {
