@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { User } from "lucide-react";
 import apiFetch from "@/services/client";
 import { useUser } from "@/context/UserContext";
 
@@ -467,7 +468,7 @@ export default function OnboardingFlow() {
                            }}
                            onClick={() => document.getElementById('profile-input').click()}
                         >
-                           {!profilePreview && <span style={{ fontSize: '1.5rem' }}>👤</span>}
+                           {!profilePreview && <User size={28} strokeWidth={1.5} color="#7a6f68" />}
                            <div style={{
                               position: 'absolute',
                               bottom: 0,

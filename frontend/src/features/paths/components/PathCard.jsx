@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { User, EyeOff } from 'lucide-react';
 import { IntroRequestModal } from '@/features/intros';
 import { WarmthScore } from '@/features/gemini';
 
@@ -55,10 +56,10 @@ export default function PathCard({ path, score = '...', loading = false }) {
       <div style={{ flex: 1, borderLeft: '1px solid #f0e8e4', paddingLeft: '2.5rem' }}>
         <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
           {path.target.isAnonymous
-            ? <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '1.2rem' }}>🕵️</div>
+            ? <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><EyeOff size={22} strokeWidth={1.75} color="#7a6f68" /></div>
             : path.target.pictureUrl
               ? <img src={path.target.pictureUrl} alt={path.target.name} style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%' }} />
-              : '👤'}
+              : <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={22} strokeWidth={1.75} color="#7a6f68" /></div>}
         </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>
           {path.target.name} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}

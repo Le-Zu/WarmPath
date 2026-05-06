@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Bell } from 'lucide-react';
 import { getNotifications, markRead } from '@/services/notifications';
 
 const TYPE_MAP = {
@@ -46,7 +47,9 @@ export default function NotificationBell({ light }) {
   return (
     <div className="bell-wrap">
       <button className="bell-btn" onClick={() => setOpen(o => !o)}
-        style={{ color: light ? '#5a5550' : 'rgba(242,233,228,0.8)' }}>🔔</button>
+        style={{ color: light ? '#5a5550' : 'rgba(242,233,228,0.8)', display: 'inline-flex', alignItems: 'center' }}>
+        <Bell size={20} strokeWidth={2} />
+      </button>
       {unreadCount > 0 && <span className="bell-badge">{unreadCount}</span>}
       {open && (
         <div className="bell-dropdown">

@@ -227,6 +227,13 @@ export default function AppLayout() {
                                  navigate("/settings");
                               },
                            ],
+                           [
+                              "Help",
+                              () => {
+                                 setMenuOpen(false);
+                                 navigate("/faq");
+                              },
+                           ],
                            ["Log Out", handleLogout],
                         ].map(([label, onClick]) => (
                            <button
