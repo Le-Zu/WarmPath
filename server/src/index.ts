@@ -371,8 +371,8 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
                 status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
-                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
+                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, is_active: true } },
+                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, is_active: true } },
             },
         });
 
