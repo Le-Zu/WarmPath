@@ -869,7 +869,7 @@ app.get('/api/paths', async (req: AuthRequest, res) => {
     const intent = intentParam && VALID_INTENTS.includes(intentParam) ? intentParam : undefined;
 
     try {
-        const paths = await getPathsForUser(req.dbUser.user_id, intent);
+        const paths = await getPathsForUser(req.dbUser.user_id, intent, true);
         console.log(`[GET /api/paths] ${paths.length} paths found for user_id: ${req.dbUser.user_id}${intent ? ` (intent: ${intent})` : ''}`);
         res.json({ paths });
     } catch (error: any) {
