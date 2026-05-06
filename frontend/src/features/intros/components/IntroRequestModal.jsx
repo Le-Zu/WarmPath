@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import apiFetch from '@/services/client';
 
 export default function IntroRequestModal({ path, onClose }) {
@@ -31,7 +32,9 @@ export default function IntroRequestModal({ path, onClose }) {
   if (sent) return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>✅</div>
+        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+          <CheckCircle2 size={48} strokeWidth={1.75} color="#6a994e" />
+        </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.5rem' }}>Request Sent</div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.5rem' }}>
           {path.connector.name} will be notified and can accept or decline.

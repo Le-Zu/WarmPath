@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { User } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
 
@@ -567,7 +568,7 @@ export default function SettingsPage() {
                            }}
                            onClick={() => document.getElementById('profile-input').click()}
                         >
-                           {!profilePreview && <span style={{ fontSize: '1.5rem' }}>👤</span>}
+                           {!profilePreview && <User size={28} strokeWidth={1.5} color="#7a6f68" />}
                            <div style={{
                               position: 'absolute',
                               bottom: 0,

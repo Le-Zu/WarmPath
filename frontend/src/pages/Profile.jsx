@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { User } from "lucide-react";
 import { UserContext } from "@/context/UserContext.jsx";
 import { getConnections, respondToConnection } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
@@ -111,7 +112,7 @@ export default function Profile() {
                         }}
                      />
                   ) : (
-                     <span style={{ fontSize: "2.5rem" }}>👤</span>
+                     <User size={40} strokeWidth={1.5} color="#7a6f68" />
                   )}
                </div>
                <div style={{ flex: 1 }}>
@@ -359,7 +360,7 @@ export default function Profile() {
                                           fontSize: "0.8rem",
                                        }}
                                     >
-                                       👤
+                                       <User size={18} strokeWidth={1.75} color="#7a6f68" />
                                     </div>
                                     <div>
                                        <div
