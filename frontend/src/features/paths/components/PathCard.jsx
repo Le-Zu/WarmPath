@@ -62,26 +62,54 @@ export default function PathCard({ path, score = '...' }) {
         </div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.25rem' }}>{path.target.role}</div>
         
-        {path.target.linkedinUrl && (
-          <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          {path.target.linkedinUrl && (
             <a 
               href={path.target.linkedinUrl} 
               target="_blank" 
               rel="noopener noreferrer"
+              title="LinkedIn Profile"
               style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 
-                gap: '0.4rem', 
                 color: '#0077b5', 
-                fontSize: '0.8rem', 
                 textDecoration: 'none',
-                fontWeight: 500
               }}
             >
-              <span style={{ fontSize: '1rem' }}>🔗</span> LinkedIn Profile
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+              </svg>
             </a>
-          </div>
-        )}
+          )}
+          {path.target.handshakeUrl && (
+            <a 
+              href={path.target.handshakeUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              title="Handshake Profile"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                color: '#ff3b30', 
+                textDecoration: 'none',
+              }}
+            >
+              <div style={{ 
+                width: '20px', 
+                height: '20px', 
+                background: '#ff3b30', 
+                borderRadius: '3px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                fontFamily: 'sans-serif'
+              }}>h</div>
+            </a>
+          )}
+        </div>
 
         <div style={{ marginBottom: '1.25rem' }}>
           <WarmthScore score={score} />

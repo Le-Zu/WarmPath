@@ -28,6 +28,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
           t.year        AS target_year,
           t.bio         AS target_bio,
           t.linkedin_url AS target_linkedin_url,
+          t.handshake_url AS target_handshake_url,
           t.profile_picture_url AS target_picture_url,
           ps_target.discovery_mode AS target_discovery_mode,
           (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
@@ -76,6 +77,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string) {
         role: [r.target_major, r.target_year].filter(Boolean).join(', ') || null,
         pictureUrl: isAnonymous ? null : (r.target_picture_url ?? null),
         linkedinUrl: isAnonymous ? null : (r.target_linkedin_url ?? null),
+        handshakeUrl: isAnonymous ? null : (r.target_handshake_url ?? null),
         isAnonymous,
         },
         strength: Number(r.strength),
