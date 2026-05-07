@@ -37,7 +37,7 @@ body{background:var(--cream);font-family:var(--font-sans);color:var(--charcoal);
 .bell-btn{background:none;border:none;cursor:pointer;color:rgba(242,233,228,0.8);font-size:1.2rem;padding:0.3rem;transition:color 0.15s}
 .bell-btn:hover{color:var(--cream)}
 .bell-badge{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:50%;background:var(--warm);font-size:0.6rem;color:white;display:flex;align-items:center;justify-content:center;font-weight:600}
-.bell-dropdown{position:absolute;right:0;top:calc(100% + 8px);background:var(--white);border:1px solid var(--border);border-radius:2px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.bell-dropdown{position:absolute;right:0;top:calc(100% + 8px);background:var(--white);border:1px solid var(--border);border-radius:2px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:150}
 .bell-item{padding:0.85rem 1rem;border-bottom:1px solid #f0e8e4;font-size:0.82rem;cursor:pointer;transition:background 0.1s;position:relative}
 .bell-item:hover{background:var(--cream)}.bell-item:last-child{border-bottom:none}
 .bell-item.unread{background:rgba(231, 111, 81, 0.04)}

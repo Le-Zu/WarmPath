@@ -103,6 +103,7 @@ export default function AppLayout() {
                padding: "0 2rem",
                height: "68px",
                borderBottom: "1px solid #e8ddd8",
+               zIndex: 100,
             }}
          >
             <NavLink
@@ -208,7 +209,7 @@ export default function AppLayout() {
                            borderRadius: "6px",
                            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                            padding: "0.35rem 0",
-                           zIndex: 50,
+                           zIndex: 150,
                         }}
                      >
                         {[
