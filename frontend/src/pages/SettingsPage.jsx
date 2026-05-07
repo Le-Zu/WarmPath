@@ -15,6 +15,11 @@ import { useToast } from "@/context/ToastContext";
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
+// Lenient LinkedIn URL validation:
+// - empty string clears the field
+// - accepts "linkedin.com/in/username", "www.linkedin.com/in/username", full URLs, etc.
+// - normalizes to canonical "https://www.linkedin.com/<path>"
+// - throws an Error with a user-friendly message if invalid
 const normalizeLinkedinUrl = (input) => {
    const trimmed = (input || "").trim();
    if (!trimmed) return "";
@@ -76,8 +81,35 @@ const FIELD_TAGS = Object.keys(FIELD_MAP);
 
 function Toggle({ on, onToggle, label }) {
    return (
-      <button onClick={onToggle} type="button" aria-label={label} style={{ width: "44px", height: "24px", borderRadius: "12px", border: "none", background: on ? "LightSalmon" : "#ccc", position: "relative", cursor: "pointer", transition: "background 0.2s", flexShrink: 0 }}>
-         <span style={{ position: "absolute", top: "2px", left: on ? "22px" : "2px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+      <button
+         onClick={onToggle}
+         type="button"
+         aria-label={label}
+         style={{
+            width: "44px",
+            height: "24px",
+            borderRadius: "12px",
+            border: "none",
+            background: on ? "LightSalmon" : "#ccc",
+            position: "relative",
+            cursor: "pointer",
+            transition: "background 0.2s",
+            flexShrink: 0,
+         }}
+      >
+         <span
+            style={{
+               position: "absolute",
+               top: "2px",
+               left: on ? "22px" : "2px",
+               width: "20px",
+               height: "20px",
+               borderRadius: "50%",
+               background: "#fff",
+               transition: "left 0.2s",
+               boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            }}
+         />
       </button>
    );
 }
@@ -85,10 +117,46 @@ function Toggle({ on, onToggle, label }) {
 function InfoTooltip({ text }) {
    const [open, setOpen] = useState(false);
    return (
-      <span style={{ position: "relative", display: "inline-flex", marginLeft: "6px", verticalAlign: "middle" }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-         <span style={{ cursor: "help", color: "#6a994e", fontSize: "0.75rem", border: "1px solid #6a994e", borderRadius: "50%", width: "14px", height: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>i</span>
+      <span
+         style={{ position: "relative", display: "inline-flex", marginLeft: "6px", verticalAlign: "middle" }}
+         onMouseEnter={() => setOpen(true)}
+         onMouseLeave={() => setOpen(false)}
+      >
+         <span
+            style={{
+               cursor: "help",
+               color: "#6a994e",
+               fontSize: "0.75rem",
+               border: "1px solid #6a994e",
+               borderRadius: "50%",
+               width: "14px",
+               height: "14px",
+               display: "inline-flex",
+               alignItems: "center",
+               justifyContent: "center",
+               fontWeight: "bold"
+            }}
+         >
+            i
+         </span>
          {open && (
-            <span style={{ position: "absolute", bottom: "120%", left: "50%", transform: "translateX(-50%)", zIndex: 10, width: "200px", padding: "8px", background: "#386641", color: "#fff", fontSize: "0.75rem", borderRadius: "4px", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", pointerEvents: "none" }}>
+            <span
+               style={{
+                  position: "absolute",
+                  bottom: "120%",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 100,
+                  width: "200px",
+                  padding: "8px",
+                  background: "#386641",
+                  color: "#fff",
+                  fontSize: "0.75rem",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  pointerEvents: "none",
+               }}
+            >
                {text}
             </span>
          )}
@@ -98,19 +166,34 @@ function InfoTooltip({ text }) {
 
 export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
-   const navigate = useNavigate();
    const toast = useToast();
    const navigate = useNavigate();
    const [activeTab, setActiveTab] = useState("account");
+   const [showPasswordFields, setShowPasswordFields] = useState(false);
+   const [copied, setCopied] = useState(false);
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
    const [deleteText, setDeleteText] = useState("");
-   const [isSaving, setIsSaving] = useState(false);
+   const [hoveredSave, setHoveredSave] = useState(false);
+   const [hoveredDelete, setHoveredDelete] = useState(false);
    const [hoveredDeleteConfirm, setHoveredDeleteConfirm] = useState(false);
+   const [isSaving, setIsSaving] = useState(false);
    
    const [form, setForm] = useState({
-      firstName: "", lastName: "", bio: "", major: "", year: "",
-      linkedinUrl: "", handshakeUrl: "", profilePictureUrl: "", bannerPictureUrl: "",
-      selectedGoals: [], selectedFields: [], experiences: [],
+      firstName: "",
+      lastName: "",
+      bio: "",
+      major: "",
+      year: "",
+      linkedinUrl: "",
+      handshakeUrl: "",
+      profilePictureUrl: "",
+      bannerPictureUrl: "",
+      selectedGoals: [],
+      selectedFields: [],
+      experiences: [],
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
    });
 
    const [privacyForm, setPrivacyForm] = useState({
@@ -126,7 +209,8 @@ export default function SettingsPage() {
 
    useEffect(() => {
       if (currentUser) {
-         setForm({
+         setForm(f => ({
+            ...f,
             firstName: currentUser.first_name || "",
             lastName: currentUser.last_name || "",
             bio: currentUser.bio || "",
@@ -139,7 +223,7 @@ export default function SettingsPage() {
             selectedGoals: currentUser.interests?.filter(i => GOAL_TAGS.includes(i.label)).map(i => i.label) || [],
             selectedFields: currentUser.interests?.filter(i => FIELD_TAGS.includes(i.label)).map(i => i.label) || [],
             experiences: currentUser.experiences || [],
-         });
+         }));
          setPrivacyForm({
             who_can_request: currentUser.privacy_settings?.who_can_request || "connections_of_connections",
             discovery_mode: currentUser.privacy_settings?.discovery_mode || "full",
@@ -150,8 +234,11 @@ export default function SettingsPage() {
       }
    }, [currentUser]);
 
-   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-   const setPrivacy = (field) => (val) => setPrivacyForm((f) => ({ ...f, [field]: val }));
+   const set = (field) => (e) =>
+      setForm((f) => ({ ...f, [field]: e.target.value }));
+   
+   const setPrivacy = (field) => (val) =>
+      setPrivacyForm((f) => ({ ...f, [field]: val }));
 
    const toggleTag = (field, tag) => {
       setForm((f) => {
@@ -168,61 +255,133 @@ export default function SettingsPage() {
          return { ...f, experiences };
       });
 
-   const addExperience = () => setForm((f) => ({ ...f, experiences: [...f.experiences, { title: "", organization: "", description: "" }] }));
-   const removeExperience = (index) => setForm((f) => ({ ...f, experiences: f.experiences.filter((_, i) => i !== index) }));
+   const addExperience = () =>
+      setForm((f) => ({
+         ...f,
+         experiences: [...f.experiences, { title: "", organization: "", description: "" }],
+      }));
+
+   const removeExperience = (index) =>
+      setForm((f) => ({
+         ...f,
+         experiences: f.experiences.filter((_, i) => i !== index),
+      }));
+
+   const passwordsMatch =
+      form.newPassword === form.confirmPassword && form.newPassword.length >= 8;
 
    const handleImageChange = (type) => (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
       reader.onloadend = () => {
-         if (type === 'profile') { setProfileFile(file); setProfilePreview(reader.result); }
-         else { setBannerFile(file); setBannerPreview(reader.result); }
+         if (type === 'profile') {
+            setProfileFile(file);
+            setProfilePreview(reader.result);
+         } else {
+            setBannerFile(file);
+            setBannerPreview(reader.result);
+         }
       };
       reader.readAsDataURL(file);
    };
 
    const handleRemoveImage = (type) => {
-      if (type === 'profile') { setProfileFile(null); setProfilePreview(""); setForm(f => ({ ...f, profilePictureUrl: "" })); }
-      else { setBannerFile(null); setBannerPreview(""); setForm(f => ({ ...f, bannerPictureUrl: "" })); }
+      if (type === 'profile') {
+         setProfileFile(null);
+         setProfilePreview("");
+         setForm(f => ({ ...f, profilePictureUrl: "" }));
+      } else {
+         setBannerFile(null);
+         setBannerPreview("");
+         setForm(f => ({ ...f, bannerPictureUrl: "" }));
+      }
    };
 
    const uploadImage = async (file) => {
       if (!file) return null;
+      
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", UPLOAD_PRESET);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Failed to upload image");
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+         method: "POST",
+         body: formData,
+      });
+
+      if (!res.ok) {
+         const error = await res.json();
+         throw new Error(error.message || "Failed to upload image to Cloudinary");
+      }
+
       const data = await res.json();
-      return data.secure_url;
+      return data.secure_url; // This is the optimized URL
    };
 
+   const canSave =
+      !isSaving &&
+      (activeTab === "account" ? (
+         form.firstName.trim() &&
+         form.lastName.trim() &&
+         (!showPasswordFields || (form.currentPassword && passwordsMatch))
+      ) : true);
+
    const handleSave = async () => {
-      if (isSaving) return;
+      if (!canSave) return;
       setIsSaving(true);
       try {
          if (activeTab === "account") {
-            let linkedinUrl = normalizeLinkedinUrl(form.linkedinUrl);
-            let handshakeUrl = normalizeHandshakeUrl(form.handshakeUrl);
-            let profileUrl = profileFile ? await uploadImage(profileFile) : form.profilePictureUrl;
-            let bannerUrl = bannerFile ? await uploadImage(bannerFile) : form.bannerPictureUrl;
+            // Validate LinkedIn URL before any uploads so we fail fast.
+            let linkedinUrl;
+            let handshakeUrl;
+            try {
+               linkedinUrl = normalizeLinkedinUrl(form.linkedinUrl);
+               handshakeUrl = normalizeHandshakeUrl(form.handshakeUrl);
+            } catch (err) {
+               toast(err.message);
+               setIsSaving(false);
+               return;
+            }
 
+            let profileUrl = form.profilePictureUrl;
+            let bannerUrl = form.bannerPictureUrl;
+
+            if (profileFile) {
+               profileUrl = await uploadImage(profileFile);
+            }
+            if (bannerFile) {
+               bannerUrl = await uploadImage(bannerFile);
+            }
+
+            // 1. Basic Info
             await apiFetch('/api/me', {
                method: 'PATCH',
                body: JSON.stringify({
-                  first_name: form.firstName, last_name: form.lastName, bio: form.bio,
-                  major: form.major, year: form.year, linkedin_url: linkedinUrl,
-                  handshake_url: handshakeUrl, profile_picture_url: profileUrl, banner_picture_url: bannerUrl,
+                  first_name: form.firstName,
+                  last_name: form.lastName,
+                  bio: form.bio,
+                  major: form.major,
+                  year: form.year,
+                  linkedin_url: linkedinUrl,
+                  handshake_url: handshakeUrl,
+                  profile_picture_url: profileUrl,
+                  banner_picture_url: bannerUrl,
                }),
             });
 
+            // 2. Interests
             const interests = [
                ...form.selectedGoals.map(g => ({ category: INTENT_MAP[g], label: g })),
                ...form.selectedFields.map(f => ({ category: FIELD_MAP[f], label: f })),
             ];
-            await apiFetch('/api/me/interests', { method: 'POST', body: JSON.stringify({ interests }) });
+            await apiFetch('/api/me/interests', {
+               method: 'POST',
+               body: JSON.stringify({ interests }),
+            });
 
+            // 3. Experiences
             const validExperiences = form.experiences.filter(e => e.title && e.organization);
             await apiFetch('/api/me/experiences', {
                method: 'POST',
@@ -250,14 +409,17 @@ export default function SettingsPage() {
             setShowPasswordFields(false);
             setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
          } else {
-            await apiFetch('/api/me/privacy', { method: 'PATCH', body: JSON.stringify(privacyForm) });
+            await apiFetch('/api/me/privacy', {
+               method: 'PATCH',
+               body: JSON.stringify(privacyForm),
+            });
          }
 
          await refreshUser();
-         window.dispatchEvent(new CustomEvent('dev-users-updated'));
          toast("Settings saved successfully!");
       } catch (err) {
-         toast(err.message, "error");
+         console.error("Failed to save settings:", err);
+         toast("Failed to save settings: " + err.message, "error");
       } finally {
          setIsSaving(false);
       }
@@ -327,18 +489,76 @@ export default function SettingsPage() {
       marginTop: "0.25rem",
    };
 
-   const inputStyle = { backgroundColor: "#f2e9e4", width: "100%", padding: "1rem", borderRadius: "8px", border: "1px solid #d88c9a", fontSize: "1rem" };
-   const labelStyle = { display: "block", fontSize: "0.85rem", color: "#386641", marginBottom: "0.35rem", fontWeight: "500" };
-   const tagStyle = (sel) => ({ padding: "0.45rem 1rem", fontSize: "0.85rem", borderRadius: "20px", cursor: "pointer", border: "1px solid", borderColor: sel ? "LightSalmon" : "#d88c9a", background: sel ? "LightSalmon" : "#fff", color: sel ? "#fff" : "#386641" });
+   const tagStyle = (selected) => ({
+      padding: "0.45rem 1rem",
+      fontSize: "0.85rem",
+      borderRadius: "20px",
+      cursor: "pointer",
+      border: "1px solid",
+      borderColor: selected ? "LightSalmon" : "#d88c9a",
+      background: selected ? "LightSalmon" : "#fff",
+      color: selected ? "#fff" : "#386641",
+      transition: "all 0.15s",
+   });
+
+   const toggleRowStyle = {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "1rem",
+   };
 
    return (
-      <div style={{ minHeight: "100vh", background: "#f2e9e4", padding: "2rem 20px" }}>
-         <div style={{ display: "flex", justifyContent: "center" }}>
-            <div style={{ width: "520px", maxWidth: "100%", boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)", padding: "45px 25px", borderRadius: "10px", background: "#fff" }}>
-               <h2 style={{ fontSize: "1.5rem" }}>Settings</h2>
-               <div style={{ display: 'flex', borderBottom: '1px solid #d88c9a', margin: '1.5rem 0' }}>
+      <div
+         style={{
+            minHeight: "100vh",
+            background: "#f2e9e4",
+            fontFamily: "sans-serif",
+            color: "#386641",
+         }}
+      >
+         {/* Settings card */}
+         <div
+            style={{
+               display: "flex",
+               justifyContent: "center",
+               padding: "2rem 20px",
+            }}
+         >
+            <div
+               style={{
+                  width: "520px",
+                  maxWidth: "100%",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
+                  padding: "45px 25px",
+                  borderRadius: "10px",
+                  background: "#fff",
+               }}
+            >
+               <h2 style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>Settings</h2>
+               <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+                  Manage your account and privacy preferences.
+               </p>
+
+               {/* Tab Navigation */}
+               <div style={{ display: 'flex', borderBottom: '1px solid #d88c9a', marginBottom: '2rem' }}>
                   {['account', 'privacy'].map(tab => (
-                     <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', border: 'none', background: 'none', borderBottom: activeTab === tab ? '2px solid LightSalmon' : 'none', color: activeTab === tab ? 'LightSalmon' : '#386641', cursor: 'pointer', fontWeight: activeTab === tab ? 'bold' : 'normal' }}>{tab}</button>
+                     <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        style={{
+                           padding: '10px 20px',
+                           border: 'none',
+                           background: 'none',
+                           borderBottom: activeTab === tab ? '2px solid LightSalmon' : 'none',
+                           color: activeTab === tab ? 'LightSalmon' : '#386641',
+                           cursor: 'pointer',
+                           fontWeight: activeTab === tab ? 'bold' : 'normal',
+                           textTransform: 'capitalize'
+                        }}
+                     >
+                        {tab}
+                     </button>
                   ))}
                </div>
 
@@ -637,19 +857,119 @@ export default function SettingsPage() {
                   </>
                ) : (
                   <>
+                     <h3 style={sectionHeadingStyle}>Privacy Settings</h3>
+                     <p style={{ fontSize: '0.9rem', color: '#6a994e', marginBottom: '1.5rem' }}>
+                        Control how you appear to others and who can interact with you.
+                     </p>
+
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Discovery Mode <InfoTooltip text="Full, Anonymous, or Hidden." /></label>
-                        <select style={inputStyle} value={privacyForm.discovery_mode} onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}><option value="full">Full Profile</option><option value="anonymous">Anonymous</option><option value="hidden">Hidden</option></select>
+                        <label style={labelStyle}>
+                           Discovery Mode
+                           <InfoTooltip text="'Full' shows your full name/photo. 'Anonymous' hides your last name/photo to prevent LinkedIn bypass. 'Hidden' removes you from discovery." />
+                        </label>
+                        <select 
+                           style={inputStyle} 
+                           value={privacyForm.discovery_mode} 
+                           onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
+                        >
+                           <option value="full">Full Profile</option>
+                           <option value="anonymous">Anonymous (Blind Profile)</option>
+                           <option value="hidden">Hidden</option>
+                        </select>
+                        <p style={helperStyle}>How you appear in warm path discovery results.</p>
+                     </div>
+
+                     <div style={toggleRowStyle}>
+                        <div>
+                           <label style={{ ...labelStyle, marginBottom: 0 }}>
+                              Allow Connector Prompts
+                              <InfoTooltip text="Let mutual connections suggest you as a target for people looking for introductions." />
+                           </label>
+                           <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
+                        </div>
+                        <Toggle 
+                           on={privacyForm.allow_connector_prompts} 
+                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)} 
+                        />
+                     </div>
+
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={labelStyle}>
+                           Who can request introductions?
+                           <InfoTooltip text="'Connections of Connections' (2nd degree) is the default. 'Nobody' acts as a Do Not Disturb mode." />
+                        </label>
+                        <select 
+                           style={inputStyle} 
+                           value={privacyForm.who_can_request} 
+                           onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
+                        >
+                           <option value="anyone">Anyone</option>
+                           <option value="connections">Direct Connections Only</option>
+                           <option value="connections_of_connections">Connections of Connections</option>
+                           <option value="nobody">Nobody (DND)</option>
+                        </select>
+                        <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
                      </div>
                   </>
                )}
 
-               <button disabled={isSaving} onClick={handleSave} style={{ marginTop: "2rem", width: "100%", padding: "1rem", borderRadius: "100px", background: "LightSalmon", color: "#fff", fontWeight: "bold", border: "none", cursor: "pointer" }}>{isSaving ? "Saving..." : "Save Changes"}</button>
+               {/* Save */}
+               <hr style={dividerStyle} />
+               <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                     disabled={!canSave}
+                     onClick={handleSave}
+                     onMouseEnter={() => setHoveredSave(true)}
+                     onMouseLeave={() => setHoveredSave(false)}
+                     style={{
+                        backgroundColor: !canSave ? "#ccc" : hoveredSave ? "#e8825a" : "LightSalmon",
+                        padding: "1rem 2rem",
+                        borderRadius: "100px",
+                        border: "1px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        cursor: canSave ? "pointer" : "not-allowed",
+                        transition: "background-color 0.1s",
+                        color: "#fff",
+                     }}
+                  >
+                     {isSaving ? "Saving..." : "Save Changes"}
+                  </button>
+               </div>
 
+               {/* Danger Zone */}
                {activeTab === 'account' && (
-                  <div style={{ marginTop: "2rem", padding: "1.5rem", border: "1px solid Tomato", borderRadius: "10px" }}>
-                     <h3 style={{ color: "Tomato", marginBottom: "0.5rem" }}>Danger Zone</h3>
-                     {!showDeleteConfirm ? <button onClick={() => setShowDeleteConfirm(true)} style={{ background: "Tomato", color: "#fff", border: "none", padding: "0.6rem 1.2rem", borderRadius: "100px", cursor: "pointer" }}>Delete Account</button> : (
+                  <div
+                     style={{
+                        marginTop: "2rem",
+                        padding: "1.25rem",
+                        border: "1px solid Tomato",
+                        borderRadius: "10px",
+                     }}
+                  >
+                     <h3 style={{ fontSize: "1.1rem", color: "Tomato", marginBottom: "0.75rem" }}>
+                        Danger Zone
+                     </h3>
+                     {!showDeleteConfirm ? (
+                        <button
+                           onClick={() => setShowDeleteConfirm(true)}
+                           onMouseEnter={() => setHoveredDelete(true)}
+                           onMouseLeave={() => setHoveredDelete(false)}
+                           style={{
+                              backgroundColor: hoveredDelete ? "#c0392b" : "Tomato",
+                              padding: "0.75rem 1.5rem",
+                              borderRadius: "100px",
+                              border: "none",
+                              fontSize: "0.9rem",
+                              fontWeight: "bold",
+                              cursor: "pointer",
+                              color: "#fff",
+                              transition: "background-color 0.1s",
+                           }}
+                        >
+                           Delete Account
+                        </button>
+                     ) : (
                         <div>
                            <p style={{ fontSize: "0.9rem", marginBottom: "0.75rem" }}>
                               This will permanently delete your account and all your data.
