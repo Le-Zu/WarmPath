@@ -4,6 +4,7 @@ import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
+import LoadingScreen from "@/components/LoadingScreen";
 
 // Human-readable label for each intent enum value
 const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
@@ -25,20 +26,21 @@ const INTENT_DISPLAY = {
 export default function Paths() {
    const [searchParams, setSearchParams] = useSearchParams();
    const navigate = useNavigate();
-   const intent = searchParams.get("intent") || null;
+   const rawIntent = searchParams.get("intent");
+   // Default to internship if missing or invalid
+   const intent = rawIntent || "internship";
 
    const activeIntent =
-      INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) ?? null;
+      INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) || "Internship";
 
    const { paths, loading, error, refresh } = usePaths(intent);
    const toast = useToast();
 
    const handleIntentClick = (label) => {
-      if (activeIntent === label) {
-         setSearchParams({});
-      } else {
-         navigate("/paths?intent=" + INTENT_MAP[label]);
-      }
+      // If clicking the already active one, do nothing (no unselecting)
+      if (activeIntent === label) return;
+      
+      navigate("/paths?intent=" + INTENT_MAP[label]);
    };
 
    const [showAddForm, setShowAddForm] = useState(false);
@@ -73,6 +75,8 @@ export default function Paths() {
    };
 
    const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
+
+   if (loading && paths.length === 0) return <LoadingScreen page="paths" />;
 
    return (
       <div className="app-page">

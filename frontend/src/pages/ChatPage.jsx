@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { useSocket } from "@/context/SocketContextInstance";
 import { useUser } from "@/context/UserContext";
+import { WarmthScore } from "@/features/gemini";
 import { useChat } from "@/hooks/useChat";
 
 export default function ChatPage() {
@@ -79,6 +80,12 @@ export default function ChatPage() {
             <div className="app-page-title" style={{ marginBottom: 0 }}>
                Chat
             </div>
+            {conversation?.warm_score && (
+               <div style={{ marginLeft: "1.5rem", display: "flex", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Warmth</span>
+                  <WarmthScore score={conversation.warm_score} />
+               </div>
+            )}
             <button
                onClick={handleLeaveChat}
                style={{

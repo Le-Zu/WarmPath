@@ -2,6 +2,7 @@ import { useState } from 'react';
 import MessageDiff from '@/components/MessageDiff';
 import { useIncomingRequests } from '@/hooks/useIncomingRequests';
 import { useToast } from '@/context/ToastContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
 function RequestCard({ r, onUpdate, patchRequest }) {
   const toast = useToast();
@@ -123,7 +124,7 @@ function RequestCard({ r, onUpdate, patchRequest }) {
 export default function Requests() {
   const { requests, loading, error, updateRequestStatus, patchRequest } = useIncomingRequests();
 
-  if (loading) return <div className="app-page">Loading inbox...</div>;
+  if (loading) return <LoadingScreen page="requests" />;
   if (error)   return <div className="app-page">Failed to load requests.</div>;
 
   return (
