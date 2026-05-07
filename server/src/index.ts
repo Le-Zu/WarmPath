@@ -36,6 +36,91 @@ app.get('/api/ping', (req, res) => {
 // Use dbUserMiddleware after verifyToken to populate the user's DB ID for RLS
 app.use('/api', verifyToken, dbUserMiddleware);
 
+// Helper function to delete a user and all their data
+async function deleteUserAccount(userId: string, firebaseUid: string | null) {
+    // Run everything in a transaction to ensure atomic deletion
+    await basePrisma.$transaction(async (tx) => {
+        // 1. Delete notifications
+        await tx.notifications.deleteMany({ where: { user_id: userId } });
+
+        // 2. Delete warmth scores
+        await tx.warmScores.deleteMany({ 
+            where: { OR: [{ requester_id: userId }, { target_id: userId }] } 
+        });
+
+        // 3. Handle Conversations & Messages
+        const participations = await tx.conversationParticipants.findMany({
+            where: { user_id: userId },
+            select: { conversation_id: true }
+        });
+        const conversationIds = participations.map(p => p.conversation_id);
+
+        await tx.messages.deleteMany({
+            where: { conversation_id: { in: conversationIds } }
+        });
+        await tx.conversationParticipants.deleteMany({
+            where: { conversation_id: { in: conversationIds } }
+        });
+        await tx.conversations.deleteMany({
+            where: { conversation_id: { in: conversationIds } }
+        });
+
+        // 4. Delete Context Prereads
+        await tx.contextPrereads.deleteMany({
+            where: { OR: [{ recipient_id: userId }, { subject_id: userId }] }
+        });
+
+        // 5. Delete Connector Prompts
+        await tx.connectorPrompts.deleteMany({
+            where: { OR: [{ connector_id: userId }, { volunteered_target_id: userId }] }
+        });
+
+        // 6. Delete Intro Requests
+        await tx.introRequests.deleteMany({
+            where: { OR: [
+                { requester_id: userId },
+                { connector_id: userId },
+                { target_id: userId }
+            ]}
+        });
+
+        // 7. Delete Connections
+        await tx.connections.deleteMany({
+            where: { OR: [{ user_id_a: userId }, { user_id_b: userId }] }
+        });
+
+        // 8. Delete Intents
+        await tx.intents.deleteMany({ where: { user_id: userId } });
+
+        // 9. Delete Profile Data
+        await tx.userInterests.deleteMany({ where: { user_id: userId } });
+        await tx.userExperiences.deleteMany({ where: { user_id: userId } });
+        
+        try {
+            await tx.privacySettings.delete({ where: { user_id: userId } });
+        } catch (e) {
+            // Might not exist yet
+        }
+
+        // 10. Delete the User record
+        await tx.users.delete({ where: { user_id: userId } });
+    });
+
+    // 11. Delete from Firebase if applicable
+    if (firebaseUid && !firebaseUid.startsWith('dev-')) {
+        const { adminAuth } = await import('./config/firebase');
+        try {
+            await adminAuth.deleteUser(firebaseUid);
+            console.log(`[deleteUserAccount] Firebase user deleted: ${firebaseUid}`);
+        } catch (fbError: any) {
+            // If user doesn't exist in Firebase anymore, that's okay
+            if (fbError.code !== 'auth/user-not-found') {
+                console.error('[deleteUserAccount] Firebase deletion error:', fbError);
+            }
+        }
+    }
+}
+
 app.get('/api/test-auth', (req: AuthRequest, res) => {
 
     const userUid = req.user?.uid;
@@ -841,6 +926,13 @@ app.get('/api/dev/users', async (req: AuthRequest, res) => {
                 last_name: true,
                 major: true,
                 year: true,
+                firebase_uid: true,
+                is_active: true,
+                privacy_settings: {
+                    select: {
+                        discovery_mode: true
+                    }
+                }
             },
             orderBy: [{ first_name: 'asc' }, { last_name: 'asc' }],
         });
@@ -1061,6 +1153,54 @@ app.patch('/api/me/privacy', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error('[PATCH /api/me/privacy] Error:', error);
         res.status(500).json({ error: 'Failed to update privacy settings', details: error.message });
+    }
+});
+
+// Permanently deletes the authenticated user's account and all associated data
+app.delete('/api/me', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+    
+    const userId = req.dbUser.user_id;
+    const firebaseUid = req.dbUser.firebase_uid;
+
+    console.log(`[DELETE /api/me] Starting deletion for user: ${req.dbUser.email} (ID: ${userId})`);
+
+    try {
+        await deleteUserAccount(userId, firebaseUid);
+        console.log(`[DELETE /api/me] Account successfully deleted for: ${userId}`);
+        res.status(200).json({ message: 'Account deleted successfully.' });
+
+    } catch (error: any) {
+        console.error('[DELETE /api/me] Deletion failed:', error);
+        res.status(500).json({ error: 'Failed to delete account', details: error.message });
+    }
+});
+
+// Admin-only (dev) deletion of any user
+app.delete('/api/dev/users/:id', async (req: AuthRequest, res) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'Not available in production.' });
+    }
+
+    const targetId = req.params.id;
+    
+    try {
+        const user = await basePrisma.users.findUnique({
+            where: { user_id: targetId },
+            select: { user_id: true, email: true, firebase_uid: true }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        console.log(`[DELETE /api/dev/users/:id] Admin deleting user: ${user.email} (ID: ${targetId})`);
+        await deleteUserAccount(user.user_id, user.firebase_uid);
+        
+        res.status(200).json({ message: 'User deleted successfully.' });
+    } catch (error: any) {
+        console.error('[DELETE /api/dev/users/:id] Error:', error);
+        res.status(500).json({ error: 'Failed to delete user', details: error.message });
     }
 });
 
