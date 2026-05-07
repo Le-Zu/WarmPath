@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useConversations } from '@/hooks/useConversations';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Conversations() {
   const { conversations, loading, error } = useConversations();
   const navigate = useNavigate();
 
-  if (loading) return <div className="app-page">Loading conversations...</div>;
+  if (loading) return <LoadingScreen page="chats" />;
   if (error) return <div className="app-page">Failed to load conversations.</div>;
 
   return (

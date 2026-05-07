@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import MessageDiff from '@/components/MessageDiff';
 import { timeAgo } from '@/utils/formatters';
 import { useOutgoingRequests } from '@/hooks/useOutgoingRequests';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const tabs = ['all', 'pending', 'approved', 'declined'];
 
@@ -11,7 +12,7 @@ export default function MyRequests() {
   const [tab, setTab] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
 
-  if (loading) return <div className="app-page">Loading requests...</div>;
+  if (loading) return <LoadingScreen page="myRequests" />;
   if (error)   return <div className="app-page">Failed to load requests.</div>;
 
   const filtered = tab === 'all' ? requests : requests.filter(r => r.status === tab);
