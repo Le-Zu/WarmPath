@@ -187,6 +187,7 @@ model Users {
   major            String?       @db.VarChar(100)
   bio              String?       @db.Text
   linkedin_url     String?       @db.VarChar(500)
+  handshake_url    String?       @db.VarChar(500)
   resume_url       String?       @db.VarChar(500)
   profile_picture_url String?    @db.VarChar(500)
   banner_picture_url  String?    @db.VarChar(500)

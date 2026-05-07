@@ -29,6 +29,23 @@ const normalizeLinkedinUrl = (input) => {
    return `https://www.linkedin.com${path}`;
 };
 
+const normalizeHandshakeUrl = (input) => {
+   const trimmed = (input || "").trim();
+   if (!trimmed) return "";
+   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+   let url;
+   try {
+      url = new URL(withProtocol);
+   } catch {
+      throw new Error("Please enter a valid Handshake URL (e.g., app.joinhandshake.com/profiles/yourname).");
+   }
+   if (!/(^|\.)joinhandshake\.com$/i.test(url.hostname)) {
+      throw new Error("Please enter a valid Handshake URL (e.g., app.joinhandshake.com/profiles/yourname).");
+   }
+   const path = url.pathname.replace(/\/$/, "");
+   return `https://app.joinhandshake.com${path}`;
+};
+
 const INTENT_MAP = {
    'Internship': 'internship',
    'Research':   'research',
@@ -159,6 +176,7 @@ export default function SettingsPage() {
       major: "",
       year: "",
       linkedinUrl: "",
+      handshakeUrl: "",
       profilePictureUrl: "",
       bannerPictureUrl: "",
       selectedGoals: [],
@@ -190,6 +208,7 @@ export default function SettingsPage() {
             major: currentUser.major || "",
             year: currentUser.year || "",
             linkedinUrl: currentUser.linkedin_url || "",
+            handshakeUrl: currentUser.handshake_url || "",
             profilePictureUrl: currentUser.profile_picture_url || "",
             bannerPictureUrl: currentUser.banner_picture_url || "",
             selectedGoals: currentUser.interests?.filter(i => GOAL_TAGS.includes(i.label)).map(i => i.label) || [],
@@ -307,8 +326,10 @@ export default function SettingsPage() {
          if (activeTab === "account") {
             // Validate LinkedIn URL before any uploads so we fail fast.
             let linkedinUrl;
+            let handshakeUrl;
             try {
                linkedinUrl = normalizeLinkedinUrl(form.linkedinUrl);
+               handshakeUrl = normalizeHandshakeUrl(form.handshakeUrl);
             } catch (err) {
                toast(err.message);
                setIsSaving(false);
@@ -335,6 +356,7 @@ export default function SettingsPage() {
                   major: form.major,
                   year: form.year,
                   linkedin_url: linkedinUrl,
+                  handshake_url: handshakeUrl,
                   profile_picture_url: profileUrl,
                   banner_picture_url: bannerUrl,
                }),
@@ -655,6 +677,17 @@ export default function SettingsPage() {
                            value={form.linkedinUrl}
                            onChange={set("linkedinUrl")}
                            placeholder="linkedin.com/in/yourname"
+                        />
+                     </div>
+
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={labelStyle}>Handshake URL</label>
+                        <input
+                           style={inputStyle}
+                           type="url"
+                           value={form.handshakeUrl}
+                           onChange={set("handshakeUrl")}
+                           placeholder="app.joinhandshake.com/profiles/yourname"
                         />
                      </div>
 

@@ -371,8 +371,8 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
                 status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
-                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, is_active: true } },
+                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
+                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
             },
         });
 
@@ -1004,7 +1004,7 @@ app.post('/api/me/experiences', async (req: AuthRequest, res) => {
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'handshake_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {

@@ -55,6 +55,7 @@ const makeDevUser = (email: string) => ({
     year: 'Senior',
     bio: 'Synthetic developer account for local testing.',
     linkedin_url: null,
+    handshake_url: null,
     resume_url: null,
     profile_picture_url: null,
     banner_picture_url: null,
