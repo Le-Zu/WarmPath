@@ -57,10 +57,9 @@ const normalizeHandshakeUrl = (input) => {
 const INTENT_MAP = {
    'Internship': 'internship',
    'Research':   'research',
-   'Study Group': 'class',
+   'Class Help': 'class',
    'Club':       'club',
-   'Mentorship': 'skill',
-   'Side Project': 'project',
+   'Skill':      'skill',
 };
 
 const FIELD_MAP = {
@@ -865,15 +864,15 @@ export default function SettingsPage() {
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Discovery Mode
-                           <InfoTooltip text="'Full' shows your full name/photo. 'Anonymous' hides your last name/photo to prevent LinkedIn bypass. 'Hidden' removes you from discovery." />
+                           <InfoTooltip text="Visible: full name and photo shown. Anonymous: shows your first name and the first letter of your last name; photo is hidden until you approve an intro. Hidden: removes you from search and path discovery entirely." />
                         </label>
-                        <select 
-                           style={inputStyle} 
-                           value={privacyForm.discovery_mode} 
+                        <select
+                           style={inputStyle}
+                           value={privacyForm.discovery_mode}
                            onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
                         >
-                           <option value="full">Full Profile</option>
-                           <option value="anonymous">Anonymous (Blind Profile)</option>
+                           <option value="full">Visible</option>
+                           <option value="anonymous">Anonymous</option>
                            <option value="hidden">Hidden</option>
                         </select>
                         <p style={helperStyle}>How you appear in warm path discovery results.</p>
@@ -883,30 +882,30 @@ export default function SettingsPage() {
                         <div>
                            <label style={{ ...labelStyle, marginBottom: 0 }}>
                               Allow Connector Prompts
-                              <InfoTooltip text="Let mutual connections suggest you as a target for people looking for introductions." />
+                              <InfoTooltip text="When someone is searching for a contact you're connected to, we may suggest you as a possible connector. Turn off to opt out." />
                            </label>
                            <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
                         </div>
-                        <Toggle 
-                           on={privacyForm.allow_connector_prompts} 
-                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)} 
+                        <Toggle
+                           on={privacyForm.allow_connector_prompts}
+                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)}
                         />
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Who can request introductions?
-                           <InfoTooltip text="'Connections of Connections' (2nd degree) is the default. 'Nobody' acts as a Do Not Disturb mode." />
+                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). No one pauses all incoming intro requests until you change it back." />
                         </label>
-                        <select 
-                           style={inputStyle} 
-                           value={privacyForm.who_can_request} 
+                        <select
+                           style={inputStyle}
+                           value={privacyForm.who_can_request}
                            onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
                         >
                            <option value="anyone">Anyone</option>
-                           <option value="connections">Direct Connections Only</option>
-                           <option value="connections_of_connections">Connections of Connections</option>
-                           <option value="nobody">Nobody (DND)</option>
+                           <option value="connections">Direct connections</option>
+                           <option value="connections_of_connections">Friends of friends</option>
+                           <option value="nobody">No one</option>
                         </select>
                         <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
                      </div>

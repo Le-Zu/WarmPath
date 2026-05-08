@@ -3,6 +3,13 @@ import { User, EyeOff } from 'lucide-react';
 import { IntroRequestModal } from '@/features/intros';
 import { WarmthScore } from '@/features/gemini';
 
+// Derive 1-2 letter initials from a full name. Falls back to "?" if empty.
+const initials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+};
+
 export default function PathCard({ path, score = '...' }) {
   const [open, setOpen] = useState(false);
 
@@ -11,7 +18,7 @@ export default function PathCard({ path, score = '...' }) {
       <div className="path-chain path-chain-fixed">
         {/* You Node */}
         <div className="path-node">
-          <div className="path-dot you">YOU</div>
+          <div className="path-dot you" title="You">YOU</div>
           <div><div className="path-node-label">You</div></div>
         </div>
 
@@ -25,7 +32,7 @@ export default function PathCard({ path, score = '...' }) {
 
         {/* Connector Node */}
         <div className="path-node">
-          <div className="path-dot connector">CON</div>
+          <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>{initials(path.connector.name)}</div>
           <div>
             <div className="path-node-label">{path.connector.name}</div>
           </div>
@@ -41,7 +48,7 @@ export default function PathCard({ path, score = '...' }) {
 
         {/* Target Node (Chain only shows Name now) */}
         <div className="path-node">
-          <div className="path-dot target">TGT</div>
+          <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>{initials(path.target.name)}</div>
           <div>
             <div className="path-node-label">{path.target.name}</div>
           </div>

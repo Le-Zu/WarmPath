@@ -11,13 +11,13 @@ export default function Conversations() {
 
   return (
     <div className="app-page">
-      <div className="app-eyebrow">— Your active chats</div>
+      <div className="app-eyebrow">— Your active chats —</div>
       <div className="app-page-title">Conversations</div>
       <div className="app-page-sub">Direct communication with your connections.</div>
 
       <div style={{ marginTop: '2rem' }}>
         {conversations.length === 0 ? (
-          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>No active conversations yet.</div>
+          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>No active conversations yet. They start when an intro request is approved.</div>
         ) : (
           conversations.map((conv) => (
             <div 

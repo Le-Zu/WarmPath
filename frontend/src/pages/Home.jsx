@@ -9,7 +9,7 @@ const intents = [
   { id: 'internship', icon: Briefcase,  label: 'Internship', desc: 'Find someone with industry experience in your target field' },
   { id: 'research',   icon: Microscope, label: 'Research',   desc: 'Connect with a professor or lab doing work you care about' },
   { id: 'class',      icon: BookOpen,   label: 'Class Help', desc: 'Get connected to someone who aced the course you\'re struggling in' },
-  { id: 'club',       icon: Users,      label: 'Club / Org', desc: 'Find a warm intro into a club, team, or student org' },
+  { id: 'club',       icon: Users,      label: 'Club',       desc: 'Find a warm intro into a club, team, or student org' },
   { id: 'skill',      icon: Wrench,     label: 'Skill',      desc: 'Learn a new skill from someone in your network' },
 ];
 

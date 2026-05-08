@@ -188,7 +188,7 @@ export default function Profile() {
                         onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
                      >
-                        Edit Profile
+                        Edit in Settings
                      </button>
                   </div>
                </div>
@@ -347,7 +347,8 @@ export default function Profile() {
                      </div>
                   ) : connections.length === 0 ? (
                      <div style={{ fontSize: "0.85rem", color: "#888" }}>
-                        You haven't added any connections yet.
+                        You haven't added any connections yet. Add a connector
+                        to get started.
                      </div>
                   ) : (
                      <div
@@ -416,7 +417,7 @@ export default function Profile() {
                                                    textTransform: "uppercase",
                                                 }}
                                              >
-                                                {!c.peer.is_active ? "(Invited)" : "(Pending)"}
+                                                {!c.peer.is_active ? "(Invited)" : "(Awaiting reply)"}
                                              </span>
                                           )}
                                        </div>
