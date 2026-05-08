@@ -47,7 +47,6 @@ export default function IntroRequestModal({ path, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-        <div className="app-eyebrow">Intro Request</div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>Ask for an Introduction</div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.5rem' }}>
           We'll ask <strong>{path.connector.name}</strong> to introduce you to <strong>{path.target.name}</strong>.

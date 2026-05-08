@@ -82,7 +82,7 @@ export default function ChatPage() {
             </div>
             {conversation?.warm_score && (
                <div style={{ marginLeft: "1.5rem", display: "flex", alignItems: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Warmth</span>
+                  <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Warm Score</span>
                   <WarmthScore score={conversation.warm_score} />
                </div>
             )}
@@ -101,7 +101,7 @@ export default function ChatPage() {
                   fontWeight: "500",
                }}
             >
-               Leave Room
+               Leave Chat
             </button>
          </div>
 
@@ -139,6 +139,7 @@ export default function ChatPage() {
                            fontWeight: 600,
                            color: "var(--dark)",
                         }}
+                        title="A short summary of why you're meeting, generated when the intro was approved. Both of you see the same one."
                      >
                         Context Pre-Read: {preread.subject.first_name}
                      </span>

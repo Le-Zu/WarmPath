@@ -7,11 +7,11 @@ import { useToast } from "@/context/ToastContext";
 import LoadingScreen from "@/components/LoadingScreen";
 
 // Human-readable label for each intent enum value
-const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
+const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
 const INTENT_MAP = {
    Internship: "internship",
    Research: "research",
-   "Class help": "class",
+   "Class Help": "class",
    Club: "club",
    Skill: "skill",
 };
@@ -98,8 +98,8 @@ export default function Paths() {
                      gap: "0.4rem",
                   }}
                >
-                  Ranked by connection strength. Request an intro to get
-                  started.
+                  These are your warmest paths. Pick one and request an
+                  intro.
                   <WarmScoreInfo />
                </span>
             ) : !loading && intentLabel ? (
@@ -506,10 +506,10 @@ function WarmScoreInfo() {
          {open && (
             <span id="warm-score-tooltip" role="tooltip" style={tooltipStyle}>
                <strong style={{ display: "block", marginBottom: 4 }}>
-                  More flames = stronger relevance.
+                  More flames = stronger Warm Score.
                </strong>
-               We use AI to estimate how well each connection's interests,
-               experience, and background match what you're looking for.
+               We use AI to estimate how well each path's connector and contact
+               match what you're looking for.
             </span>
          )}
       </span>

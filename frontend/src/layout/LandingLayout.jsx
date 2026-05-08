@@ -16,11 +16,11 @@ export default function LandingLayout() {
           <img src={logoBase64} alt="WarmPath" style={{ height: '42px', width: 'auto' }} />
         </a>
         <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
-          <a href="#features"      style={lStyle}>FEATURES</a>
-          <a href="#how-it-works"  style={lStyle}>HOW IT WORKS</a>
+          <a href="#features"      style={lStyle}>Features</a>
+          <a href="#how-it-works"  style={lStyle}>How It Works</a>
         </div>
         <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }} onClick={() => nav('/home')}>
-          GET STARTED
+          Get Started
         </button>
       </nav>
       <Outlet />
