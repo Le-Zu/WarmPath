@@ -3,15 +3,32 @@ import React from 'react';
 export default function FAQ() {
   const sections = [
     {
-      title: "Network & Degrees",
+      title: "How It Works",
       questions: [
         {
-          q: "What is a 'Warm Path'?",
-          a: "A warm path is a connection to a target person through a mutual contact (the Connector). Instead of cold-emailing, you leverage your existing network to get a warm introduction."
+          q: "What is a warm path?",
+          a: "A warm path is a route to someone you want to meet, through a mutual connection. Instead of cold-emailing, you ask the mutual to make a warm introduction."
         },
         {
-          q: "What does 'Connections of Connections' mean?",
-          a: "This refers to your 2nd-degree network. It includes anyone who is directly connected to one of your existing connections."
+          q: "What's a connector?",
+          a: "Your connector is the mutual contact in the middle of a warm path — the person you both know, who can forward your intro request."
+        },
+        {
+          q: "What's a contact?",
+          a: "Your contact is the person at the end of the path — the one you actually want to meet."
+        },
+        {
+          q: "What does 'Friends of friends' mean?",
+          a: "Anyone connected to one of your direct connections. Also called your 2nd-degree network."
+        }
+      ]
+    },
+    {
+      title: "Warm Score",
+      questions: [
+        {
+          q: "What is a Warm Score?",
+          a: "Warm Score is our AI estimate of how relevant a path is to what you're looking for, based on your connector's relationship to your contact and the contact's background. More flames means a stronger predicted match."
         }
       ]
     },
@@ -19,21 +36,21 @@ export default function FAQ() {
       title: "Privacy & Discovery",
       questions: [
         {
-          q: "How does Anonymous Discovery work?",
-          a: "If you set your Discovery Mode to 'Anonymous', other users will only see your first name and the first letter of your last name. Your profile picture will also be hidden until you or a connector approves an introduction. This prevents people from bypassing WarmPath to find you on LinkedIn."
+          q: "What's the difference between Visible, Anonymous, and Hidden?",
+          a: "Visible: your full name and photo show in search and path discovery results. Anonymous: only your first name and the first letter of your last name show, and your photo is hidden until you approve an intro — this keeps people from bypassing WarmPath to find you on LinkedIn. Hidden: you're removed from search and path discovery entirely."
         },
         {
-          q: "Can I hide myself completely?",
-          a: "Yes. Setting your Discovery Mode to 'Hidden' will remove you from all search results and path discovery."
+          q: "Who can request an intro from me?",
+          a: "You control this in Settings. The default is Friends of friends — anyone within two degrees of you. You can also limit it to direct connections only, open it to anyone, or pause requests entirely."
         }
       ]
     },
     {
-      title: "Platform Etiquette",
+      title: "Etiquette",
       questions: [
         {
           q: "How should I write my intro request?",
-          a: "Be brief and specific. Use the 'Note to Connector' to explain why you want the intro, and write a professional 'Message for Target' that the connector can easily forward. The easier you make it for the connector, the more likely they are to help."
+          a: "Be brief and specific. Use the note to your connector to explain why you want the intro, and write a short message to your contact that the connector can easily forward. The easier you make it for the connector, the more likely they are to help."
         }
       ]
     }

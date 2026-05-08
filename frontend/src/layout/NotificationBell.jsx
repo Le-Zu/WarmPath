@@ -54,7 +54,7 @@ export default function NotificationBell({ light }) {
       {open && (
         <div className="bell-dropdown">
           {notifications.length === 0 ? (
-            <div className="bell-item" style={{ textAlign: 'center', opacity: 0.6 }}>No notifications</div>
+            <div className="bell-item" style={{ textAlign: 'center', opacity: 0.6 }}>You're all caught up.</div>
           ) : (
             notifications.map((n) => {
               const info = TYPE_MAP[n.type] || { title: 'Notification', body: 'You have an update.' };

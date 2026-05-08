@@ -13,10 +13,9 @@ const TOTAL_STEPS = 6;
 const INTENT_MAP = {
    'Internship': 'internship',
    'Research':   'research',
-   'Study Group': 'class',
+   'Class Help': 'class',
    'Club':       'club',
-   'Mentorship': 'skill',
-   'Side Project': 'project',
+   'Skill':      'skill',
 };
 
 const FIELD_MAP = {
@@ -315,7 +314,7 @@ export default function OnboardingFlow() {
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Who are you?</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
-                        Let's start with the basics. How should people refer to you?
+                        How should people refer to you?
                      </p>
 
                      <div style={{ marginBottom: "1rem" }}>
@@ -358,7 +357,7 @@ export default function OnboardingFlow() {
                {/* Step 1: Academic & Bio */}
                {step === 1 && (
                   <>
-                     <h2 style={{ fontSize: "1.5rem" }}>Academic Background</h2>
+                     <h2 style={{ fontSize: "1.5rem" }}>What are you studying?</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
                         What are you studying and how far along are you?
                      </p>
@@ -578,7 +577,7 @@ export default function OnboardingFlow() {
                   <>
                      <h2 style={{ fontSize: "1.5rem" }}>Experience</h2>
                      <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1rem" }}>
-                        Add any past work or organization experience.
+                        Anything you've worked on so far? Add it here.
                      </p>
 
                      {form.experiences.map((exp, i) => (
@@ -670,7 +669,7 @@ export default function OnboardingFlow() {
                            padding: "1rem"
                         }}
                      >
-                        {isSaving ? "Saving..." : "Get Started"}
+                        {isSaving ? "Saving…" : "Enter WarmPath"}
                      </button>
                   </div>
                )}

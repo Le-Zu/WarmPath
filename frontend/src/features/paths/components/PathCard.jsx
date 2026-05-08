@@ -3,6 +3,13 @@ import { User, EyeOff } from 'lucide-react';
 import { IntroRequestModal } from '@/features/intros';
 import { WarmthScore } from '@/features/gemini';
 
+// Derive 1-2 letter initials from a full name. Falls back to "?" if empty.
+const initials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
+};
+
 export default function PathCard({ path, score = '...', loading = false }) {
   const [open, setOpen] = useState(false);
 
@@ -11,11 +18,11 @@ export default function PathCard({ path, score = '...', loading = false }) {
   }
 
   return (
-    <div className="app-card" style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-      <div className="path-chain" style={{ width: '320px', flexShrink: 0 }}>
+    <div className="app-card path-card-body">
+      <div className="path-chain path-chain-fixed">
         {/* You Node */}
         <div className="path-node">
-          <div className="path-dot you">YOU</div>
+          <div className="path-dot you" title="You">YOU</div>
           <div><div className="path-node-label">You</div></div>
         </div>
 
@@ -29,7 +36,7 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Connector Node */}
         <div className="path-node">
-          <div className="path-dot connector">CON</div>
+          <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>{initials(path.connector.name)}</div>
           <div>
             <div className="path-node-label">{path.connector.name}</div>
           </div>
@@ -45,7 +52,7 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Target Node (Chain only shows Name now) */}
         <div className="path-node">
-          <div className="path-dot target">TGT</div>
+          <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>{initials(path.target.name)}</div>
           <div>
             <div className="path-node-label">{path.target.name}</div>
           </div>
@@ -53,7 +60,7 @@ export default function PathCard({ path, score = '...', loading = false }) {
       </div>
 
       {/* Target Info Section (Right Side) */}
-      <div style={{ flex: 1, borderLeft: '1px solid #f0e8e4', paddingLeft: '2.5rem' }}>
+      <div className="path-card-info">
         <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
           {path.target.isAnonymous
             ? <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><EyeOff size={22} strokeWidth={1.75} color="#7a6f68" /></div>
@@ -65,6 +72,7 @@ export default function PathCard({ path, score = '...', loading = false }) {
           {path.target.name} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}
         </div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.25rem' }}>{path.target.role}</div>
+
         <div style={{ marginBottom: '1.25rem' }}>
           {score === '...' ? (
             <div className="app-page-sub" style={{

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import MessageDiff from '@/components/MessageDiff';
 import { useIncomingRequests } from '@/hooks/useIncomingRequests';
 import { useToast } from '@/context/ToastContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
 function RequestCard({ r, onUpdate, patchRequest }) {
   const toast = useToast();
@@ -52,7 +53,7 @@ function RequestCard({ r, onUpdate, patchRequest }) {
 
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-          <div className="app-eyebrow" style={{ fontSize: '0.65rem', marginBottom: 0 }}>Proposed Message</div>
+          <div className="app-eyebrow" style={{ fontSize: '0.65rem', marginBottom: 0 }}>Their draft message</div>
           {r.status === 'pending' && (
             <button 
               onClick={() => setEditing(!editing)}
@@ -123,14 +124,14 @@ function RequestCard({ r, onUpdate, patchRequest }) {
 export default function Requests() {
   const { requests, loading, error, updateRequestStatus, patchRequest } = useIncomingRequests();
 
-  if (loading) return <div className="app-page">Loading inbox...</div>;
+  if (loading) return <LoadingScreen page="requests" />;
   if (error)   return <div className="app-page">Failed to load requests.</div>;
 
   return (
     <div className="app-page">
-      <div className="app-eyebrow">— Connector inbox</div>
+      <div className="app-eyebrow">— Connector inbox —</div>
       <div className="app-page-title">Intro Requests</div>
-      <div className="app-page-sub">People asking you to make an introduction on their behalf.</div>
+      <div className="app-page-sub">People asking you to make an introduction.</div>
       {requests.length === 0 && (
         <div style={{ color: '#7a6f68', fontSize: '0.88rem', marginTop: '0.5rem' }}>
           Your connector inbox is empty. When someone asks you to make an introduction, it will appear here.

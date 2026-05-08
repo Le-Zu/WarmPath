@@ -115,6 +115,9 @@ export default function HomePage() {
                      </button>
                   ))}
                </div>
+               <span style={{ fontSize: '0.78rem', color: '#7a6f68', fontStyle: 'italic' }}>
+                  Sign up to start finding paths.
+               </span>
             </div>
 
             {/* HERO */}
@@ -177,7 +180,7 @@ export default function HomePage() {
                            cls: "target",
                            name: "James Liu",
                            ctx: "SWE Intern at Stripe · Maya's former roommate",
-                           tag: "Target",
+                           tag: "Contact",
                         },
                      ].map((node, i) => (
                         <div key={i} className="hp-node">
@@ -193,7 +196,7 @@ export default function HomePage() {
                      ))}
                      <div className="hp-path-action">
                         <div className="hp-warmth">
-                           <span>Warmth</span>
+                           <span>Warm Score</span>
                            <div className="hp-warmth-dots">
                               {[1, 2, 3, 4].map((dot) => (
                                  <span

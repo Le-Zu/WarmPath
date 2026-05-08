@@ -1,22 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 import { useConversations } from '@/hooks/useConversations';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Conversations() {
   const { conversations, loading, error } = useConversations();
   const navigate = useNavigate();
 
-  if (loading) return <div className="app-page">Loading conversations...</div>;
+  if (loading) return <LoadingScreen page="chats" />;
   if (error) return <div className="app-page">Failed to load conversations.</div>;
 
   return (
     <div className="app-page">
-      <div className="app-eyebrow">— Your active chats</div>
+      <div className="app-eyebrow">— Your active chats —</div>
       <div className="app-page-title">Conversations</div>
       <div className="app-page-sub">Direct communication with your connections.</div>
 
       <div style={{ marginTop: '2rem' }}>
         {conversations.length === 0 ? (
-          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>No active conversations yet.</div>
+          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>No active conversations yet. They start when an intro request is approved.</div>
         ) : (
           conversations.map((conv) => (
             <div 

@@ -4,13 +4,14 @@ import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
+import LoadingScreen from "@/components/LoadingScreen";
 
 // Human-readable label for each intent enum value
-const INTENT_LABELS = ["Internship", "Research", "Class help", "Club", "Skill"];
+const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
 const INTENT_MAP = {
    Internship: "internship",
    Research: "research",
-   "Class help": "class",
+   "Class Help": "class",
    Club: "club",
    Skill: "skill",
 };
@@ -25,20 +26,21 @@ const INTENT_DISPLAY = {
 export default function Paths() {
    const [searchParams, setSearchParams] = useSearchParams();
    const navigate = useNavigate();
-   const intent = searchParams.get("intent") || null;
+   const rawIntent = searchParams.get("intent");
+   // Default to internship if missing or invalid
+   const intent = rawIntent || "internship";
 
    const activeIntent =
-      INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) ?? null;
+      INTENT_LABELS.find((label) => INTENT_MAP[label] === intent) || "Internship";
 
    const { paths, loading, error, refresh } = usePaths(intent);
    const toast = useToast();
 
    const handleIntentClick = (label) => {
-      if (activeIntent === label) {
-         setSearchParams({});
-      } else {
-         navigate("/paths?intent=" + INTENT_MAP[label]);
-      }
+      // If clicking the already active one, do nothing (no unselecting)
+      if (activeIntent === label) return;
+      
+      navigate("/paths?intent=" + INTENT_MAP[label]);
    };
 
    const [showAddForm, setShowAddForm] = useState(false);
@@ -74,6 +76,8 @@ export default function Paths() {
 
    const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
 
+   if (loading && paths.length === 0) return <LoadingScreen page="paths" />;
+
    return (
       <div className="app-page">
          <div className="app-eyebrow">— Warm paths —</div>
@@ -92,8 +96,8 @@ export default function Paths() {
                      gap: "0.4rem",
                   }}
                >
-                  Ranked by connection strength. Request an intro to get
-                  started.
+                  These are your warmest paths. Pick one and request an
+                  intro.
                   <WarmScoreInfo />
                </span>
             ) : !loading && intentLabel ? (
@@ -411,10 +415,10 @@ function WarmScoreInfo() {
          {open && (
             <span id="warm-score-tooltip" role="tooltip" style={tooltipStyle}>
                <strong style={{ display: "block", marginBottom: 4 }}>
-                  More flames = stronger relevance.
+                  More flames = stronger Warm Score.
                </strong>
-               We use AI to estimate how well each connection's interests,
-               experience, and background match what you're looking for.
+               We use AI to estimate how well each path's connector and contact
+               match what you're looking for.
             </span>
          )}
       </span>

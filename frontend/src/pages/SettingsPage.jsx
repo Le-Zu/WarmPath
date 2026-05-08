@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
+import {
+   signOut,
+   updatePassword,
+   reauthenticateWithCredential,
+   EmailAuthProvider,
+} from "firebase/auth";
+import { auth } from "@/config/firebase";
 import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
+import { useToast } from "@/context/ToastContext";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-import { useToast } from "@/context/ToastContext";
 
 // Lenient LinkedIn URL validation:
 // - empty string clears the field
@@ -29,13 +37,29 @@ const normalizeLinkedinUrl = (input) => {
    return `https://www.linkedin.com${path}`;
 };
 
+const normalizeHandshakeUrl = (input) => {
+   const trimmed = (input || "").trim();
+   if (!trimmed) return "";
+   const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+   let url;
+   try {
+      url = new URL(withProtocol);
+   } catch {
+      throw new Error("Please enter a valid Handshake URL (e.g., app.joinhandshake.com/profiles/yourname).");
+   }
+   if (!/(^|\.)joinhandshake\.com$/i.test(url.hostname)) {
+      throw new Error("Please enter a valid Handshake URL (e.g., app.joinhandshake.com/profiles/yourname).");
+   }
+   const path = url.pathname.replace(/\/$/, "");
+   return `https://app.joinhandshake.com${path}`;
+};
+
 const INTENT_MAP = {
    'Internship': 'internship',
    'Research':   'research',
-   'Study Group': 'class',
+   'Class Help': 'class',
    'Club':       'club',
-   'Mentorship': 'skill',
-   'Side Project': 'project',
+   'Skill':      'skill',
 };
 
 const FIELD_MAP = {
@@ -142,6 +166,7 @@ function InfoTooltip({ text }) {
 export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
    const toast = useToast();
+   const navigate = useNavigate();
    const [activeTab, setActiveTab] = useState("account");
    const [showPasswordFields, setShowPasswordFields] = useState(false);
    const [copied, setCopied] = useState(false);
@@ -159,6 +184,7 @@ export default function SettingsPage() {
       major: "",
       year: "",
       linkedinUrl: "",
+      handshakeUrl: "",
       profilePictureUrl: "",
       bannerPictureUrl: "",
       selectedGoals: [],
@@ -190,6 +216,7 @@ export default function SettingsPage() {
             major: currentUser.major || "",
             year: currentUser.year || "",
             linkedinUrl: currentUser.linkedin_url || "",
+            handshakeUrl: currentUser.handshake_url || "",
             profilePictureUrl: currentUser.profile_picture_url || "",
             bannerPictureUrl: currentUser.banner_picture_url || "",
             selectedGoals: currentUser.interests?.filter(i => GOAL_TAGS.includes(i.label)).map(i => i.label) || [],
@@ -307,8 +334,10 @@ export default function SettingsPage() {
          if (activeTab === "account") {
             // Validate LinkedIn URL before any uploads so we fail fast.
             let linkedinUrl;
+            let handshakeUrl;
             try {
                linkedinUrl = normalizeLinkedinUrl(form.linkedinUrl);
+               handshakeUrl = normalizeHandshakeUrl(form.handshakeUrl);
             } catch (err) {
                toast(err.message);
                setIsSaving(false);
@@ -335,6 +364,7 @@ export default function SettingsPage() {
                   major: form.major,
                   year: form.year,
                   linkedin_url: linkedinUrl,
+                  handshake_url: handshakeUrl,
                   profile_picture_url: profileUrl,
                   banner_picture_url: bannerUrl,
                }),
@@ -356,6 +386,24 @@ export default function SettingsPage() {
                method: 'POST',
                body: JSON.stringify({ experiences: validExperiences.map(e => ({ ...e, type: 'other' })) }),
             });
+
+            // 4. Password change (Firebase) — requires re-authentication
+            if (showPasswordFields && form.currentPassword && passwordsMatch) {
+               const fbUser = auth.currentUser;
+               if (!fbUser || !fbUser.email) {
+                  throw new Error("Cannot change password: no signed-in Firebase user.");
+               }
+               const credential = EmailAuthProvider.credential(fbUser.email, form.currentPassword);
+               try {
+                  await reauthenticateWithCredential(fbUser, credential);
+               } catch (err) {
+                  if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+                     throw new Error("Current password is incorrect.");
+                  }
+                  throw err;
+               }
+               await updatePassword(fbUser, form.newPassword);
+            }
 
             setShowPasswordFields(false);
             setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
@@ -381,6 +429,21 @@ export default function SettingsPage() {
       navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+   };
+
+   const handleDeleteAccount = async () => {
+      if (deleteText !== "DELETE" || isSaving) return;
+      setIsSaving(true);
+      try {
+         await apiFetch("/api/me", { method: "DELETE" });
+         await signOut(auth);
+         toast("Account deleted.");
+         navigate("/");
+      } catch (err) {
+         toast("Failed to delete account: " + err.message, "error");
+      } finally {
+         setIsSaving(false);
+      }
    };
 
 
@@ -658,6 +721,77 @@ export default function SettingsPage() {
                         />
                      </div>
 
+                     <div style={{ marginBottom: "1rem" }}>
+                        <label style={labelStyle}>Handshake URL</label>
+                        <input
+                           style={inputStyle}
+                           type="url"
+                           value={form.handshakeUrl}
+                           onChange={set("handshakeUrl")}
+                           placeholder="app.joinhandshake.com/profiles/yourname"
+                        />
+                     </div>
+
+                     {/* Change Password */}
+                     <hr style={dividerStyle} />
+                     <h3 style={sectionHeadingStyle}>Password</h3>
+                     {!showPasswordFields ? (
+                        <button
+                           onClick={() => setShowPasswordFields(true)}
+                           style={{ ...tagStyle(false), padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+                        >
+                           Change Password
+                        </button>
+                     ) : (
+                        <div style={{ marginBottom: "1rem" }}>
+                           <div style={{ marginBottom: "0.75rem" }}>
+                              <label style={labelStyle}>Current Password</label>
+                              <input
+                                 style={inputStyle}
+                                 type="password"
+                                 value={form.currentPassword}
+                                 onChange={set("currentPassword")}
+                                 autoComplete="current-password"
+                              />
+                           </div>
+                           <div style={{ marginBottom: "0.75rem" }}>
+                              <label style={labelStyle}>New Password</label>
+                              <input
+                                 style={inputStyle}
+                                 type="password"
+                                 value={form.newPassword}
+                                 onChange={set("newPassword")}
+                                 autoComplete="new-password"
+                                 placeholder="At least 8 characters"
+                              />
+                           </div>
+                           <div style={{ marginBottom: "0.5rem" }}>
+                              <label style={labelStyle}>Confirm New Password</label>
+                              <input
+                                 style={inputStyle}
+                                 type="password"
+                                 value={form.confirmPassword}
+                                 onChange={set("confirmPassword")}
+                                 autoComplete="new-password"
+                              />
+                           </div>
+                           {form.newPassword && !passwordsMatch && (
+                              <p style={{ ...helperStyle, color: "Tomato" }}>
+                                 Passwords must match and be at least 8 characters.
+                              </p>
+                           )}
+                           <button
+                              onClick={() => {
+                                 setShowPasswordFields(false);
+                                 setForm((f) => ({ ...f, currentPassword: "", newPassword: "", confirmPassword: "" }));
+                              }}
+                              style={{ background: "none", border: "none", color: "#777", cursor: "pointer", fontSize: "0.85rem", padding: 0, marginTop: "0.25rem" }}
+                           >
+                              Cancel
+                           </button>
+                        </div>
+                     )}
+
                      {/* Experiences */}
                      <hr style={dividerStyle} />
                      <h3 style={sectionHeadingStyle}>Experience</h3>
@@ -730,15 +864,15 @@ export default function SettingsPage() {
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Discovery Mode
-                           <InfoTooltip text="'Full' shows your full name/photo. 'Anonymous' hides your last name/photo to prevent LinkedIn bypass. 'Hidden' removes you from discovery." />
+                           <InfoTooltip text="Visible: full name and photo shown. Anonymous: shows your first name and the first letter of your last name; photo is hidden until you approve an intro. Hidden: removes you from search and path discovery entirely." />
                         </label>
-                        <select 
-                           style={inputStyle} 
-                           value={privacyForm.discovery_mode} 
+                        <select
+                           style={inputStyle}
+                           value={privacyForm.discovery_mode}
                            onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
                         >
-                           <option value="full">Full Profile</option>
-                           <option value="anonymous">Anonymous (Blind Profile)</option>
+                           <option value="full">Visible</option>
+                           <option value="anonymous">Anonymous</option>
                            <option value="hidden">Hidden</option>
                         </select>
                         <p style={helperStyle}>How you appear in warm path discovery results.</p>
@@ -748,30 +882,30 @@ export default function SettingsPage() {
                         <div>
                            <label style={{ ...labelStyle, marginBottom: 0 }}>
                               Allow Connector Prompts
-                              <InfoTooltip text="Let mutual connections suggest you as a target for people looking for introductions." />
+                              <InfoTooltip text="When someone is searching for a contact you're connected to, we may suggest you as a possible connector. Turn off to opt out." />
                            </label>
                            <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
                         </div>
-                        <Toggle 
-                           on={privacyForm.allow_connector_prompts} 
-                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)} 
+                        <Toggle
+                           on={privacyForm.allow_connector_prompts}
+                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)}
                         />
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Who can request introductions?
-                           <InfoTooltip text="'Connections of Connections' (2nd degree) is the default. 'Nobody' acts as a Do Not Disturb mode." />
+                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). No one pauses all incoming intro requests until you change it back." />
                         </label>
-                        <select 
-                           style={inputStyle} 
-                           value={privacyForm.who_can_request} 
+                        <select
+                           style={inputStyle}
+                           value={privacyForm.who_can_request}
                            onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
                         >
                            <option value="anyone">Anyone</option>
-                           <option value="connections">Direct Connections Only</option>
-                           <option value="connections_of_connections">Connections of Connections</option>
-                           <option value="nobody">Nobody (DND)</option>
+                           <option value="connections">Direct connections</option>
+                           <option value="connections_of_connections">Friends of friends</option>
+                           <option value="nobody">No one</option>
                         </select>
                         <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
                      </div>
@@ -849,7 +983,8 @@ export default function SettingsPage() {
                            />
                            <div style={{ display: "flex", gap: "10px" }}>
                               <button
-                                 disabled={deleteText !== "DELETE"}
+                                 onClick={handleDeleteAccount}
+                                 disabled={deleteText !== "DELETE" || isSaving}
                                  onMouseEnter={() => setHoveredDeleteConfirm(true)}
                                  onMouseLeave={() => setHoveredDeleteConfirm(false)}
                                  style={{

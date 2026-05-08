@@ -43,6 +43,7 @@ export default function AppLayout() {
       : null;
 
    const [menuOpen, setMenuOpen] = useState(false);
+   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const menuRef = useRef(null);
    useEffect(() => {
       if (!menuOpen) return;
@@ -102,6 +103,7 @@ export default function AppLayout() {
                padding: "0 2rem",
                height: "68px",
                borderBottom: "1px solid #e8ddd8",
+               zIndex: 100,
             }}
          >
             <NavLink
@@ -119,17 +121,7 @@ export default function AppLayout() {
                />
             </NavLink>
 
-            <div
-               style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  transform: "translate(-50%, -50%)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "2rem",
-               }}
-            >
+            <div className="app-nav-center-links">
                {[
                   ["Find Paths", "/paths"],
                   ["Inbox", "/requests"],
@@ -161,6 +153,14 @@ export default function AppLayout() {
                {(isDevAccount || isTestAccount || import.meta.env.DEV) && (
                   <UserSwitcher light />
                )}
+               <button
+                  className="app-nav-hamburger"
+                  onClick={() => setMobileMenuOpen((o) => !o)}
+                  aria-label="Navigation menu"
+                  aria-expanded={mobileMenuOpen}
+               >
+                  {mobileMenuOpen ? "✕" : "☰"}
+               </button>
                <div ref={menuRef} style={{ position: "relative" }}>
                   <button
                      onClick={() => setMenuOpen((o) => !o)}
@@ -209,7 +209,7 @@ export default function AppLayout() {
                            borderRadius: "6px",
                            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
                            padding: "0.35rem 0",
-                           zIndex: 50,
+                           zIndex: 150,
                         }}
                      >
                         {[
@@ -268,6 +268,27 @@ export default function AppLayout() {
                </div>
             </div>
          </nav>
+         {mobileMenuOpen && (
+            <div className="app-nav-mobile-menu">
+               {[
+                  ["Find Paths", "/paths"],
+                  ["Inbox", "/requests"],
+                  ["My Requests", "/my-requests"],
+                  ["Chats", "/conversations"],
+               ].map(([label, to]) => (
+                  <NavLink
+                     key={to}
+                     to={to}
+                     className={({ isActive }) =>
+                        "app-nav-mobile-link" + (isActive ? " active" : "")
+                     }
+                     onClick={() => setMobileMenuOpen(false)}
+                  >
+                     {label}
+                  </NavLink>
+               ))}
+            </div>
+         )}
          {/* {!hideIntentBar && (
             <div
                style={{

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import MessageDiff from '@/components/MessageDiff';
 import { timeAgo } from '@/utils/formatters';
 import { useOutgoingRequests } from '@/hooks/useOutgoingRequests';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const tabs = ['all', 'pending', 'approved', 'declined'];
 
@@ -11,16 +12,16 @@ export default function MyRequests() {
   const [tab, setTab] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
 
-  if (loading) return <div className="app-page">Loading requests...</div>;
+  if (loading) return <LoadingScreen page="myRequests" />;
   if (error)   return <div className="app-page">Failed to load requests.</div>;
 
   const filtered = tab === 'all' ? requests : requests.filter(r => r.status === tab);
 
   return (
     <div className="app-page">
-      <div className="app-eyebrow">— Track your requests</div>
+      <div className="app-eyebrow">— Track your requests —</div>
       <div className="app-page-title">My Requests</div>
-      <div className="app-page-sub">Intros you've requested and their current status.</div>
+      <div className="app-page-sub">Intros you've requested.</div>
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -70,7 +71,7 @@ export default function MyRequests() {
                 {r.edited_message && r.edited_message !== r.draft_message && (
                   <div style={{ fontSize: '0.7rem', color: 'var(--warm)', fontWeight: 500 }}>
                     <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--warm)', marginRight: '4px' }}></span>
-                    Connector Edits Highlighted
+                    Connector edited the original draft
                   </div>
                 )}
               </div>

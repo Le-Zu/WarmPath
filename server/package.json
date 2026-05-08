@@ -13,6 +13,7 @@
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
     "db:seed-firebase": "tsx scripts/seed-firebase-users.ts",
+    "db:populate-linkedin": "tsx scripts/populate-linkedin.ts",
     "db:migrate:views": "npx prisma db execute --file ./prisma/migrations/001_views.sql",
     "db:migrate:rls": "npx prisma db execute --file ./prisma/migrations/002_rls.sql",
     "db:migrate": "npm run db:migrate:views && npm run db:migrate:rls"
