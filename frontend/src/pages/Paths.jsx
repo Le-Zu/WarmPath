@@ -7,6 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
+import InviteConnectorPanel from "@/components/InviteConnectorPanel";
 
 // Human-readable label for each intent enum value
 const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
@@ -52,6 +53,7 @@ export default function Paths() {
       relationship: "",
    });
    const [savingConn, setSavingConn] = useState(false);
+   const [invitePeer, setInvitePeer] = useState(null);
 
    const handleAddConnector = async (e) => {
       e.preventDefault();
@@ -59,7 +61,7 @@ export default function Paths() {
       setSavingConn(true);
       try {
          const { first_name, last_name } = splitFullName(newConn.name);
-         await apiFetch("/api/connections", {
+         const result = await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
@@ -68,9 +70,14 @@ export default function Paths() {
                last_name,
             }),
          });
-         toast("Connector added! This will help discover more paths.");
-         setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
+         if (result?.was_created && result.peer) {
+            // Ghost user — keep the panel open and surface an invite link.
+            setInvitePeer(result.peer);
+         } else {
+            toast("Connector added! This will help discover more paths.");
+            setShowAddForm(false);
+         }
          refresh();
       } catch (err) {
          const msg = err.status === 409
@@ -82,6 +89,11 @@ export default function Paths() {
       } finally {
          setSavingConn(false);
       }
+   };
+
+   const dismissInvite = () => {
+      setInvitePeer(null);
+      setShowAddForm(false);
    };
 
    const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
@@ -189,7 +201,13 @@ export default function Paths() {
             </span>
          </div>
 
-         {showAddForm && (
+         {showAddForm && invitePeer && (
+            <div style={{ marginBottom: "1.5rem" }}>
+               <InviteConnectorPanel peer={invitePeer} onDone={dismissInvite} />
+            </div>
+         )}
+
+         {showAddForm && !invitePeer && (
             <div
                style={{
                   marginBottom: "1.5rem",

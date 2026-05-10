@@ -8,6 +8,7 @@ import apiFetch from "@/services/client";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
+import InviteConnectorPanel from "@/components/InviteConnectorPanel";
 
 export default function Profile() {
    const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function Profile() {
       relationship: "",
    });
    const [savingConn, setSavingConn] = useState(false);
+   const [invitePeer, setInvitePeer] = useState(null);
 
    const handleAddConnector = async (e) => {
       e.preventDefault();
@@ -31,7 +33,7 @@ export default function Profile() {
       setSavingConn(true);
       try {
          const { first_name, last_name } = splitFullName(newConn.name);
-         await apiFetch("/api/connections", {
+         const result = await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
@@ -40,9 +42,13 @@ export default function Profile() {
                last_name,
             }),
          });
-         toast("Connector added! This will help discover more paths.");
-         setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
+         if (result?.was_created && result.peer) {
+            setInvitePeer(result.peer);
+         } else {
+            toast("Connector added! This will help discover more paths.");
+            setShowAddForm(false);
+         }
          // Refresh connections list
          const data = await getConnections();
          setConnections(data.connections || []);
@@ -56,6 +62,11 @@ export default function Profile() {
       } finally {
          setSavingConn(false);
       }
+   };
+
+   const dismissInvite = () => {
+      setInvitePeer(null);
+      setShowAddForm(false);
    };
 
    useEffect(() => {
@@ -92,10 +103,16 @@ export default function Profile() {
          .filter(Boolean)
          .join(" ") || currentUser.email;
 
-   const handleCopyInvite = (email) => {
-      const inviteUrl = `${window.location.origin}/register?email=${encodeURIComponent(email)}`;
-      navigator.clipboard.writeText(inviteUrl);
-      toast(`Invite link copied for ${email}!`);
+   const handleCopyInvite = async (peer) => {
+      const inviteUrl = `${window.location.origin}/register?email=${encodeURIComponent(peer.email)}`;
+      const displayName =
+         [peer.first_name, peer.last_name].filter(Boolean).join(" ") || peer.email;
+      try {
+         await navigator.clipboard.writeText(inviteUrl);
+         toast(`Invite link copied for ${displayName}.`);
+      } catch {
+         toast("Could not copy link. Please copy it manually.", "error");
+      }
    };
 
    return (
@@ -178,7 +195,7 @@ export default function Profile() {
                         >
                            {[currentUser.major, currentUser.year]
                               .filter(Boolean)
-                              .join(" · ") || "New Member"}
+                              .join(" · ") || "Just getting started"}
                         </div>
                      </div>
                      <button
@@ -430,6 +447,25 @@ export default function Profile() {
                                                 {!c.peer.is_active ? "(Invited)" : "(Awaiting reply)"}
                                              </span>
                                           )}
+                                          {!c.peer.is_active && (
+                                             <button
+                                                type="button"
+                                                onClick={() => handleCopyInvite(c.peer)}
+                                                style={{
+                                                   marginLeft: "0.5rem",
+                                                   fontSize: "0.7rem",
+                                                   background: "transparent",
+                                                   border: "none",
+                                                   color: "var(--warm)",
+                                                   cursor: "pointer",
+                                                   padding: 0,
+                                                   textDecoration: "underline",
+                                                   fontWeight: 500,
+                                                }}
+                                             >
+                                                Copy invite
+                                             </button>
+                                          )}
                                        </div>
                                        <div
                                           style={{
@@ -559,7 +595,13 @@ export default function Profile() {
                            />
                         </div>
 
-                        {showAddForm && (
+                        {showAddForm && invitePeer && (
+                           <div style={{ marginTop: "0.5rem" }}>
+                              <InviteConnectorPanel peer={invitePeer} onDone={dismissInvite} />
+                           </div>
+                        )}
+
+                        {showAddForm && !invitePeer && (
                            <div
                               style={{
                                  marginTop: "0.5rem",

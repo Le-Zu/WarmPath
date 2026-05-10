@@ -487,6 +487,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
 
+    let wasCreated = false;
     try {
         // If email is provided, resolve the peerId
         if (!peerId && email) {
@@ -503,6 +504,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
                         profile_complete: false,
                     }
                 });
+                wasCreated = true;
                 console.log(`[POST /api/connections] Ghost user created for: ${email}`);
             }
             peerId = peer.user_id;
@@ -543,7 +545,21 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
         refreshWarmthScoresForUser(userId);
         refreshWarmthScoresForUser(peerId);
 
-        res.status(201).json({ connection });
+        // Hand back the peer so the frontend can offer an invite link when we
+        // just created a ghost (was_created), and so it can show a name/email
+        // in the success UI without a second round-trip.
+        const peerForResponse = await basePrisma.users.findUnique({
+            where: { user_id: peerId },
+            select: {
+                user_id: true,
+                email: true,
+                first_name: true,
+                last_name: true,
+                is_active: true,
+            },
+        });
+
+        res.status(201).json({ connection, peer: peerForResponse, was_created: wasCreated });
     } catch (error: any) {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'You are already connected with this person.' });

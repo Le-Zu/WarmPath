@@ -266,23 +266,37 @@ export default function OnboardingFlow() {
          }
 
          // 5. Add Connectors — pass any name the user provided so ghost profiles
-         //    show a real label instead of falling back to email.
+         //    show a real label instead of falling back to email. Track which
+         //    connectors weren't on WarmPath yet so we can nudge about invites.
+         const ghostInvites = [];
          for (const conn of form.connectors) {
             if (conn.email && conn.relationship) {
                const { first_name, last_name } = splitFullName(conn.name);
-               await apiFetch('/api/connections', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                     email: conn.email,
-                     context: conn.relationship,
-                     first_name,
-                     last_name,
-                  }),
-               }).catch(err => console.error("Failed to add connector:", conn.email, err));
+               try {
+                  const result = await apiFetch('/api/connections', {
+                     method: 'POST',
+                     body: JSON.stringify({
+                        email: conn.email,
+                        context: conn.relationship,
+                        first_name,
+                        last_name,
+                     }),
+                  });
+                  if (result?.was_created) {
+                     ghostInvites.push(conn.name?.trim() || conn.email);
+                  }
+               } catch (err) {
+                  console.error("Failed to add connector:", conn.email, err);
+               }
             }
          }
 
          await refreshUser();
+         if (ghostInvites.length > 0) {
+            const names = ghostInvites.slice(0, 2).join(", ");
+            const more = ghostInvites.length > 2 ? ` and ${ghostInvites.length - 2} more` : "";
+            toast(`${names}${more} aren't on WarmPath yet — share invite links from your Profile.`);
+         }
          navigate("/home");
       } catch (err) {
          console.error("Failed to save onboarding data:", err);
