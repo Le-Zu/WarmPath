@@ -401,7 +401,7 @@ export default function SettingsPage() {
          }
 
          await refreshUser();
-         toast("Settings saved successfully!");
+         toast("All set — your settings are saved.");
       } catch (err) {
          console.error("Failed to save settings:", err);
          // Upload errors carry their own user-friendly message; everything else gets a generic prefix.
@@ -677,7 +677,7 @@ export default function SettingsPage() {
                      <div style={{ marginBottom: "1rem" }}>
                         <label style={labelStyle}>Email</label>
                         <input style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
-                        <p style={helperStyle}>Contact support to change your email</p>
+                        <p style={helperStyle}>Need to change your email? Contact support at support@warmpath.com.</p>
                      </div>
 
                      <div style={{ marginBottom: "1rem" }}>
@@ -869,10 +869,10 @@ export default function SettingsPage() {
                      <div style={toggleRowStyle}>
                         <div>
                            <label style={{ ...labelStyle, marginBottom: 0 }}>
-                              Allow Connector Prompts
-                              <InfoTooltip text="When someone is searching for a contact you're connected to, we may suggest you as a possible connector. Turn off to opt out." />
+                              Be suggested as a connector
+                              <InfoTooltip text="When someone wants to meet a contact you know, we may ask if you can help make the intro. Turn off to opt out." />
                            </label>
-                           <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
+                           <p style={{ ...helperStyle, marginTop: 0 }}>Lets others ask you to introduce them to people you know.</p>
                         </div>
                         <Toggle
                            on={privacyForm.allow_connector_prompts}
@@ -883,7 +883,7 @@ export default function SettingsPage() {
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Who can request introductions?
-                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). No one pauses all incoming intro requests until you change it back." />
+                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). Choosing 'No one' pauses all incoming intro requests until you change it back." />
                         </label>
                         <select
                            style={inputStyle}
@@ -893,9 +893,9 @@ export default function SettingsPage() {
                            <option value="anyone">Anyone</option>
                            <option value="connections">Direct connections</option>
                            <option value="connections_of_connections">Friends of friends</option>
-                           <option value="nobody">No one</option>
+                           <option value="nobody">No one (pause all requests)</option>
                         </select>
-                        <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
+                        <p style={helperStyle}>Sets the furthest reach allowed for intro requests.</p>
                      </div>
                   </>
                )}

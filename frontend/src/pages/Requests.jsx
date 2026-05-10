@@ -53,7 +53,7 @@ function RequestCard({ r, onUpdate, patchRequest }) {
 
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-          <div className="app-eyebrow" style={{ fontSize: '0.65rem', marginBottom: 0 }}>Their draft message</div>
+          <div className="app-eyebrow" style={{ fontSize: '0.65rem', marginBottom: 0 }}>Message to forward</div>
           {r.status === 'pending' && (
             <button 
               onClick={() => setEditing(!editing)}

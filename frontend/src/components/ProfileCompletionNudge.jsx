@@ -35,7 +35,7 @@ export default function ProfileCompletionNudge() {
         Complete your profile 🚀
       </div>
       <div style={{ fontSize: '0.8rem', color: '#5d4037' }}>
-        Help others find you by adding your {missingFields.join(', ')}.
+        Finish your profile — it helps connectors vouch for you. Missing: {missingFields.join(', ')}.
       </div>
       <button 
         onClick={() => nav('/settings')}

@@ -40,9 +40,9 @@ export default function Home() {
   return (
     <div className="app-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <ProfileCompletionNudge />
-      <div className="app-eyebrow">— Declare your intent —</div>
+      <div className="app-eyebrow">— What are you looking for —</div>
       <div className="app-page-title">What are you<br />looking for?</div>
-      <div className="app-page-sub">Choose a goal and we'll surface the best warm paths for you.</div>
+      <div className="app-page-sub">Choose a goal and we'll find the best connections to help you get there.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: 480 }}>
         {intents.map(it => (
           <button key={it.id} 
