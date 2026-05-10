@@ -82,11 +82,9 @@ export default function Paths() {
       <div className="app-page">
          <div className="app-eyebrow">— Warm paths —</div>
          <div className="app-page-title">
-            {loading && paths.length === 0
-               ? "Finding paths…"
-               : paths.length > 0
+            {paths.length > 0
                ? `Found ${paths.length} paths`
-               : "No paths found"}
+               : "Warm Paths"}
          </div>
 
          <div className="app-page-sub">
@@ -278,9 +276,9 @@ export default function Paths() {
             </div>
          ) : loading && paths.length === 0 ? (
             <>
-               <PathCardSkeleton />
-               <PathCardSkeleton />
-               <PathCardSkeleton />
+               <PathCard loading={true} />
+               <PathCard loading={true} />
+               <PathCard loading={true} />
             </>
          ) : paths.length === 0 ? (
             <div
@@ -323,99 +321,10 @@ export default function Paths() {
                }}
             >
                {paths.map((p) => (
-                  <PathCard key={p.id} path={p} score={p.warmScore} />
+                  <PathCard key={p.id} path={p} score={loading ? '...' : p.warmScore} />
                ))}
             </div>
          )}
-      </div>
-   );
-}
-
-function PathCardSkeleton() {
-   return (
-      <div
-         className="app-card"
-         style={{
-            display: "flex",
-            gap: "2.5rem",
-            alignItems: "flex-start",
-            marginBottom: "1rem",
-         }}
-      >
-         <div className="path-chain" style={{ width: "320px", flexShrink: 0 }}>
-            <div className="path-node">
-               <div className="path-dot you">YOU</div>
-               <div className="path-node-label">You</div>
-            </div>
-            <div className="path-connector-line" style={{ height: "40px" }} />
-            <div className="path-node">
-               <div className="path-dot connector">CON</div>
-               <div
-                  style={{
-                     width: 90,
-                     height: 13,
-                     borderRadius: 2,
-                     background: "#e0d8d4",
-                  }}
-               />
-            </div>
-            <div className="path-connector-line" style={{ height: "40px" }} />
-            <div className="path-node">
-               <div className="path-dot target">TGT</div>
-               <div
-                  style={{
-                     width: 110,
-                     height: 13,
-                     borderRadius: 2,
-                     background: "#e0d8d4",
-                  }}
-               />
-            </div>
-         </div>
-
-         <div
-            style={{
-               flex: 1,
-               borderLeft: "1px solid #f0e8e4",
-               paddingLeft: "2.5rem",
-            }}
-         >
-            <div
-               style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "50%",
-                  background: "#e0d8d4",
-                  marginBottom: "0.6rem",
-               }}
-            />
-            <div
-               style={{
-                  width: 130,
-                  height: 18,
-                  borderRadius: 2,
-                  background: "#e0d8d4",
-                  marginBottom: "0.4rem",
-               }}
-            />
-            <div
-               style={{
-                  width: 90,
-                  height: 13,
-                  borderRadius: 2,
-                  background: "#e0d8d4",
-                  marginBottom: "1.4rem",
-               }}
-            />
-            <div
-               style={{
-                  width: 70,
-                  height: 13,
-                  borderRadius: 2,
-                  background: "#e0d8d4",
-               }}
-            />
-         </div>
       </div>
    );
 }

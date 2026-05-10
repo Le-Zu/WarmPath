@@ -10,8 +10,12 @@ const initials = (name) => {
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
 };
 
-export default function PathCard({ path, score = '...' }) {
+export default function PathCard({ path, score = '...', loading = false }) {
   const [open, setOpen] = useState(false);
+
+  if (loading || !path) {
+    return <PathCardSkeleton />;
+  }
 
   return (
     <div className="app-card path-card-body">
@@ -70,13 +74,116 @@ export default function PathCard({ path, score = '...' }) {
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.25rem' }}>{path.target.role}</div>
 
         <div style={{ marginBottom: '1.25rem' }}>
-          <WarmthScore score={score} />
+          {score === '...' ? (
+            <div className="app-page-sub" style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              color: "var(--warm)",
+              fontWeight: 500,
+              marginBottom: 0
+            }}>
+              <span className="spinner-small" />
+              WarmScore AI is assessing your connections for the best matches...
+            </div>
+          ) : (
+            <WarmthScore score={score} />
+          )}
         </div>
         <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }} onClick={() => setOpen(true)}>
           Request Intro →
         </button>
       </div>
       {open && <IntroRequestModal path={path} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+function PathCardSkeleton() {
+  return (
+    <div
+      className="app-card"
+      style={{
+        display: "flex",
+        gap: "2.5rem",
+        alignItems: "flex-start",
+        marginBottom: "1rem",
+      }}
+    >
+      <div className="path-chain" style={{ width: "320px", flexShrink: 0 }}>
+        <div className="path-node">
+          <div className="path-dot you">YOU</div>
+          <div className="path-node-label">You</div>
+        </div>
+        <div className="path-connector-line" style={{ height: "40px" }} />
+        <div className="path-node">
+          <div className="path-dot connector">CON</div>
+          <div
+            style={{
+              width: 90,
+              height: 13,
+              borderRadius: 2,
+              background: "#e0d8d4",
+            }}
+          />
+        </div>
+        <div className="path-connector-line" style={{ height: "40px" }} />
+        <div className="path-node">
+          <div className="path-dot target">TGT</div>
+          <div
+            style={{
+              width: 110,
+              height: 13,
+              borderRadius: 2,
+              background: "#e0d8d4",
+            }}
+          />
+        </div>
+      </div>
+
+      <div
+        style={{
+          flex: 1,
+          borderLeft: "1px solid #f0e8e4",
+          paddingLeft: "2.5rem",
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            background: "#e0d8d4",
+            marginBottom: "0.6rem",
+          }}
+        />
+        <div
+          style={{
+            width: 130,
+            height: 18,
+            borderRadius: 2,
+            background: "#e0d8d4",
+            marginBottom: "0.4rem",
+          }}
+        />
+        <div
+          style={{
+            width: 90,
+            height: 13,
+            borderRadius: 2,
+            background: "#e0d8d4",
+            marginBottom: "1.4rem",
+          }}
+        />
+        <div
+          style={{
+            width: 70,
+            height: 13,
+            borderRadius: 2,
+            background: "#e0d8d4",
+          }}
+        />
+      </div>
     </div>
   );
 }
