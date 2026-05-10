@@ -4,6 +4,7 @@ import AppLayout from "@/layout/AppLayout";
 import LandingLayout from "@/layout/LandingLayout";
 import { ToastProvider } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
+import ColdStartOverlay from "@/components/ColdStartOverlay";
 import '@/index.css';
 
 // FAQ is reachable both logged-in (with AppLayout nav) and logged-out (no nav).
@@ -32,6 +33,7 @@ import ChatPage from "@/pages/ChatPage";
 export default function App() {
   return (
       <ToastProvider>
+      <ColdStartOverlay />
       <BrowserRouter>
         <Routes>
           {/* Landing layout — public nav */}
