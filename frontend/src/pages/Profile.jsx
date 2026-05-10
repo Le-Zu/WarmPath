@@ -5,6 +5,7 @@ import { UserContext } from "@/context/UserContext.jsx";
 import { getConnections, respondToConnection } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
 import apiFetch from "@/services/client";
+import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 
 export default function Profile() {
@@ -28,11 +29,14 @@ export default function Profile() {
       if (!newConn.email || !newConn.relationship) return;
       setSavingConn(true);
       try {
+         const { first_name, last_name } = splitFullName(newConn.name);
          await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
                context: newConn.relationship,
+               first_name,
+               last_name,
             }),
          });
          toast("Connector added! This will help discover more paths.");
@@ -42,7 +46,12 @@ export default function Profile() {
          const data = await getConnections();
          setConnections(data.connections || []);
       } catch (err) {
-         toast("Failed to add connector: " + err.message, "error");
+         const msg = err.status === 409
+            ? "You are already connected with this person."
+            : err.status === 400
+               ? "Please fill in all required fields."
+               : "Could not add connector. Please try again.";
+         toast(msg, "error");
       } finally {
          setSavingConn(false);
       }

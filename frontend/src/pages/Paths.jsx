@@ -4,6 +4,7 @@ import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
+import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 
 // Human-readable label for each intent enum value
@@ -56,11 +57,14 @@ export default function Paths() {
       if (!newConn.email || !newConn.relationship) return;
       setSavingConn(true);
       try {
+         const { first_name, last_name } = splitFullName(newConn.name);
          await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
                context: newConn.relationship,
+               first_name,
+               last_name,
             }),
          });
          toast("Connector added! This will help discover more paths.");
@@ -68,7 +72,12 @@ export default function Paths() {
          setNewConn({ name: "", email: "", relationship: "" });
          refresh();
       } catch (err) {
-         toast("Failed to add connector: " + err.message, "error");
+         const msg = err.status === 409
+            ? "You are already connected with this person."
+            : err.status === 400
+               ? "Please fill in all required fields."
+               : "Could not add connector. Please try again.";
+         toast(msg, "error");
       } finally {
          setSavingConn(false);
       }

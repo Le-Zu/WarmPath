@@ -15,6 +15,15 @@ import { useToast } from "@/context/ToastContext";
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+const formatBytes = (bytes) => {
+   if (bytes < 1024) return `${bytes} B`;
+   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 // Lenient LinkedIn URL validation:
 // - empty string clears the field
 // - accepts "linkedin.com/in/username", "www.linkedin.com/in/username", full URLs, etc.
@@ -271,7 +280,20 @@ export default function SettingsPage() {
 
    const handleImageChange = (type) => (e) => {
       const file = e.target.files[0];
+      // Reset the input so selecting the same rejected file again re-triggers onChange.
+      e.target.value = "";
       if (!file) return;
+
+      const label = type === 'profile' ? 'Profile picture' : 'Banner image';
+
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+         toast(`${label} must be a JPG, PNG, WebP, or GIF image.`, "error");
+         return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+         toast(`${label} is ${formatBytes(file.size)} — max size is 10 MB.`, "error");
+         return;
+      }
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -282,6 +304,9 @@ export default function SettingsPage() {
             setBannerFile(file);
             setBannerPreview(reader.result);
          }
+      };
+      reader.onerror = () => {
+         toast(`Could not read ${label.toLowerCase()}. Please try a different file.`, "error");
       };
       reader.readAsDataURL(file);
    };
@@ -298,21 +323,31 @@ export default function SettingsPage() {
       }
    };
 
-   const uploadImage = async (file) => {
+   const uploadImage = async (file, label) => {
       if (!file) return null;
-      
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", UPLOAD_PRESET);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-         method: "POST",
-         body: formData,
-      });
+      let res;
+      try {
+         res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: "POST",
+            body: formData,
+         });
+      } catch (networkErr) {
+         const err = new Error(`${label} upload failed — check your connection and try again.`);
+         err.isUpload = true;
+         throw err;
+      }
 
       if (!res.ok) {
-         const error = await res.json();
-         throw new Error(error.message || "Failed to upload image to Cloudinary");
+         const body = await res.json().catch(() => ({}));
+         const detail = body?.error?.message || body?.message;
+         const err = new Error(detail ? `${label} upload failed: ${detail}` : `${label} upload failed.`);
+         err.isUpload = true;
+         throw err;
       }
 
       const data = await res.json();
@@ -348,10 +383,10 @@ export default function SettingsPage() {
             let bannerUrl = form.bannerPictureUrl;
 
             if (profileFile) {
-               profileUrl = await uploadImage(profileFile);
+               profileUrl = await uploadImage(profileFile, "Profile picture");
             }
             if (bannerFile) {
-               bannerUrl = await uploadImage(bannerFile);
+               bannerUrl = await uploadImage(bannerFile, "Banner image");
             }
 
             // 1. Basic Info
@@ -418,7 +453,9 @@ export default function SettingsPage() {
          toast("Settings saved successfully!");
       } catch (err) {
          console.error("Failed to save settings:", err);
-         toast("Failed to save settings: " + err.message, "error");
+         // Upload errors carry their own user-friendly message; everything else gets a generic prefix.
+         const msg = err.isUpload ? err.message : `Failed to save settings: ${err.message || "unknown error"}`;
+         toast(msg, "error");
       } finally {
          setIsSaving(false);
       }

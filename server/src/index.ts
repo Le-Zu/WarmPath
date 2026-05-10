@@ -482,7 +482,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    let { peerId, email, context, connector_score } = req.body;
+    let { peerId, email, context, connector_score, first_name, last_name } = req.body;
     if ((!peerId && !email) || !context) {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
@@ -492,10 +492,13 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
         if (!peerId && email) {
             let peer = await basePrisma.users.findUnique({ where: { email } });
             if (!peer) {
-                // Create a "Ghost" user (Shadow Profile)
+                // Create a "Ghost" user (Shadow Profile) — store any name the inviter provided
+                // so the connector list shows a real label instead of falling back to email.
                 peer = await basePrisma.users.create({
                     data: {
                         email,
+                        first_name: first_name || null,
+                        last_name: last_name || null,
                         is_active: false, // Mark as inactive until they register
                         profile_complete: false,
                     }
@@ -543,7 +546,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
         res.status(201).json({ connection });
     } catch (error: any) {
         if (error.code === 'P2002') {
-            return res.status(409).json({ error: 'Connection already exists.' });
+            return res.status(409).json({ error: 'You are already connected with this person.' });
         }
         console.error('[POST /api/connections] Error:', error);
         res.status(500).json({ error: 'Failed to create connection', details: error.message });

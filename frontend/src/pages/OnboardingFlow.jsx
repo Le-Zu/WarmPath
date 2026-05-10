@@ -3,10 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import apiFetch from "@/services/client";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
+import { splitFullName } from "@/utils/formatters";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-import { useToast } from "@/context/ToastContext";
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+const formatBytes = (bytes) => {
+   if (bytes < 1024) return `${bytes} B`;
+   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 const TOTAL_STEPS = 6;
 
@@ -80,7 +90,19 @@ export default function OnboardingFlow() {
 
    const handleImageChange = (type) => (e) => {
       const file = e.target.files[0];
+      e.target.value = "";
       if (!file) return;
+
+      const label = type === 'profile' ? 'Profile picture' : 'Banner image';
+
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+         toast(`${label} must be a JPG, PNG, WebP, or GIF image.`, "error");
+         return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+         toast(`${label} is ${formatBytes(file.size)} — max size is 10 MB.`, "error");
+         return;
+      }
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -92,24 +114,37 @@ export default function OnboardingFlow() {
             setBannerPreview(reader.result);
          }
       };
+      reader.onerror = () => {
+         toast(`Could not read ${label.toLowerCase()}. Please try a different file.`, "error");
+      };
       reader.readAsDataURL(file);
    };
 
-   const uploadImage = async (file) => {
+   const uploadImage = async (file, label) => {
       if (!file) return null;
-      
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", UPLOAD_PRESET);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-         method: "POST",
-         body: formData,
-      });
+      let res;
+      try {
+         res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: "POST",
+            body: formData,
+         });
+      } catch (networkErr) {
+         const err = new Error(`${label} upload failed — check your connection and try again.`);
+         err.isUpload = true;
+         throw err;
+      }
 
       if (!res.ok) {
-         const error = await res.json();
-         throw new Error(error.message || "Failed to upload image to Cloudinary");
+         const body = await res.json().catch(() => ({}));
+         const detail = body?.error?.message || body?.message;
+         const err = new Error(detail ? `${label} upload failed: ${detail}` : `${label} upload failed.`);
+         err.isUpload = true;
+         throw err;
       }
 
       const data = await res.json();
@@ -174,10 +209,10 @@ export default function OnboardingFlow() {
          const { user: me } = await apiFetch('/api/me');
          
          if (profileFile) {
-            profileUrl = await uploadImage(profileFile);
+            profileUrl = await uploadImage(profileFile, "Profile picture");
          }
          if (bannerFile) {
-            bannerUrl = await uploadImage(bannerFile);
+            bannerUrl = await uploadImage(bannerFile, "Banner image");
          }
 
          // 1. Profile Update
@@ -230,15 +265,18 @@ export default function OnboardingFlow() {
             });
          }
 
-         // 5. Add Connectors
+         // 5. Add Connectors — pass any name the user provided so ghost profiles
+         //    show a real label instead of falling back to email.
          for (const conn of form.connectors) {
             if (conn.email && conn.relationship) {
+               const { first_name, last_name } = splitFullName(conn.name);
                await apiFetch('/api/connections', {
                   method: 'POST',
-                  body: JSON.stringify({ 
-                     email: conn.email, 
+                  body: JSON.stringify({
+                     email: conn.email,
                      context: conn.relationship,
-                     // We could also send name if the backend supported it for ghost profiles
+                     first_name,
+                     last_name,
                   }),
                }).catch(err => console.error("Failed to add connector:", conn.email, err));
             }
@@ -248,7 +286,8 @@ export default function OnboardingFlow() {
          navigate("/home");
       } catch (err) {
          console.error("Failed to save onboarding data:", err);
-         toast("Failed to save your profile: " + err.message, "error");
+         const msg = err.isUpload ? err.message : `Failed to save your profile: ${err.message || "unknown error"}`;
+         toast(msg, "error");
       } finally {
          setIsSaving(false);
       }

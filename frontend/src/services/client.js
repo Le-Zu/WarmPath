@@ -18,8 +18,11 @@ const apiFetch = async (path, options = {}) => {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || `Request failed: ${response.status}`);
+    const body = await response.json().catch(() => ({}));
+    const err = new Error(body.error || body.message || `Request failed: ${response.status}`);
+    err.status = response.status;
+    err.body = body;
+    throw err;
   }
 
   return response.json();
