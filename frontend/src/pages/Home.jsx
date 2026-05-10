@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Microscope, BookOpen, Users, Wrench } from 'lucide-react';
 import apiFetch from '@/services/client';
+import { getConnections } from '@/services/connections';
 import ProfileCompletionNudge from '../components/ProfileCompletionNudge';
+import ConnectionNudge from '@/components/ConnectionNudge';
 import { useToast } from '@/context/ToastContext';
 
 const intents = [
@@ -17,6 +19,13 @@ export default function Home() {
   const nav = useNavigate();
   const toast = useToast();
   const [loadingId, setLoadingId] = useState(null);
+  const [connectorCount, setConnectorCount] = useState(null);
+
+  useEffect(() => {
+    getConnections()
+      .then((data) => setConnectorCount((data.connections || []).length))
+      .catch(() => setConnectorCount(null));
+  }, []);
 
   const handleSelect = async (id, label) => {
     setLoadingId(id);
@@ -43,6 +52,9 @@ export default function Home() {
       <div className="app-eyebrow">— What are you looking for —</div>
       <div className="app-page-title">What are you<br />looking for?</div>
       <div className="app-page-sub">Choose a goal and we'll find the best connections to help you get there.</div>
+      <div style={{ width: '100%', maxWidth: 480, marginTop: '1rem' }}>
+        <ConnectionNudge count={connectorCount} />
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: 480 }}>
         {intents.map(it => (
           <button key={it.id} 

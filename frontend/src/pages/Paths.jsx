@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
+import { getConnections } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
 import InviteConnectorPanel from "@/components/InviteConnectorPanel";
+import ConnectionNudge from "@/components/ConnectionNudge";
 
 // Human-readable label for each intent enum value
 const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
@@ -54,6 +56,19 @@ export default function Paths() {
    });
    const [savingConn, setSavingConn] = useState(false);
    const [invitePeer, setInvitePeer] = useState(null);
+   const [connectorCount, setConnectorCount] = useState(null);
+
+   useEffect(() => {
+      getConnections()
+         .then((data) => setConnectorCount((data.connections || []).length))
+         .catch(() => setConnectorCount(null));
+   }, []);
+
+   const refreshConnectorCount = () => {
+      getConnections()
+         .then((data) => setConnectorCount((data.connections || []).length))
+         .catch(() => {});
+   };
 
    const handleAddConnector = async (e) => {
       e.preventDefault();
@@ -79,6 +94,7 @@ export default function Paths() {
             setShowAddForm(false);
          }
          refresh();
+         refreshConnectorCount();
       } catch (err) {
          const msg = err.status === 409
             ? "You are already connected with this person."
@@ -127,6 +143,14 @@ export default function Paths() {
             ) : !loading ? (
                "Paths appear when you have mutual connections with someone. Build your network and check back."
             ) : null}
+         </div>
+
+         <div style={{ marginTop: "1rem" }}>
+            <ConnectionNudge
+               count={connectorCount}
+               intent={intent}
+               onAddConnector={() => setShowAddForm(true)}
+            />
          </div>
 
          <div
