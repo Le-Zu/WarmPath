@@ -5,6 +5,7 @@ import { useSocket } from "@/context/SocketContextInstance";
 import { useUser } from "@/context/UserContext";
 import { WarmthScore } from "@/features/gemini";
 import { useChat } from "@/hooks/useChat";
+import InfoTooltip from "@/components/InfoTooltip";
 
 export default function ChatPage() {
    const { id } = useParams();
@@ -82,7 +83,14 @@ export default function ChatPage() {
             </div>
             {conversation?.warm_score && (
                <div style={{ marginLeft: "1.5rem", display: "flex", alignItems: "center" }}>
-                  <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Warm Score</span>
+                  <span style={{ fontSize: "0.75rem", color: "#7a6f68", marginRight: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em", display: "inline-flex", alignItems: "center" }}>
+                     Warm Score
+                     <InfoTooltip
+                        label="What is the Warm Score?"
+                        text="An AI-estimated read on how well this conversation matches your intent. More flames mean a stronger fit between your goals and this person's background."
+                        width={240}
+                     />
+                  </span>
                   <WarmthScore score={conversation.warm_score} />
                </div>
             )}

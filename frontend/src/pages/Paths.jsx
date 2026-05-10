@@ -6,6 +6,7 @@ import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
+import InfoTooltip from "@/components/InfoTooltip";
 
 // Human-readable label for each intent enum value
 const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
@@ -138,9 +139,15 @@ export default function Paths() {
                      fontSize: "0.8rem",
                      fontFamily: "var(--font-sans)",
                      marginRight: "0.1rem",
+                     display: "inline-flex",
+                     alignItems: "center",
                   }}
                >
                   Looking for:
+                  <InfoTooltip
+                     label="What is an intent?"
+                     text="Your intent is the goal you're chasing right now — an internship, research role, class help, club, or skill. WarmPath ranks paths against this so suggestions stay relevant."
+                  />
                </span>
                {INTENT_LABELS.map((label) => {
                   const isActive = activeIntent === label;
@@ -167,12 +174,19 @@ export default function Paths() {
                })}
             </div>
 
-            <button
-               onClick={() => setShowAddForm((v) => !v)}
-               style={btnSecondary}
-            >
-               + Add a Connector
-            </button>
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+               <button
+                  onClick={() => setShowAddForm((v) => !v)}
+                  style={btnSecondary}
+               >
+                  + Add a Connector
+               </button>
+               <InfoTooltip
+                  label="What is a Connector?"
+                  text="A Connector is someone you already know who can vouch for you and introduce you to a contact in their network. The more Connectors, the more warm paths WarmPath can find."
+                  width={240}
+               />
+            </span>
          </div>
 
          {showAddForm && (
@@ -224,7 +238,14 @@ export default function Paths() {
                      />
                   </div>
                   <div style={{ marginBottom: "1rem" }}>
-                     <label style={labelStyle}>Relationship Context *</label>
+                     <label style={labelStyle}>
+                        Relationship Context *
+                        <InfoTooltip
+                           label="What goes in Relationship Context?"
+                           text="A short note on how you know this person — class, internship, club, mutual friend. We use it so the Connector remembers you when an intro request comes through."
+                           width={230}
+                        />
+                     </label>
                      <input
                         type="text"
                         required

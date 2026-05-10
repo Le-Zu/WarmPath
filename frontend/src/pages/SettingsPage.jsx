@@ -11,6 +11,7 @@ import { auth } from "@/config/firebase";
 import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
+import InfoTooltip from "@/components/InfoTooltip";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -119,56 +120,6 @@ function Toggle({ on, onToggle, label }) {
             }}
          />
       </button>
-   );
-}
-
-function InfoTooltip({ text }) {
-   const [open, setOpen] = useState(false);
-   return (
-      <span
-         style={{ position: "relative", display: "inline-flex", marginLeft: "6px", verticalAlign: "middle" }}
-         onMouseEnter={() => setOpen(true)}
-         onMouseLeave={() => setOpen(false)}
-      >
-         <span
-            style={{
-               cursor: "help",
-               color: "#6a994e",
-               fontSize: "0.75rem",
-               border: "1px solid #6a994e",
-               borderRadius: "50%",
-               width: "14px",
-               height: "14px",
-               display: "inline-flex",
-               alignItems: "center",
-               justifyContent: "center",
-               fontWeight: "bold"
-            }}
-         >
-            i
-         </span>
-         {open && (
-            <span
-               style={{
-                  position: "absolute",
-                  bottom: "120%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 100,
-                  width: "200px",
-                  padding: "8px",
-                  background: "#386641",
-                  color: "#fff",
-                  fontSize: "0.75rem",
-                  borderRadius: "4px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                  pointerEvents: "none",
-               }}
-            >
-               {text}
-            </span>
-         )}
-      </span>
    );
 }
 

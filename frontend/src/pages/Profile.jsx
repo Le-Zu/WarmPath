@@ -7,6 +7,7 @@ import { useToast } from "@/context/ToastContext";
 import apiFetch from "@/services/client";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
+import InfoTooltip from "@/components/InfoTooltip";
 
 export default function Profile() {
    const navigate = useNavigate();
@@ -525,33 +526,38 @@ export default function Profile() {
                               </div>
                            );
                         })}
-                        <button
-                           onClick={() => setShowAddForm(v => !v)}
-                           style={{
-                              marginTop: "0.5rem",
-                              width: "100%",
-                              padding: "0.75rem",
-                              borderRadius: "8px",
-                              border: "1.5px dashed var(--border)",
-                              background: "rgba(216, 140, 154, 0.05)",
-                              color: "var(--warm)",
-                              fontSize: "0.85rem",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                              marginBottom: showAddForm ? "1.5rem" : 0
-                           }}
-                           onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "rgba(216, 140, 154, 0.1)";
-                              e.currentTarget.style.borderColor = "var(--warm)";
-                           }}
-                           onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "rgba(216, 140, 154, 0.05)";
-                              e.currentTarget.style.borderColor = "var(--border)";
-                           }}
-                        >
-                           {showAddForm ? "Cancel" : "+ Add Connector"}
-                        </button>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", marginBottom: showAddForm ? "1.5rem" : 0 }}>
+                           <button
+                              onClick={() => setShowAddForm(v => !v)}
+                              style={{
+                                 flex: 1,
+                                 padding: "0.75rem",
+                                 borderRadius: "8px",
+                                 border: "1.5px dashed var(--border)",
+                                 background: "rgba(216, 140, 154, 0.05)",
+                                 color: "var(--warm)",
+                                 fontSize: "0.85rem",
+                                 fontWeight: 600,
+                                 cursor: "pointer",
+                                 transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                 e.currentTarget.style.background = "rgba(216, 140, 154, 0.1)";
+                                 e.currentTarget.style.borderColor = "var(--warm)";
+                              }}
+                              onMouseLeave={(e) => {
+                                 e.currentTarget.style.background = "rgba(216, 140, 154, 0.05)";
+                                 e.currentTarget.style.borderColor = "var(--border)";
+                              }}
+                           >
+                              {showAddForm ? "Cancel" : "+ Add Connector"}
+                           </button>
+                           <InfoTooltip
+                              label="What is a Connector?"
+                              text="A Connector is someone you already know who can vouch for you and introduce you to a contact in their network. The more Connectors, the more warm paths WarmPath can find."
+                              width={240}
+                           />
+                        </div>
 
                         {showAddForm && (
                            <div
@@ -593,6 +599,11 @@ export default function Profile() {
                                  <div style={{ marginBottom: "1rem" }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
                                        Relationship Context *
+                                       <InfoTooltip
+                                          label="What goes in Relationship Context?"
+                                          text="A short note on how you know this person — class, internship, club, mutual friend. We use it so the Connector remembers you when an intro request comes through."
+                                          width={230}
+                                       />
                                     </label>
                                     <input
                                        type="text"
