@@ -45,7 +45,7 @@ random.seed(42)
 
 YEARS            = ["freshman", "sophomore", "junior", "senior", "grad"]
 PROFILE_SOURCES  = ["manual", "linkedin_import", "resume_import"]
-INTENT_CATS      = ["class", "internship", "research", "club", "skill"]
+INTENT_CATS      = ["class", "internship", "research", "club", "skill", "coffee"]
 EXP_TYPES        = ["internship", "research", "full_time", "part_time", "volunteer", "project"]
 CONN_STATUSES    = ["accepted"] * 8 + ["pending"] * 2   # 80% accepted
 REQ_PERMISSIONS  = ["anyone", "connections", "connections_of_connections", "connections_of_connections"]
@@ -80,6 +80,7 @@ INTEREST_LABELS = {
                    "Intramural Volleyball", "Dodgeball League"],
     "skill":      ["Python", "React", "Medical Lab Tech", "Public Speaking",
                    "Spanish Fluency", "Data Analysis (R)", "SQL", "User Testing"],
+    "coffee":     ["General Networking", "Career Advice", "Casual Chat", "Industry Insights"],
 }
 
 COMPANIES = [
@@ -127,6 +128,11 @@ INTENT_DESCRIPTIONS = {
         "Trying to improve my {cat} skills for a project I'm working on. Looking for a mentor or peer to pair program with.",
         "I've been teaching myself {cat} but hit a wall. Looking for guidance from someone more experienced in the Hunter community.",
         "Looking to pair up with someone experienced in {cat} to build a side project for our portfolios this winter break.",
+    ],
+    "coffee":     [
+        "Looking to connect with anyone for a casual {cat}. Always happy to share my experiences and learn from others.",
+        "Interested in {cat} to expand my network at Hunter. Would love to chat about career goals and industry trends.",
+        "Down for a {cat} anytime. I'm looking to meet new people and hear about their journey and advice.",
     ],
 }
 

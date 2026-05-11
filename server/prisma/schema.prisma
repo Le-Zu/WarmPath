@@ -42,6 +42,7 @@ enum IntentCategory {
   research
   club
   skill
+  coffee
   other       // covers uncategorised / SQL year CHECK 'other'
   full_time
   part_time

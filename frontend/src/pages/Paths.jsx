@@ -12,13 +12,14 @@ import InviteConnectorPanel from "@/components/InviteConnectorPanel";
 import ConnectionNudge from "@/components/ConnectionNudge";
 
 // Human-readable label for each intent enum value
-const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
+const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill", "Coffee Chat"];
 const INTENT_MAP = {
    Internship: "internship",
    Research: "research",
    "Class Help": "class",
    Club: "club",
    Skill: "skill",
+   "Coffee Chat": "coffee",
 };
 const INTENT_DISPLAY = {
    internship: "internship",
@@ -26,6 +27,7 @@ const INTENT_DISPLAY = {
    class: "class help",
    club: "club",
    skill: "skill",
+   coffee: "coffee chat",
 };
 
 export default function Paths() {
@@ -184,7 +186,7 @@ export default function Paths() {
                   Looking for:
                   <InfoTooltip
                      label="What is an intent?"
-                     text="Your intent is the goal you're chasing right now — an internship, research role, class help, club, or skill. WarmPath ranks paths against this so suggestions stay relevant."
+                     text="Your intent is the goal you're chasing right now — an internship, research role, class help, club, skill, or coffee chat. WarmPath ranks paths against this so suggestions stay relevant."
                   />
                </span>
                {INTENT_LABELS.map((label) => {

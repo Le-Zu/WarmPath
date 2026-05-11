@@ -38,7 +38,7 @@ CREATE INDEX idx_users_email ON users(email);
 -- ============================================================
 --  USER INTERESTS  (what a user is interested in / good at)
 -- ============================================================
-CREATE TYPE intent_category AS ENUM ('class', 'internship', 'research', 'club', 'skill');
+CREATE TYPE intent_category AS ENUM ('class', 'internship', 'research', 'club', 'skill', 'coffee');
 
 CREATE TABLE user_interests (
     interest_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

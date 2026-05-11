@@ -429,7 +429,7 @@ app.patch('/api/notifications/:id', async (req: AuthRequest, res) => {
 app.post('/api/intents', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const VALID_CATEGORIES = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const VALID_CATEGORIES = ['class','internship','research','club','skill','coffee','other','full_time','part_time','volunteer','project'];
     const { category, description, expires_at } = req.body;
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
@@ -1072,7 +1072,7 @@ app.get('/api/paths', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
-    const VALID_INTENTS = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const VALID_INTENTS = ['class','internship','research','club','skill','coffee','other','full_time','part_time','volunteer','project'];
     const intentParam = typeof req.query.intent === 'string' ? req.query.intent : undefined;
     const intent = intentParam && VALID_INTENTS.includes(intentParam) ? intentParam : undefined;
 
