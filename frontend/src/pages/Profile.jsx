@@ -5,7 +5,10 @@ import { UserContext } from "@/context/UserContext.jsx";
 import { getConnections, respondToConnection } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
 import apiFetch from "@/services/client";
+import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
+import InfoTooltip from "@/components/InfoTooltip";
+import InviteConnectorPanel from "@/components/InviteConnectorPanel";
 
 export default function Profile() {
    const navigate = useNavigate();
@@ -22,30 +25,48 @@ export default function Profile() {
       relationship: "",
    });
    const [savingConn, setSavingConn] = useState(false);
+   const [invitePeer, setInvitePeer] = useState(null);
 
    const handleAddConnector = async (e) => {
       e.preventDefault();
       if (!newConn.email || !newConn.relationship) return;
       setSavingConn(true);
       try {
-         await apiFetch("/api/connections", {
+         const { first_name, last_name } = splitFullName(newConn.name);
+         const result = await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
                context: newConn.relationship,
+               first_name,
+               last_name,
             }),
          });
-         toast("Connector added! This will help discover more paths.");
-         setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
+         if (result?.was_created && result.peer) {
+            setInvitePeer(result.peer);
+         } else {
+            toast("Connector added! This will help discover more paths.");
+            setShowAddForm(false);
+         }
          // Refresh connections list
          const data = await getConnections();
          setConnections(data.connections || []);
       } catch (err) {
-         toast("Failed to add connector: " + err.message, "error");
+         let msg;
+         if (err.status === 409) msg = "You are already connected with this person.";
+         else if (err.status === 429) msg = err.message;
+         else if (err.status === 400) msg = "Please fill in all required fields.";
+         else msg = "Could not add connector. Please try again.";
+         toast(msg, "error");
       } finally {
          setSavingConn(false);
       }
+   };
+
+   const dismissInvite = () => {
+      setInvitePeer(null);
+      setShowAddForm(false);
    };
 
    useEffect(() => {
@@ -82,10 +103,166 @@ export default function Profile() {
          .filter(Boolean)
          .join(" ") || currentUser.email;
 
-   const handleCopyInvite = (email) => {
-      const inviteUrl = `${window.location.origin}/register?email=${encodeURIComponent(email)}`;
-      navigator.clipboard.writeText(inviteUrl);
-      toast(`Invite link copied for ${email}!`);
+   const handleCopyInvite = async (peer) => {
+      const inviteUrl = `${window.location.origin}/register?email=${encodeURIComponent(peer.email)}`;
+      const displayName =
+         [peer.first_name, peer.last_name].filter(Boolean).join(" ") || peer.email;
+      try {
+         await navigator.clipboard.writeText(inviteUrl);
+         toast(`Invite link copied for ${displayName}.`);
+      } catch {
+         toast("Could not copy link. Please copy it manually.", "error");
+      }
+   };
+
+   const awaitingReply = connections.filter(c => c.status === "pending");
+   const newConnections = connections.filter(c => c.status === "accepted" && c.context?.startsWith("Introduced by"));
+   const connectors = connections.filter(c => c.status === "accepted" && !c.context?.startsWith("Introduced by"));
+
+   const renderConnectionList = (list, emptyMsg) => {
+      if (list.length === 0) {
+         return <div style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic", marginBottom: "1rem" }}>{emptyMsg}</div>;
+      }
+      return (
+         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
+            {list.map((c) => {
+               const isIncomingRequest =
+                  c.status === "pending" &&
+                  c.initiator_id !== currentUser.user_id;
+               return (
+                  <div
+                     key={c.connection_id}
+                     style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        justifyContent: "space-between",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "0.75rem",
+                        }}
+                     >
+                        <div
+                           style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: "var(--cream)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "0.8rem",
+                           }}
+                        >
+                           <User size={18} strokeWidth={1.75} color="#7a6f68" />
+                        </div>
+                        <div>
+                           <div style={{ fontSize: "0.88rem", fontWeight: 500 }}>
+                              {[c.peer.first_name, c.peer.last_name].filter(Boolean).join(" ") || c.peer.email}
+                              {c.status === "pending" && !isIncomingRequest && (
+                                 <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "LightSalmon", textTransform: "uppercase" }}>
+                                    (Awaiting reply)
+                                 </span>
+                              )}
+                              {!c.peer.is_active && (
+                                 <button
+                                    type="button"
+                                    onClick={() => handleCopyInvite(c.peer)}
+                                    style={{
+                                       marginLeft: "0.5rem",
+                                       fontSize: "0.7rem",
+                                       background: "transparent",
+                                       border: "none",
+                                       color: "var(--warm)",
+                                       cursor: "pointer",
+                                       padding: 0,
+                                       textDecoration: "underline",
+                                       fontWeight: 500,
+                                    }}
+                                 >
+                                    Copy invite
+                                 </button>
+                              )}
+                           </div>
+                           <div style={{ fontSize: "0.75rem", color: "#7a6f68" }}>{c.context}</div>
+                           <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
+                              {c.peer.linkedin_url && (
+                                 <a 
+                                    href={c.peer.linkedin_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    title="LinkedIn"
+                                    style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       color: '#0077b5', 
+                                       textDecoration: 'none',
+                                    }}
+                                 >
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                       <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                    </svg>
+                                 </a>
+                              )}
+                              {c.peer.handshake_url && (
+                                 <a 
+                                    href={c.peer.handshake_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    title="Handshake"
+                                    style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       color: '#ff3b30', 
+                                       textDecoration: 'none',
+                                    }}
+                                 >
+                                    <div style={{ 
+                                       width: '16px', 
+                                       height: '16px', 
+                                       background: '#ff3b30', 
+                                       borderRadius: '2px', 
+                                       display: 'flex', 
+                                       alignItems: 'center', 
+                                       justifyContent: 'center',
+                                       color: '#fff',
+                                       fontSize: '10px',
+                                       fontWeight: 'bold',
+                                       fontFamily: 'sans-serif'
+                                    }}>h</div>
+                                 </a>
+                              )}
+                           </div>
+                        </div>
+                     </div>
+                     {isIncomingRequest && (
+                        <button
+                           onClick={() => handleAcceptConnection(c.connection_id)}
+                           disabled={acceptingId === c.connection_id}
+                           style={{
+                              fontSize: "0.75rem",
+                              padding: "0.4rem 0.8rem",
+                              borderRadius: "100px",
+                              border: "none",
+                              background: "LightSalmon",
+                              color: "#fff",
+                              fontWeight: "bold",
+                              cursor: acceptingId === c.connection_id ? "not-allowed" : "pointer",
+                              opacity: acceptingId === c.connection_id ? 0.6 : 1,
+                           }}
+                        >
+                           {acceptingId === c.connection_id ? "Accepting..." : "Accept"}
+                        </button>
+                     )}
+                  </div>
+               );
+            })}
+         </div>
+      );
    };
 
    return (
@@ -168,7 +345,7 @@ export default function Profile() {
                         >
                            {[currentUser.major, currentUser.year]
                               .filter(Boolean)
-                              .join(" · ") || "New Member"}
+                              .join(" · ") || "Just getting started"}
                         </div>
                      </div>
                      <button
@@ -194,6 +371,27 @@ export default function Profile() {
                </div>
             </div>
          </div>
+
+         {currentUser.intent_status && (
+            <div
+               style={{
+                  margin: "0 0 1.5rem",
+                  padding: "0.85rem 1rem",
+                  background: "rgba(231, 111, 81, 0.08)",
+                  border: "1px solid rgba(231, 111, 81, 0.3)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  fontSize: "0.9rem",
+                  color: "var(--dark)",
+                  lineHeight: 1.4,
+               }}
+            >
+               <span style={{ fontSize: "1rem", lineHeight: 1 }}>📍</span>
+               <span style={{ flex: 1 }}>{currentUser.intent_status}</span>
+            </div>
+         )}
 
          <div
             style={{
@@ -335,216 +533,91 @@ export default function Profile() {
 
             <div>
                <div className="app-card" style={{ marginBottom: "1.5rem" }}>
-                  <div
-                     className="app-eyebrow"
-                     style={{ marginBottom: "0.75rem" }}
-                  >
+                  <div className="app-eyebrow" style={{ marginBottom: "0.75rem" }}>
                      My Network
                   </div>
                   {loadingConns ? (
                      <div style={{ fontSize: "0.85rem", color: "#888" }}>
                         Loading network...
                      </div>
-                  ) : connections.length === 0 ? (
-                     <div style={{ fontSize: "0.85rem", color: "#888" }}>
-                        You haven't added any connections yet. Add a connector
-                        to get started.
-                     </div>
                   ) : (
-                     <div
-                        style={{
-                           display: "flex",
-                           flexDirection: "column",
-                           gap: "1rem",
-                        }}
-                     >
-                        {connections.map((c) => {
-                           const isIncomingRequest =
-                              c.status === "pending" &&
-                              c.initiator_id !== currentUser.user_id;
-                           const isOutgoingRequest =
-                              c.status === "pending" &&
-                              c.initiator_id === currentUser.user_id;
+                     <>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              Awaiting Reply
+                           </div>
+                           <InfoTooltip
+                              label="Awaiting Reply"
+                              text="Requests you have sent that are waiting for the other person to accept."
+                              width={220}
+                           />
+                        </div>
+                        {renderConnectionList(awaitingReply, "No pending requests.")}
 
-                           return (
-                              <div
-                                 key={c.connection_id}
-                                 style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.75rem",
-                                    justifyContent: "space-between",
-                                 }}
-                              >
-                                 <div
-                                    style={{
-                                       display: "flex",
-                                       alignItems: "center",
-                                       gap: "0.75rem",
-                                    }}
-                                 >
-                                    <div
-                                       style={{
-                                          width: "32px",
-                                          height: "32px",
-                                          borderRadius: "50%",
-                                          background: "var(--cream)",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifySelf: "center",
-                                          justifyContent: "center",
-                                          fontSize: "0.8rem",
-                                       }}
-                                    >
-                                       <User size={18} strokeWidth={1.75} color="#7a6f68" />
-                                    </div>
-                                    <div>
-                                       <div
-                                          style={{
-                                             fontSize: "0.88rem",
-                                             fontWeight: 500,
-                                          }}
-                                       >
-                                          {[c.peer.first_name, c.peer.last_name]
-                                             .filter(Boolean)
-                                             .join(" ") || c.peer.email}
-                                          {(!c.peer.is_active || c.status === "pending") && (
-                                             <span
-                                                style={{
-                                                   marginLeft: "0.5rem",
-                                                   fontSize: "0.7rem",
-                                                   color: "LightSalmon",
-                                                   textTransform: "uppercase",
-                                                }}
-                                             >
-                                                {!c.peer.is_active ? "(Invited)" : "(Awaiting reply)"}
-                                             </span>
-                                          )}
-                                       </div>
-                                       <div
-                                          style={{
-                                             fontSize: "0.75rem",
-                                             color: "#7a6f68",
-                                          }}
-                                       >
-                                          {c.context}
-                                       </div>
-                                       <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
-                                          {c.peer.linkedin_url && (
-                                             <a 
-                                                href={c.peer.linkedin_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                title="LinkedIn"
-                                                style={{ 
-                                                   display: 'inline-flex', 
-                                                   alignItems: 'center', 
-                                                   color: '#0077b5', 
-                                                   textDecoration: 'none',
-                                                }}
-                                             >
-                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                                                   <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                                                </svg>
-                                             </a>
-                                          )}
-                                          {c.peer.handshake_url && (
-                                             <a 
-                                                href={c.peer.handshake_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                title="Handshake"
-                                                style={{ 
-                                                   display: 'inline-flex', 
-                                                   alignItems: 'center', 
-                                                   color: '#ff3b30', 
-                                                   textDecoration: 'none',
-                                                }}
-                                             >
-                                                <div style={{ 
-                                                   width: '16px', 
-                                                   height: '16px', 
-                                                   background: '#ff3b30', 
-                                                   borderRadius: '2px', 
-                                                   display: 'flex', 
-                                                   alignItems: 'center', 
-                                                   justifyContent: 'center',
-                                                   color: '#fff',
-                                                   fontSize: '10px',
-                                                   fontWeight: 'bold',
-                                                   fontFamily: 'sans-serif'
-                                                }}>h</div>
-                                             </a>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              Connectors
+                           </div>
+                           <InfoTooltip
+                              label="Connectors"
+                              text="People you know who can introduce you to their network. The more connectors you add, the more paths you'll find."
+                              width={240}
+                           />
+                        </div>
+                        {renderConnectionList(connectors, "You haven't added any connectors yet.")}
 
-                                 {isIncomingRequest && (
-                                    <button
-                                       onClick={() =>
-                                          handleAcceptConnection(
-                                             c.connection_id,
-                                          )
-                                       }
-                                       disabled={
-                                          acceptingId === c.connection_id
-                                       }
-                                       style={{
-                                          fontSize: "0.75rem",
-                                          padding: "0.4rem 0.8rem",
-                                          borderRadius: "100px",
-                                          border: "none",
-                                          background: "LightSalmon",
-                                          color: "#fff",
-                                          fontWeight: "bold",
-                                          cursor:
-                                             acceptingId === c.connection_id
-                                                ? "not-allowed"
-                                                : "pointer",
-                                          opacity:
-                                             acceptingId === c.connection_id
-                                                ? 0.6
-                                                : 1,
-                                       }}
-                                    >
-                                       {acceptingId === c.connection_id
-                                          ? "Accepting..."
-                                          : "Accept"}
-                                    </button>
-                                 )}
-                              </div>
-                           );
-                        })}
-                        <button
-                           onClick={() => setShowAddForm(v => !v)}
-                           style={{
-                              marginTop: "0.5rem",
-                              width: "100%",
-                              padding: "0.75rem",
-                              borderRadius: "8px",
-                              border: "1.5px dashed var(--border)",
-                              background: "rgba(216, 140, 154, 0.05)",
-                              color: "var(--warm)",
-                              fontSize: "0.85rem",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                              marginBottom: showAddForm ? "1.5rem" : 0
-                           }}
-                           onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "rgba(216, 140, 154, 0.1)";
-                              e.currentTarget.style.borderColor = "var(--warm)";
-                           }}
-                           onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "rgba(216, 140, 154, 0.05)";
-                              e.currentTarget.style.borderColor = "var(--border)";
-                           }}
-                        >
-                           {showAddForm ? "Cancel" : "+ Add Connector"}
-                        </button>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              New Connections
+                           </div>
+                           <InfoTooltip
+                              label="New Connections"
+                              text="People you have recently connected with, either directly or through an intro from a connector."
+                              width={220}
+                           />
+                        </div>
+                        {renderConnectionList(newConnections, "No intros completed yet.")}
 
-                        {showAddForm && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", marginBottom: showAddForm ? "1.5rem" : 0 }}>
+                           <button
+                              onClick={() => setShowAddForm(v => !v)}
+                              style={{
+                                 flex: 1,
+                                 padding: "0.75rem",
+                                 borderRadius: "8px",
+                                 border: "1.5px dashed var(--border)",
+                                 background: "rgba(216, 140, 154, 0.05)",
+                                 color: "var(--warm)",
+                                 fontSize: "0.85rem",
+                                 fontWeight: 600,
+                                 cursor: "pointer",
+                                 transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                 e.currentTarget.style.background = "rgba(216, 140, 154, 0.1)";
+                                 e.currentTarget.style.borderColor = "var(--warm)";
+                              }}
+                              onMouseLeave={(e) => {
+                                 e.currentTarget.style.background = "rgba(216, 140, 154, 0.05)";
+                                 e.currentTarget.style.borderColor = "var(--border)";
+                              }}
+                           >
+                              {showAddForm ? "Cancel" : "+ Add Connector"}
+                           </button>
+                           <InfoTooltip
+                              label="What is a Connector?"
+                              text="A Connector is someone you already know who can vouch for you and introduce you to a contact in their network. The more Connectors, the more warm paths WarmPath can find."
+                              width={240}
+                           />
+                        </div>
+
+                        {showAddForm && invitePeer && (
+                           <div style={{ marginTop: "0.5rem" }}>
+                              <InviteConnectorPanel peer={invitePeer} onDone={dismissInvite} />
+                           </div>
+                        )}
+
+                        {showAddForm && !invitePeer && (
                            <div
                               style={{
                                  marginTop: "0.5rem",
@@ -584,6 +657,11 @@ export default function Profile() {
                                  <div style={{ marginBottom: "1rem" }}>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
                                        Relationship Context *
+                                       <InfoTooltip
+                                          label="What goes in Relationship Context?"
+                                          text="A short note on how you know this person — class, internship, club, mutual friend. We use it so the Connector remembers you when an intro request comes through."
+                                          width={230}
+                                       />
                                     </label>
                                     <input
                                        type="text"
@@ -614,7 +692,8 @@ export default function Profile() {
                               </form>
                            </div>
                         )}
-                        </div>                  )}
+                     </>
+                  )}
                </div>
 
                {/* TODO: When "view other user profile" page is built, hide this card if

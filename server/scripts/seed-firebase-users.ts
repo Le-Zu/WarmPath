@@ -19,7 +19,7 @@ import path from 'path';
 import { basePrisma } from '../src/lib/prisma';
 import 'dotenv/config';
 
-const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json');
+const serviceAccountPath = path.join(process.cwd(), 'server', 'serviceAccountKey.json');
 const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
 admin.initializeApp({

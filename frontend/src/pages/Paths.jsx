@@ -1,19 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { PathCard } from "@/features/paths";
 import { usePaths } from "@/hooks/usePaths";
 import apiFetch from "@/services/client";
+import { getConnections } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
+import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
+import InfoTooltip from "@/components/InfoTooltip";
+import InviteConnectorPanel from "@/components/InviteConnectorPanel";
+import ConnectionNudge from "@/components/ConnectionNudge";
 
 // Human-readable label for each intent enum value
-const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill"];
+const INTENT_LABELS = ["Internship", "Research", "Class Help", "Club", "Skill", "Coffee Chat"];
 const INTENT_MAP = {
    Internship: "internship",
    Research: "research",
    "Class Help": "class",
    Club: "club",
    Skill: "skill",
+   "Coffee Chat": "coffee",
 };
 const INTENT_DISPLAY = {
    internship: "internship",
@@ -21,6 +27,7 @@ const INTENT_DISPLAY = {
    class: "class help",
    club: "club",
    skill: "skill",
+   coffee: "coffee chat",
 };
 
 export default function Paths() {
@@ -50,28 +57,61 @@ export default function Paths() {
       relationship: "",
    });
    const [savingConn, setSavingConn] = useState(false);
+   const [invitePeer, setInvitePeer] = useState(null);
+   const [connectorCount, setConnectorCount] = useState(null);
+
+   useEffect(() => {
+      getConnections()
+         .then((data) => setConnectorCount((data.connections || []).length))
+         .catch(() => setConnectorCount(null));
+   }, []);
+
+   const refreshConnectorCount = () => {
+      getConnections()
+         .then((data) => setConnectorCount((data.connections || []).length))
+         .catch(() => {});
+   };
 
    const handleAddConnector = async (e) => {
       e.preventDefault();
       if (!newConn.email || !newConn.relationship) return;
       setSavingConn(true);
       try {
-         await apiFetch("/api/connections", {
+         const { first_name, last_name } = splitFullName(newConn.name);
+         const result = await apiFetch("/api/connections", {
             method: "POST",
             body: JSON.stringify({
                email: newConn.email,
                context: newConn.relationship,
+               first_name,
+               last_name,
             }),
          });
-         toast("Connector added! This will help discover more paths.");
-         setShowAddForm(false);
          setNewConn({ name: "", email: "", relationship: "" });
+         if (result?.was_created && result.peer) {
+            // Ghost user — keep the panel open and surface an invite link.
+            setInvitePeer(result.peer);
+         } else {
+            toast("Connector added! This will help discover more paths.");
+            setShowAddForm(false);
+         }
          refresh();
+         refreshConnectorCount();
       } catch (err) {
-         toast("Failed to add connector: " + err.message, "error");
+         let msg;
+         if (err.status === 409) msg = "You are already connected with this person.";
+         else if (err.status === 429) msg = err.message;
+         else if (err.status === 400) msg = "Please fill in all required fields.";
+         else msg = "Could not add connector. Please try again.";
+         toast(msg, "error");
       } finally {
          setSavingConn(false);
       }
+   };
+
+   const dismissInvite = () => {
+      setInvitePeer(null);
+      setShowAddForm(false);
    };
 
    const intentLabel = intent ? (INTENT_DISPLAY[intent] ?? intent) : null;
@@ -107,11 +147,21 @@ export default function Paths() {
             ) : null}
          </div>
 
+         <div style={{ marginTop: "1rem" }}>
+            <ConnectionNudge
+               count={connectorCount}
+               intent={intent}
+               onAddConnector={() => setShowAddForm(true)}
+            />
+         </div>
+
          <div
             style={{
                display: "flex",
                alignItems: "center",
                justifyContent: "space-between",
+               flexWrap: "wrap",
+               gap: "1rem",
                margin: "1rem 0 1.75rem",
             }}
          >
@@ -129,9 +179,15 @@ export default function Paths() {
                      fontSize: "0.8rem",
                      fontFamily: "var(--font-sans)",
                      marginRight: "0.1rem",
+                     display: "inline-flex",
+                     alignItems: "center",
                   }}
                >
                   Looking for:
+                  <InfoTooltip
+                     label="What is an intent?"
+                     text="Your intent is the goal you're chasing right now — an internship, research role, class help, club, skill, or coffee chat. WarmPath ranks paths against this so suggestions stay relevant."
+                  />
                </span>
                {INTENT_LABELS.map((label) => {
                   const isActive = activeIntent === label;
@@ -158,15 +214,28 @@ export default function Paths() {
                })}
             </div>
 
-            <button
-               onClick={() => setShowAddForm((v) => !v)}
-               style={btnSecondary}
-            >
-               + Add a Connector
-            </button>
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+               <button
+                  onClick={() => setShowAddForm((v) => !v)}
+                  style={btnSecondary}
+               >
+                  + Add a Connector
+               </button>
+               <InfoTooltip
+                  label="What is a Connector?"
+                  text="A Connector is someone you already know who can vouch for you and introduce you to a contact in their network. The more Connectors, the more warm paths WarmPath can find."
+                  width={240}
+               />
+            </span>
          </div>
 
-         {showAddForm && (
+         {showAddForm && invitePeer && (
+            <div style={{ marginBottom: "1.5rem" }}>
+               <InviteConnectorPanel peer={invitePeer} onDone={dismissInvite} />
+            </div>
+         )}
+
+         {showAddForm && !invitePeer && (
             <div
                style={{
                   marginBottom: "1.5rem",
@@ -215,7 +284,14 @@ export default function Paths() {
                      />
                   </div>
                   <div style={{ marginBottom: "1rem" }}>
-                     <label style={labelStyle}>Relationship Context *</label>
+                     <label style={labelStyle}>
+                        Relationship Context *
+                        <InfoTooltip
+                           label="What goes in Relationship Context?"
+                           text="A short note on how you know this person — class, internship, club, mutual friend. We use it so the Connector remembers you when an intro request comes through."
+                           width={230}
+                        />
+                     </label>
                      <input
                         type="text"
                         required

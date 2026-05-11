@@ -36,7 +36,19 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Connector Node */}
         <div className="path-node">
-          <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>{initials(path.connector.name)}</div>
+          {path.connector.pictureUrl ? (
+            <img 
+              src={path.connector.pictureUrl} 
+              alt={path.connector.name} 
+              className="path-dot connector" 
+              style={{ objectFit: 'cover' }}
+              title={`Connector — ${path.connector.name} (forwards your intro request)`}
+            />
+          ) : (
+            <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>
+              {initials(path.connector.name)}
+            </div>
+          )}
           <div>
             <div className="path-node-label">{path.connector.name}</div>
           </div>
@@ -52,7 +64,19 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Target Node (Chain only shows Name now) */}
         <div className="path-node">
-          <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>{initials(path.target.name)}</div>
+          {!path.target.isAnonymous && path.target.pictureUrl ? (
+            <img 
+              src={path.target.pictureUrl} 
+              alt={path.target.name} 
+              className="path-dot target" 
+              style={{ objectFit: 'cover' }}
+              title={`Contact — ${path.target.name} (the person you want to meet)`}
+            />
+          ) : (
+            <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>
+              {initials(path.target.name)}
+            </div>
+          )}
           <div>
             <div className="path-node-label">{path.target.name}</div>
           </div>
@@ -71,7 +95,20 @@ export default function PathCard({ path, score = '...', loading = false }) {
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>
           {path.target.name} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.25rem' }}>{path.target.role}</div>
+        <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: path.target.intentStatus ? '0.5rem' : '1.25rem' }}>{path.target.role}</div>
+        {path.target.intentStatus && (
+          <div
+            style={{
+              fontSize: '0.78rem',
+              color: 'var(--warm)',
+              fontStyle: 'italic',
+              marginBottom: '1.25rem',
+              lineHeight: 1.4,
+            }}
+          >
+            📍 {path.target.intentStatus}
+          </div>
+        )}
 
         <div style={{ marginBottom: '1.25rem' }}>
           {score === '...' ? (

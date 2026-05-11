@@ -42,6 +42,7 @@ enum IntentCategory {
   research
   club
   skill
+  coffee
   other       // covers uncategorised / SQL year CHECK 'other'
   full_time
   part_time
@@ -193,6 +194,11 @@ model Users {
   banner_picture_url  String?    @db.VarChar(500)
   profile_complete Boolean       @default(false)
 
+  // Free-form "what I'm up to" status. Optional expiry — read paths hide the
+  // status when expires_at has passed; the row isn't actively cleared.
+  intent_status            String?   @db.VarChar(280)
+  intent_status_expires_at DateTime?
+
   // Profile creation tracking (like-to-have F: Profile Creation A/B)
   profile_source   ProfileSource @default(manual)
   linkedin_import_at DateTime?   // set when LinkedIn import is run
@@ -220,6 +226,7 @@ model Users {
   // Connections — user appears as either side (F1)
   connections_a        Connections[]             @relation("InitiatedConnections")
   connections_b        Connections[]             @relation("ReceivedConnections")
+  connections_initiated Connections[]            @relation("SentConnectionRequests")
 
   // Intro requests — three roles (F4/F5)
   requests_sent        IntroRequests[]           @relation("RequestedIntros")
@@ -233,6 +240,12 @@ model Users {
   // Connector prompts — connector or volunteered target (F6)
   connector_prompts    ConnectorPrompts[]         @relation("AssignedPrompts")
   volunteer_prompts    ConnectorPrompts[]         @relation("VolunteeredPrompts")
+
+  // Moderation: reports filed against / by this user, and blocks initiated / received
+  reports_filed     Reports[]    @relation("FiledReports")
+  reports_received  Reports[]    @relation("ReceivedReports")
+  blocks_initiated  UserBlocks[] @relation("InitiatedBlocks")
+  blocks_received   UserBlocks[] @relation("ReceivedBlocks")
 
   @@map("users")
 }
@@ -315,6 +328,7 @@ model Connections {
   connection_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id_a     String           @db.Uuid
   user_id_b     String           @db.Uuid
+  initiator_id  String           @db.Uuid
   // F1: context is required — "CS 499 group", "Debate club", etc.
   context       String           @db.Text
   // F3: connector_score used to rank paths (1 = weak, 5 = strong)
@@ -325,10 +339,12 @@ model Connections {
 
   user_a Users @relation("InitiatedConnections", fields: [user_id_a], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
   user_b Users @relation("ReceivedConnections",  fields: [user_id_b], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  initiator Users @relation("SentConnectionRequests", fields: [initiator_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([user_id_a, user_id_b], name: "uq_connection_pair")
   @@index([user_id_a])
   @@index([user_id_b])
+  @@index([initiator_id])
   @@map("connections")
 }
 
@@ -531,6 +547,7 @@ model Messages {
 
   conversation Conversations @relation("ContainsMessages", fields: [conversation_id], references: [conversation_id], onDelete: Restrict, onUpdate: Cascade)
   sender       Users         @relation("SentMessages",     fields: [sender_id],       references: [user_id],         onDelete: Restrict, onUpdate: Cascade)
+  reports      Reports[]     @relation("ReportedMessage")
 
   @@index([conversation_id])
   @@index([sender_id])
@@ -593,4 +610,70 @@ model ConnectorPrompts {
   @@index([connector_id])
   @@index([intent_id])
   @@map("connector_prompts")
+}
+
+// ------------------------------------------------------------
+// Reports — moderation intake
+// A user reports another user (optionally tied to a specific
+// message that prompted the report). Stored open until an admin
+// resolves or dismisses. No admin UI in app yet; reviewed via DB.
+// ------------------------------------------------------------
+enum ReportReason {
+  harassment
+  spam
+  impersonation
+  other
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  open
+  resolved
+  dismissed
+
+  @@map("report_status")
+}
+
+model Reports {
+  report_id    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporter_id  String       @db.Uuid
+  reported_id  String       @db.Uuid
+  message_id   String?      @db.Uuid
+  reason       ReportReason
+  notes        String?      @db.Text
+  status       ReportStatus @default(open)
+  created_at   DateTime     @default(now())
+  resolved_at  DateTime?
+
+  reporter Users     @relation("FiledReports",    fields: [reporter_id], references: [user_id],    onDelete: Restrict, onUpdate: Cascade)
+  reported Users     @relation("ReceivedReports", fields: [reported_id], references: [user_id],    onDelete: Restrict, onUpdate: Cascade)
+  message  Messages? @relation("ReportedMessage", fields: [message_id],  references: [message_id], onDelete: SetNull,  onUpdate: Cascade)
+
+  @@index([reporter_id])
+  @@index([reported_id])
+  @@index([status])
+  @@map("reports")
+}
+
+// ------------------------------------------------------------
+// UserBlocks — directional block records
+// Unique (blocker_id, blocked_id) pair. Lookups in either
+// direction are used to filter paths, connections, intros, and
+// chats so a blocked user effectively vanishes from the blocker's
+// surfaces, and vice versa where surfaces are symmetric.
+// ------------------------------------------------------------
+model UserBlocks {
+  block_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blocker_id String   @db.Uuid
+  blocked_id String   @db.Uuid
+  created_at DateTime @default(now())
+
+  blocker Users @relation("InitiatedBlocks", fields: [blocker_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  blocked Users @relation("ReceivedBlocks",  fields: [blocked_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([blocker_id, blocked_id])
+  @@index([blocker_id])
+  @@index([blocked_id])
+  @@map("user_blocks")
 }

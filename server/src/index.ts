@@ -7,6 +7,40 @@ import { basePrisma } from './lib/prisma';
 import { getPathsForUser } from './services/pathDiscovery';
 import { calculateBatchWarmthScores, generateContextPreread } from './services/gemini';
 import { refreshWarmthScoresForUser } from './services/warmthScorer';
+import { checkRateLimit, describeRetryAfter } from './lib/rateLimiter';
+
+const HOUR_MS = 60 * 60 * 1000;
+const DECLINE_COOLDOWN_MS = 7 * 24 * HOUR_MS;
+
+// Returns the set of user ids that are either blocked by `userId` or have
+// blocked `userId`. Used to filter every surface where the two users could
+// otherwise encounter each other.
+async function getBlockedUserIds(userId: string): Promise<Set<string>> {
+    const rows = await basePrisma.userBlocks.findMany({
+        where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] },
+        select: { blocker_id: true, blocked_id: true },
+    });
+    const ids = new Set<string>();
+    for (const r of rows) {
+        if (r.blocker_id !== userId) ids.add(r.blocker_id);
+        if (r.blocked_id !== userId) ids.add(r.blocked_id);
+    }
+    return ids;
+}
+
+// Cheap existence check between two specific users.
+async function isBlockedBetween(a: string, b: string): Promise<boolean> {
+    const found = await basePrisma.userBlocks.findFirst({
+        where: {
+            OR: [
+                { blocker_id: a, blocked_id: b },
+                { blocker_id: b, blocked_id: a },
+            ],
+        },
+        select: { block_id: true },
+    });
+    return !!found;
+}
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -395,7 +429,7 @@ app.patch('/api/notifications/:id', async (req: AuthRequest, res) => {
 app.post('/api/intents', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const VALID_CATEGORIES = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const VALID_CATEGORIES = ['class','internship','research','club','skill','coffee','other','full_time','part_time','volunteer','project'];
     const { category, description, expires_at } = req.body;
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
@@ -457,18 +491,19 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
                 status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
-                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
+                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
+                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
             },
         });
 
-        // Normalize: always return the other person as "peer"
+        // Normalize: always return the other person as "peer"; hide expired statuses.
         const result = connections.map(c => ({
             connection_id: c.connection_id,
+            initiator_id: c.initiator_id,
             context: c.context,
             connector_score: c.connector_score,
             status: c.status,
-            peer: c.user_id_a === userId ? c.user_b : c.user_a,
+            peer: withFreshStatus(c.user_id_a === userId ? c.user_b : c.user_a),
         }));
 
         res.json({ connections: result });
@@ -482,24 +517,37 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    let { peerId, email, context, connector_score } = req.body;
+    const limit = checkRateLimit(req.dbUser.user_id, 'add-connector', 10, HOUR_MS);
+    if (!limit.ok) {
+        return res.status(429).json({
+            error: `You've added a lot of connectors recently — try again ${describeRetryAfter(limit.retryAfterMs ?? 0)}.`,
+            retry_after_ms: limit.retryAfterMs,
+        });
+    }
+
+    let { peerId, email, context, connector_score, first_name, last_name } = req.body;
     if ((!peerId && !email) || !context) {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
     }
 
+    let wasCreated = false;
     try {
         // If email is provided, resolve the peerId
         if (!peerId && email) {
             let peer = await basePrisma.users.findUnique({ where: { email } });
             if (!peer) {
-                // Create a "Ghost" user (Shadow Profile)
+                // Create a "Ghost" user (Shadow Profile) — store any name the inviter provided
+                // so the connector list shows a real label instead of falling back to email.
                 peer = await basePrisma.users.create({
                     data: {
                         email,
+                        first_name: first_name || null,
+                        last_name: last_name || null,
                         is_active: false, // Mark as inactive until they register
                         profile_complete: false,
                     }
                 });
+                wasCreated = true;
                 console.log(`[POST /api/connections] Ghost user created for: ${email}`);
             }
             peerId = peer.user_id;
@@ -507,6 +555,10 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
 
         if (peerId === req.dbUser.user_id) {
             return res.status(400).json({ error: 'You cannot connect with yourself.' });
+        }
+
+        if (await isBlockedBetween(req.dbUser.user_id, peerId)) {
+            return res.status(403).json({ error: 'This connection cannot be created.' });
         }
 
         // Enforce user_id_a < user_id_b ordering required by the DB constraint
@@ -517,6 +569,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
             data: { 
                 user_id_a, 
                 user_id_b, 
+                initiator_id: userId,
                 context, 
                 connector_score: connector_score ?? null, 
                 status: 'pending' 
@@ -540,10 +593,26 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
         refreshWarmthScoresForUser(userId);
         refreshWarmthScoresForUser(peerId);
 
-        res.status(201).json({ connection });
+        // Hand back the peer so the frontend can offer an invite link when we
+        // just created a ghost (was_created), and so it can show a name/email
+        // in the success UI without a second round-trip.
+        const peerForResponse = await basePrisma.users.findUnique({
+            where: { user_id: peerId },
+            select: {
+                user_id: true,
+                email: true,
+                first_name: true,
+                last_name: true,
+                is_active: true,
+                intent_status: true,
+                intent_status_expires_at: true,
+            },
+        });
+
+        res.status(201).json({ connection, peer: peerForResponse ? withFreshStatus(peerForResponse) : null, was_created: wasCreated });
     } catch (error: any) {
         if (error.code === 'P2002') {
-            return res.status(409).json({ error: 'Connection already exists.' });
+            return res.status(409).json({ error: 'You are already connected with this person.' });
         }
         console.error('[POST /api/connections] Error:', error);
         res.status(500).json({ error: 'Failed to create connection', details: error.message });
@@ -605,6 +674,7 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
     try {
+        const blocked = await getBlockedUserIds(req.dbUser.user_id);
         const participants = await basePrisma.conversationParticipants.findMany({
             where: { user_id: req.dbUser.user_id },
             include: {
@@ -627,7 +697,14 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
             },
         });
         
-        const conversations = await Promise.all(participants.map(async (p) => {
+        // Drop conversations where any other participant is blocked in either direction.
+        const visible = participants.filter((p) =>
+            p.conversation.participants.every(
+                (cp) => cp.user_id === req.dbUser!.user_id || !blocked.has(cp.user_id),
+            ),
+        );
+
+        const conversations = await Promise.all(visible.map(async (p) => {
             const conv = p.conversation;
             const ir = conv.intro_request;
             
@@ -845,13 +922,52 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
+    const limit = checkRateLimit(req.dbUser.user_id, 'send-intro', 5, HOUR_MS);
+    if (!limit.ok) {
+        return res.status(429).json({
+            error: `You've sent a lot of intro requests in the last hour — try again ${describeRetryAfter(limit.retryAfterMs ?? 0)}.`,
+            retry_after_ms: limit.retryAfterMs,
+        });
+    }
+
     const { connectorId, targetId, message, messageToConnector } = req.body;
 
     if (!connectorId || !targetId || !message) {
         return res.status(400).json({ error: 'connectorId, targetId, and message are required.' });
     }
 
+    if (
+        await isBlockedBetween(req.dbUser.user_id, targetId) ||
+        await isBlockedBetween(req.dbUser.user_id, connectorId)
+    ) {
+        return res.status(403).json({ error: 'This intro request cannot be sent.' });
+    }
+
     try {
+        // Block re-requests to the same target while one is pending or within the
+        // post-decline cooldown. Approved requests are intentionally not blocked —
+        // a user may want a second intro later (e.g., new role, new event).
+        const cooldownStart = new Date(Date.now() - DECLINE_COOLDOWN_MS);
+        const recentRequest = await basePrisma.introRequests.findFirst({
+            where: {
+                requester_id: req.dbUser.user_id,
+                target_id: targetId,
+                OR: [
+                    { status: 'pending' },
+                    { status: 'declined', created_at: { gte: cooldownStart } },
+                ],
+            },
+            orderBy: { created_at: 'desc' },
+        });
+        if (recentRequest) {
+            return res.status(409).json({
+                error: recentRequest.status === 'pending'
+                    ? 'You already have a pending intro request to this person.'
+                    : 'A previous intro request to this person was declined recently — you can try again 7 days after the decline.',
+                previous_status: recentRequest.status,
+            });
+        }
+
         const intent = await basePrisma.intents.findFirst({
             where: { user_id: req.dbUser.user_id, is_active: true },
         });
@@ -956,7 +1072,7 @@ app.get('/api/paths', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
-    const VALID_INTENTS = ['class','internship','research','club','skill','other','full_time','part_time','volunteer','project'];
+    const VALID_INTENTS = ['class','internship','research','club','skill','coffee','other','full_time','part_time','volunteer','project'];
     const intentParam = typeof req.query.intent === 'string' ? req.query.intent : undefined;
     const intent = intentParam && VALID_INTENTS.includes(intentParam) ? intentParam : undefined;
 
@@ -1022,6 +1138,18 @@ app.post('/api/paths/assess', async (req: AuthRequest, res) => {
 });
 
 // Get the current authenticated user's full profile from DB
+// Hide intent_status if its expiry has passed. The DB row stays as-is so
+// users can re-enable a status by clearing the expiry; reads just don't
+// surface stale text.
+function withFreshStatus<T extends { intent_status?: string | null; intent_status_expires_at?: Date | null }>(user: T): T {
+    if (!user) return user;
+    const expiresAt = user.intent_status_expires_at;
+    if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+        return { ...user, intent_status: null, intent_status_expires_at: null };
+    }
+    return user;
+}
+
 app.get('/api/me', (req: AuthRequest, res) => {
     if (!req.dbUser) {
         console.log(`[GET /api/me] No DB record for Firebase user: ${req.user?.email}`);
@@ -1030,7 +1158,7 @@ app.get('/api/me', (req: AuthRequest, res) => {
 
     console.log(`[GET /api/me] Profile fetched | user_id: ${req.dbUser.user_id} | email: ${req.dbUser.email} | firebase_uid: ${req.dbUser.firebase_uid} | profile_complete: ${req.dbUser.profile_complete}`);
 
-    res.json({ user: req.dbUser });
+    res.json({ user: withFreshStatus(req.dbUser) });
 });
 
 // Batch updates interests for the authenticated user
@@ -1103,11 +1231,20 @@ app.post('/api/me/experiences', async (req: AuthRequest, res) => {
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'handshake_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'handshake_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete', 'intent_status', 'intent_status_expires_at'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {
         if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+    // Coerce expiry from ISO string to Date (or null) so Prisma accepts it.
+    if (updates.intent_status_expires_at !== undefined) {
+        updates.intent_status_expires_at = updates.intent_status_expires_at ? new Date(updates.intent_status_expires_at) : null;
+    }
+    // Empty string clears the status.
+    if (updates.intent_status !== undefined && updates.intent_status === '') {
+        updates.intent_status = null;
+        updates.intent_status_expires_at = null;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -1160,6 +1297,140 @@ app.patch('/api/me/privacy', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error('[PATCH /api/me/privacy] Error:', error);
         res.status(500).json({ error: 'Failed to update privacy settings', details: error.message });
+    }
+});
+
+// ────────────────────────────────────────────────────────────
+// Moderation: reports + blocks
+// ────────────────────────────────────────────────────────────
+
+// Creates a report against another user. Optionally tied to a specific message.
+app.post('/api/reports', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { reported_id, message_id, reason, notes } = req.body;
+    const VALID_REASONS = ['harassment', 'spam', 'impersonation', 'other'];
+
+    if (!reported_id || !reason) {
+        return res.status(400).json({ error: 'reported_id and reason are required.' });
+    }
+    if (!VALID_REASONS.includes(reason)) {
+        return res.status(400).json({ error: 'Invalid reason.' });
+    }
+    if (reported_id === req.dbUser.user_id) {
+        return res.status(400).json({ error: 'You cannot report yourself.' });
+    }
+
+    try {
+        const report = await basePrisma.reports.create({
+            data: {
+                reporter_id: req.dbUser.user_id,
+                reported_id,
+                message_id: message_id || null,
+                reason,
+                notes: notes || null,
+            },
+        });
+        console.log(`[POST /api/reports] Report filed | report_id: ${report.report_id} | reporter: ${req.dbUser.user_id} | reported: ${reported_id} | reason: ${reason}`);
+        res.status(201).json({ report });
+    } catch (error: any) {
+        console.error('[POST /api/reports] Error:', error);
+        res.status(500).json({ error: 'Failed to file report', details: error.message });
+    }
+});
+
+// Lists the blocks the authenticated user has initiated, with peer details for display.
+app.get('/api/blocks', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const blocks = await basePrisma.userBlocks.findMany({
+            where: { blocker_id: req.dbUser.user_id },
+            include: {
+                blocked: {
+                    select: { user_id: true, email: true, first_name: true, last_name: true, profile_picture_url: true },
+                },
+            },
+            orderBy: { created_at: 'desc' },
+        });
+        res.json({ blocks });
+    } catch (error: any) {
+        console.error('[GET /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch blocks', details: error.message });
+    }
+});
+
+// Blocks another user. Side-effects on existing relationships:
+//  - any accepted/pending Connection between the pair is set to 'blocked'
+//  - any pending IntroRequest in either direction is declined
+app.post('/api/blocks', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { blocked_id } = req.body;
+    if (!blocked_id) return res.status(400).json({ error: 'blocked_id is required.' });
+    if (blocked_id === req.dbUser.user_id) {
+        return res.status(400).json({ error: 'You cannot block yourself.' });
+    }
+
+    const userId = req.dbUser.user_id;
+
+    try {
+        // Upsert the block. Idempotent — re-blocking doesn't change anything.
+        const block = await basePrisma.userBlocks.upsert({
+            where: { blocker_id_blocked_id: { blocker_id: userId, blocked_id } },
+            create: { blocker_id: userId, blocked_id },
+            update: {},
+        });
+
+        // Soft-hide existing accepted/pending connection so neither party sees it.
+        await basePrisma.connections.updateMany({
+            where: {
+                OR: [
+                    { user_id_a: userId, user_id_b: blocked_id },
+                    { user_id_a: blocked_id, user_id_b: userId },
+                ],
+                status: { in: ['accepted', 'pending'] },
+            },
+            data: { status: 'blocked' },
+        });
+
+        // Auto-decline pending intro requests between the two users in either direction.
+        await basePrisma.introRequests.updateMany({
+            where: {
+                status: 'pending',
+                OR: [
+                    { requester_id: userId, target_id: blocked_id },
+                    { requester_id: blocked_id, target_id: userId },
+                    { connector_id: userId, target_id: blocked_id },
+                    { connector_id: blocked_id, target_id: userId },
+                ],
+            },
+            data: { status: 'declined', responded_at: new Date() },
+        });
+
+        console.log(`[POST /api/blocks] Block created | blocker: ${userId} | blocked: ${blocked_id}`);
+        res.status(201).json({ block });
+    } catch (error: any) {
+        console.error('[POST /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to create block', details: error.message });
+    }
+});
+
+// Removes a block. The hidden connection/intro records stay in their blocked/
+// declined state — users must re-request to reconnect.
+app.delete('/api/blocks/:blockedId', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const blockedId = req.params.blockedId as string;
+    try {
+        await basePrisma.userBlocks.deleteMany({
+            where: { blocker_id: req.dbUser.user_id, blocked_id: blockedId },
+        });
+        console.log(`[DELETE /api/blocks] Unblocked | blocker: ${req.dbUser.user_id} | blocked: ${blockedId}`);
+        res.status(200).json({ message: 'Block removed.' });
+    } catch (error: any) {
+        console.error('[DELETE /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to remove block', details: error.message });
     }
 });
 

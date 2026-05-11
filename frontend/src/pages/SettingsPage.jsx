@@ -11,9 +11,20 @@ import { auth } from "@/config/firebase";
 import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
+import InfoTooltip from "@/components/InfoTooltip";
+import StatusEditor from "@/components/StatusEditor";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+const formatBytes = (bytes) => {
+   if (bytes < 1024) return `${bytes} B`;
+   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 // Lenient LinkedIn URL validation:
 // - empty string clears the field
@@ -60,6 +71,7 @@ const INTENT_MAP = {
    'Class Help': 'class',
    'Club':       'club',
    'Skill':      'skill',
+   'Coffee Chat': 'coffee',
 };
 
 const FIELD_MAP = {
@@ -113,56 +125,6 @@ function Toggle({ on, onToggle, label }) {
    );
 }
 
-function InfoTooltip({ text }) {
-   const [open, setOpen] = useState(false);
-   return (
-      <span
-         style={{ position: "relative", display: "inline-flex", marginLeft: "6px", verticalAlign: "middle" }}
-         onMouseEnter={() => setOpen(true)}
-         onMouseLeave={() => setOpen(false)}
-      >
-         <span
-            style={{
-               cursor: "help",
-               color: "#6a994e",
-               fontSize: "0.75rem",
-               border: "1px solid #6a994e",
-               borderRadius: "50%",
-               width: "14px",
-               height: "14px",
-               display: "inline-flex",
-               alignItems: "center",
-               justifyContent: "center",
-               fontWeight: "bold"
-            }}
-         >
-            i
-         </span>
-         {open && (
-            <span
-               style={{
-                  position: "absolute",
-                  bottom: "120%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 100,
-                  width: "200px",
-                  padding: "8px",
-                  background: "#386641",
-                  color: "#fff",
-                  fontSize: "0.75rem",
-                  borderRadius: "4px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                  pointerEvents: "none",
-               }}
-            >
-               {text}
-            </span>
-         )}
-      </span>
-   );
-}
-
 export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
    const toast = useToast();
@@ -200,6 +162,69 @@ export default function SettingsPage() {
       discovery_mode: "full",
       allow_connector_prompts: true,
    });
+
+   const [savingStatus, setSavingStatus] = useState(false);
+   const [blocks, setBlocks] = useState([]);
+   const [loadingBlocks, setLoadingBlocks] = useState(false);
+   const [unblockingId, setUnblockingId] = useState(null);
+
+   useEffect(() => {
+      if (activeTab !== 'privacy') return;
+      setLoadingBlocks(true);
+      apiFetch('/api/blocks')
+         .then((data) => setBlocks(data.blocks || []))
+         .catch(() => setBlocks([]))
+         .finally(() => setLoadingBlocks(false));
+   }, [activeTab]);
+
+   const handleUnblock = async (block) => {
+      setUnblockingId(block.block_id);
+      try {
+         await apiFetch(`/api/blocks/${block.blocked_id}`, { method: 'DELETE' });
+         setBlocks((prev) => prev.filter((b) => b.block_id !== block.block_id));
+         const name = [block.blocked?.first_name, block.blocked?.last_name].filter(Boolean).join(' ') || block.blocked?.email || 'User';
+         toast(`${name} unblocked.`);
+      } catch (err) {
+         toast(`Could not unblock: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setUnblockingId(null);
+      }
+   };
+
+   const handleSaveStatus = async (text, expiresAt) => {
+      setSavingStatus(true);
+      try {
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({
+               intent_status: text,
+               intent_status_expires_at: expiresAt ? expiresAt.toISOString() : null,
+            }),
+         });
+         await refreshUser();
+         toast('Status saved.');
+      } catch (err) {
+         toast(`Failed to save status: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setSavingStatus(false);
+      }
+   };
+
+   const handleClearStatus = async () => {
+      setSavingStatus(true);
+      try {
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({ intent_status: '' }),
+         });
+         await refreshUser();
+         toast('Status cleared.');
+      } catch (err) {
+         toast(`Failed to clear status: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setSavingStatus(false);
+      }
+   };
 
    const [profileFile, setProfileFile] = useState(null);
    const [bannerFile, setBannerFile] = useState(null);
@@ -271,7 +296,20 @@ export default function SettingsPage() {
 
    const handleImageChange = (type) => (e) => {
       const file = e.target.files[0];
+      // Reset the input so selecting the same rejected file again re-triggers onChange.
+      e.target.value = "";
       if (!file) return;
+
+      const label = type === 'profile' ? 'Profile picture' : 'Banner image';
+
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+         toast(`${label} must be a JPG, PNG, WebP, or GIF image.`, "error");
+         return;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+         toast(`${label} is ${formatBytes(file.size)} — max size is 10 MB.`, "error");
+         return;
+      }
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -282,6 +320,9 @@ export default function SettingsPage() {
             setBannerFile(file);
             setBannerPreview(reader.result);
          }
+      };
+      reader.onerror = () => {
+         toast(`Could not read ${label.toLowerCase()}. Please try a different file.`, "error");
       };
       reader.readAsDataURL(file);
    };
@@ -298,21 +339,31 @@ export default function SettingsPage() {
       }
    };
 
-   const uploadImage = async (file) => {
+   const uploadImage = async (file, label) => {
       if (!file) return null;
-      
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", UPLOAD_PRESET);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-         method: "POST",
-         body: formData,
-      });
+      let res;
+      try {
+         res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: "POST",
+            body: formData,
+         });
+      } catch (networkErr) {
+         const err = new Error(`${label} upload failed — check your connection and try again.`);
+         err.isUpload = true;
+         throw err;
+      }
 
       if (!res.ok) {
-         const error = await res.json();
-         throw new Error(error.message || "Failed to upload image to Cloudinary");
+         const body = await res.json().catch(() => ({}));
+         const detail = body?.error?.message || body?.message;
+         const err = new Error(detail ? `${label} upload failed: ${detail}` : `${label} upload failed.`);
+         err.isUpload = true;
+         throw err;
       }
 
       const data = await res.json();
@@ -348,10 +399,10 @@ export default function SettingsPage() {
             let bannerUrl = form.bannerPictureUrl;
 
             if (profileFile) {
-               profileUrl = await uploadImage(profileFile);
+               profileUrl = await uploadImage(profileFile, "Profile picture");
             }
             if (bannerFile) {
-               bannerUrl = await uploadImage(bannerFile);
+               bannerUrl = await uploadImage(bannerFile, "Banner image");
             }
 
             // 1. Basic Info
@@ -415,10 +466,12 @@ export default function SettingsPage() {
          }
 
          await refreshUser();
-         toast("Settings saved successfully!");
+         toast("All set — your settings are saved.");
       } catch (err) {
          console.error("Failed to save settings:", err);
-         toast("Failed to save settings: " + err.message, "error");
+         // Upload errors carry their own user-friendly message; everything else gets a generic prefix.
+         const msg = err.isUpload ? err.message : `Failed to save settings: ${err.message || "unknown error"}`;
+         toast(msg, "error");
       } finally {
          setIsSaving(false);
       }
@@ -526,16 +579,16 @@ export default function SettingsPage() {
          >
             <div
                style={{
-                  width: "520px",
+                  width: "800px",
                   maxWidth: "100%",
-                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
-                  padding: "45px 25px",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.15)",
+                  padding: "45px 40px",
                   borderRadius: "10px",
                   background: "#fff",
                }}
             >
-               <h2 style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>Settings</h2>
-               <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+               <h2 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>Settings</h2>
+               <p style={{ fontSize: "1rem", color: "#6a994e", marginBottom: "2rem" }}>
                   Manage your account and privacy preferences.
                </p>
 
@@ -666,70 +719,109 @@ export default function SettingsPage() {
                      </div>
 
                      {/* Account fields */}
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>First Name</label>
-                        <input style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>First Name</label>
+                           <input style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
+                        </div>
+
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Last Name</label>
+                           <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
+                        </div>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Last Name</label>
-                        <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
+                     <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "rgba(231,111,81,0.04)", border: "1px solid rgba(231,111,81,0.18)", borderRadius: "6px" }}>
+                        <label style={{ ...labelStyle, marginBottom: '0.6rem', display: 'flex', alignItems: 'center' }}>
+                           Status
+                           <InfoTooltip
+                              label="What is a status?"
+                              text="A short note about what you're up to right now — an event you're attending, what you're looking for, or something you're hosting. Shows on your Profile and the path cards your contacts see."
+                              width={250}
+                           />
+                        </label>
+                        <StatusEditor
+                           initialStatus={currentUser?.intent_status || ''}
+                           initialExpiresAt={currentUser?.intent_status_expires_at || null}
+                           saving={savingStatus}
+                           onSave={handleSaveStatus}
+                           onClear={handleClearStatus}
+                        />
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
+                     <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>Bio</label>
-                        <textarea 
-                           style={{...inputStyle, height: '100px'}} 
-                           value={form.bio} 
+                        <textarea
+                           style={{...inputStyle, height: '100px'}}
+                           value={form.bio}
                            onChange={set("bio")}
                            placeholder="Tell us about yourself..."
                         />
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
+                     <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>Email</label>
                         <input style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
-                        <p style={helperStyle}>Contact support to change your email</p>
+                        <p style={helperStyle}>Need to change your email? Contact support at support@warmpath.com.</p>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Major</label>
-                        <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Major</label>
+                           <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
+                        </div>
+
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Year</label>
+                           <select style={inputStyle} value={form.year} onChange={set("year")}>
+                              <option value="">Select Year</option>
+                              <option value="freshman">Freshman</option>
+                              <option value="sophomore">Sophomore</option>
+                              <option value="junior">Junior</option>
+                              <option value="senior">Senior</option>
+                              <option value="grad">Grad Student</option>
+                              <option value="other">Other</option>
+                           </select>
+                        </div>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Year</label>
-                        <select style={inputStyle} value={form.year} onChange={set("year")}>
-                           <option value="">Select Year</option>
-                           <option value="freshman">Freshman</option>
-                           <option value="sophomore">Sophomore</option>
-                           <option value="junior">Junior</option>
-                           <option value="senior">Senior</option>
-                           <option value="grad">Grad Student</option>
-                           <option value="other">Other</option>
-                        </select>
-                     </div>
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>LinkedIn URL</label>
+                           <input
+                              style={inputStyle}
+                              type="url"
+                              value={form.linkedinUrl}
+                              onChange={set("linkedinUrl")}
+                              placeholder="linkedin.com/in/yourname"
+                           />
+                        </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>LinkedIn URL</label>
-                        <input
-                           style={inputStyle}
-                           type="url"
-                           value={form.linkedinUrl}
-                           onChange={set("linkedinUrl")}
-                           placeholder="linkedin.com/in/yourname"
-                        />
-                     </div>
-
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Handshake URL</label>
-                        <input
-                           style={inputStyle}
-                           type="url"
-                           value={form.handshakeUrl}
-                           onChange={set("handshakeUrl")}
-                           placeholder="app.joinhandshake.com/profiles/yourname"
-                        />
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Handshake URL</label>
+                           <input
+                              style={inputStyle}
+                              type="url"
+                              value={form.handshakeUrl}
+                              onChange={set("handshakeUrl")}
+                              placeholder="app.joinhandshake.com/profiles/yourname"
+                           />
+                        </div>
                      </div>
 
                      {/* Change Password */}
@@ -754,26 +846,32 @@ export default function SettingsPage() {
                                  autoComplete="current-password"
                               />
                            </div>
-                           <div style={{ marginBottom: "0.75rem" }}>
-                              <label style={labelStyle}>New Password</label>
-                              <input
-                                 style={inputStyle}
-                                 type="password"
-                                 value={form.newPassword}
-                                 onChange={set("newPassword")}
-                                 autoComplete="new-password"
-                                 placeholder="At least 8 characters"
-                              />
-                           </div>
-                           <div style={{ marginBottom: "0.5rem" }}>
-                              <label style={labelStyle}>Confirm New Password</label>
-                              <input
-                                 style={inputStyle}
-                                 type="password"
-                                 value={form.confirmPassword}
-                                 onChange={set("confirmPassword")}
-                                 autoComplete="new-password"
-                              />
+                           <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+                              gap: '1.25rem' 
+                           }}>
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                 <label style={labelStyle}>New Password</label>
+                                 <input
+                                    style={inputStyle}
+                                    type="password"
+                                    value={form.newPassword}
+                                    onChange={set("newPassword")}
+                                    autoComplete="new-password"
+                                    placeholder="At least 8 characters"
+                                 />
+                              </div>
+                              <div style={{ marginBottom: "0.5rem" }}>
+                                 <label style={labelStyle}>Confirm New Password</label>
+                                 <input
+                                    style={inputStyle}
+                                    type="password"
+                                    value={form.confirmPassword}
+                                    onChange={set("confirmPassword")}
+                                    autoComplete="new-password"
+                                 />
+                              </div>
                            </div>
                            {form.newPassword && !passwordsMatch && (
                               <p style={{ ...helperStyle, color: "Tomato" }}>
@@ -881,10 +979,10 @@ export default function SettingsPage() {
                      <div style={toggleRowStyle}>
                         <div>
                            <label style={{ ...labelStyle, marginBottom: 0 }}>
-                              Allow Connector Prompts
-                              <InfoTooltip text="When someone is searching for a contact you're connected to, we may suggest you as a possible connector. Turn off to opt out." />
+                              Be suggested as a connector
+                              <InfoTooltip text="When someone wants to meet a contact you know, we may ask if you can help make the intro. Turn off to opt out." />
                            </label>
-                           <p style={{ ...helperStyle, marginTop: 0 }}>Allow connectors to suggest you for introductions.</p>
+                           <p style={{ ...helperStyle, marginTop: 0 }}>Lets others ask you to introduce them to people you know.</p>
                         </div>
                         <Toggle
                            on={privacyForm.allow_connector_prompts}
@@ -895,7 +993,7 @@ export default function SettingsPage() {
                      <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>
                            Who can request introductions?
-                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). No one pauses all incoming intro requests until you change it back." />
+                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). Choosing 'No one' pauses all incoming intro requests until you change it back." />
                         </label>
                         <select
                            style={inputStyle}
@@ -905,9 +1003,58 @@ export default function SettingsPage() {
                            <option value="anyone">Anyone</option>
                            <option value="connections">Direct connections</option>
                            <option value="connections_of_connections">Friends of friends</option>
-                           <option value="nobody">No one</option>
+                           <option value="nobody">No one (pause all requests)</option>
                         </select>
-                        <p style={helperStyle}>Choose the maximum distance for intro requests.</p>
+                        <p style={helperStyle}>Sets the furthest reach allowed for intro requests.</p>
+                     </div>
+
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={labelStyle}>Blocked users</label>
+                        {loadingBlocks ? (
+                           <p style={helperStyle}>Loading…</p>
+                        ) : blocks.length === 0 ? (
+                           <p style={helperStyle}>You haven&rsquo;t blocked anyone. Blocking hides someone from your paths and prevents intro requests in either direction.</p>
+                        ) : (
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {blocks.map((b) => {
+                                 const name = [b.blocked?.first_name, b.blocked?.last_name].filter(Boolean).join(' ') || b.blocked?.email || 'Unknown user';
+                                 return (
+                                    <div
+                                       key={b.block_id}
+                                       style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          gap: '0.6rem',
+                                          padding: '0.55rem 0.7rem',
+                                          background: '#fff',
+                                          border: '1px solid var(--border)',
+                                          borderRadius: '4px',
+                                       }}
+                                    >
+                                       <span style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>{name}</span>
+                                       <button
+                                          type="button"
+                                          onClick={() => handleUnblock(b)}
+                                          disabled={unblockingId === b.block_id}
+                                          style={{
+                                             background: 'transparent',
+                                             border: '1px solid #7a6f68',
+                                             color: '#7a6f68',
+                                             padding: '0.35rem 0.85rem',
+                                             borderRadius: '100px',
+                                             fontWeight: 600,
+                                             fontSize: '0.78rem',
+                                             cursor: unblockingId === b.block_id ? 'not-allowed' : 'pointer',
+                                          }}
+                                       >
+                                          {unblockingId === b.block_id ? 'Unblocking…' : 'Unblock'}
+                                       </button>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                        )}
                      </div>
                   </>
                )}

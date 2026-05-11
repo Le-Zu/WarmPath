@@ -45,6 +45,8 @@ export default function AppLayout() {
    const [menuOpen, setMenuOpen] = useState(false);
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const menuRef = useRef(null);
+   const mobileMenuRef = useRef(null);
+
    useEffect(() => {
       if (!menuOpen) return;
       const onClick = (e) => {
@@ -54,6 +56,19 @@ export default function AppLayout() {
       document.addEventListener("mousedown", onClick);
       return () => document.removeEventListener("mousedown", onClick);
    }, [menuOpen]);
+
+   useEffect(() => {
+      if (!mobileMenuOpen) return;
+      const onClick = (e) => {
+         const btn = document.getElementById("hamburger-button");
+         if (btn && btn.contains(e.target)) return;
+         if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
+            setMobileMenuOpen(false);
+         }
+      };
+      document.addEventListener("mousedown", onClick);
+      return () => document.removeEventListener("mousedown", onClick);
+   }, [mobileMenuOpen]);
 
    const handleLogout = async () => {
       setMenuOpen(false);
@@ -154,6 +169,7 @@ export default function AppLayout() {
                   <UserSwitcher light />
                )}
                <button
+                  id="hamburger-button"
                   className="app-nav-hamburger"
                   onClick={() => setMobileMenuOpen((o) => !o)}
                   aria-label="Navigation menu"
@@ -269,7 +285,7 @@ export default function AppLayout() {
             </div>
          </nav>
          {mobileMenuOpen && (
-            <div className="app-nav-mobile-menu">
+            <div className="app-nav-mobile-menu" ref={mobileMenuRef}>
                {[
                   ["Find Paths", "/paths"],
                   ["Inbox", "/requests"],

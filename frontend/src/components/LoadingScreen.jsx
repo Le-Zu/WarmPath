@@ -3,33 +3,33 @@ import { Loader2, Flame, Inbox, Send, MessageSquare, User } from 'lucide-react';
 const PAGE_CONFIGS = {
   paths: {
     icon: Flame,
-    title: 'Discovering Paths',
-    subtext: 'Finding the warmest paths through your network...'
+    title: 'Finding your paths',
+    subtext: "Looking for the warmest routes through your network..."
   },
   requests: {
     icon: Inbox,
-    title: 'Opening Inbox',
-    subtext: 'Checking for new introduction requests...'
+    title: 'Loading intro requests',
+    subtext: "Checking what's waiting for you..."
   },
   myRequests: {
     icon: Send,
-    title: 'Loading Requests',
-    subtext: 'Retrieving your outgoing introduction requests...'
+    title: 'Pulling up your requests',
+    subtext: "Gathering the intros you've sent..."
   },
   chats: {
     icon: MessageSquare,
-    title: 'Opening Chats',
-    subtext: 'Preparing your coffee chat conversations...'
+    title: 'Opening your conversations',
+    subtext: 'Setting up your coffee chats...'
   },
   profile: {
     icon: User,
-    title: 'Loading Profile',
-    subtext: 'Gathering your professional story...'
+    title: 'Loading your profile',
+    subtext: 'Pulling together your story...'
   },
   default: {
     icon: Loader2,
     title: 'Loading',
-    subtext: 'Just a moment while we get things ready...'
+    subtext: 'Just a moment...'
   }
 };
 

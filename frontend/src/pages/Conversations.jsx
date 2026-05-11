@@ -17,7 +17,7 @@ export default function Conversations() {
 
       <div style={{ marginTop: '2rem' }}>
         {conversations.length === 0 ? (
-          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>No active conversations yet. They start when an intro request is approved.</div>
+          <div style={{ color: '#7a6f68', fontStyle: 'italic' }}>Conversations start once a connector approves an intro request. Yours will show up here.</div>
         ) : (
           conversations.map((conv) => (
             <div 

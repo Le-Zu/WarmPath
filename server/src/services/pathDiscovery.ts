@@ -1,11 +1,27 @@
 import { basePrisma } from '../lib/prisma'
 import { calculateBatchWarmthScores, calculateDeterministicWarmScore } from './gemini';
 
+// Fetches the set of user ids the requester has blocked or been blocked by;
+// either side of the relationship should remove the user from path discovery.
+async function getBlockedUserIds(userId: string): Promise<Set<string>> {
+  const rows = await basePrisma.userBlocks.findMany({
+    where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] },
+    select: { blocker_id: true, blocked_id: true },
+  });
+  const ids = new Set<string>();
+  for (const r of rows) {
+    if (r.blocker_id !== userId) ids.add(r.blocker_id);
+    if (r.blocked_id !== userId) ids.add(r.blocked_id);
+  }
+  return ids;
+}
+
 // Returns two-hop paths for a user, enriched with connector and target profile details.
 // When intentFilter is provided, only paths whose target has a matching interest category
 // are returned — this drives the intent filter bar on the Paths page.
 export async function getPathsForUser(userId: string, intentFilter?: string, performJitRefresh: boolean = false) {
   const intentStr = intentFilter || 'all';
+  const blocked = await getBlockedUserIds(userId);
   const rows = await basePrisma.$queryRaw<any[]>`
         SELECT
           v.requester_id,
@@ -42,6 +58,8 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
           t.handshake_url AS target_handshake_url,
           t.updated_at  AS target_updated_at,
           t.profile_picture_url AS target_picture_url,
+          t.intent_status AS target_intent_status,
+          t.intent_status_expires_at AS target_intent_status_expires_at,
           ps_target.discovery_mode AS target_discovery_mode,
           ws_specific.updated_at AS score_updated_at,
           (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
@@ -70,7 +88,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
         ORDER BY strength DESC
         `
 
-        let finalPaths = rows.map((r) => {
+        // Drop rows touching a blocked user before any further processing.
+        const visibleRows = blocked.size === 0
+          ? rows
+          : rows.filter((r) => !blocked.has(r.connector_id) && !blocked.has(r.target_id));
+
+        let finalPaths = visibleRows.map((r) => {
           const isAnonymous = r.target_discovery_mode === 'anonymous';
           const targetName = isAnonymous 
             ? `${r.target_first_name} ${r.target_last_name ? r.target_last_name[0] + '.' : ''}`
@@ -93,6 +116,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
         linkedinUrl: isAnonymous ? null : (r.target_linkedin_url ?? null),
         handshakeUrl: isAnonymous ? null : (r.target_handshake_url ?? null),
               isAnonymous,
+              // Intent status surfaces only when present, not expired, and the contact isn't anonymous.
+              intentStatus: (() => {
+                if (isAnonymous || !r.target_intent_status) return null;
+                if (r.target_intent_status_expires_at && new Date(r.target_intent_status_expires_at).getTime() <= Date.now()) return null;
+                return r.target_intent_status;
+              })(),
             },
             strength: Number(r.strength),
             // Metadata block designed for easy AI prompting

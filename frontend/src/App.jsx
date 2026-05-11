@@ -4,6 +4,8 @@ import AppLayout from "@/layout/AppLayout";
 import LandingLayout from "@/layout/LandingLayout";
 import { ToastProvider } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
+import ColdStartOverlay from "@/components/ColdStartOverlay";
+import GlobalAnnouncement from "@/components/GlobalAnnouncement";
 import '@/index.css';
 
 // FAQ is reachable both logged-in (with AppLayout nav) and logged-out (no nav).
@@ -32,10 +34,19 @@ import ChatPage from "@/pages/ChatPage";
 export default function App() {
   return (
       <ToastProvider>
+      <ColdStartOverlay />
       <BrowserRouter>
+        <GlobalAnnouncement 
+          id="welcome-v1" 
+          message="Welcome to WarmPath! We've just updated our Path Discovery algorithm for better results." 
+          type="info"
+          link="/faq"
+          linkText="Check out the FAQ"
+        />
         <Routes>
           {/* Landing layout — public nav */}
           <Route path="/" element={<HomePage />} />
+...
 
           {/* Auth pages — no layout */}
           <Route path="/login" element={<LoginPage />} />
