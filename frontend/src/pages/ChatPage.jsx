@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Lightbulb } from "lucide-react";
+import { ArrowLeft, Lightbulb, Flag } from "lucide-react";
 import { useSocket } from "@/context/SocketContextInstance";
 import { useUser } from "@/context/UserContext";
 import { WarmthScore } from "@/features/gemini";
 import { useChat } from "@/hooks/useChat";
 import InfoTooltip from "@/components/InfoTooltip";
+import ReportMessageModal from "@/components/ReportMessageModal";
+import apiFetch from "@/services/client";
+import { useToast } from "@/context/ToastContext";
 
 export default function ChatPage() {
    const { id } = useParams();
@@ -26,6 +29,23 @@ export default function ChatPage() {
 
    const [newMessage, setNewMessage] = useState("");
    const [isPrereadOpen, setIsPrereadOpen] = useState(false);
+   const [reportTarget, setReportTarget] = useState(null);
+   const toast = useToast();
+
+   const blockUser = async (user) => {
+      try {
+         await apiFetch('/api/blocks', {
+            method: 'POST',
+            body: JSON.stringify({ blocked_id: user.user_id }),
+         });
+         const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'this person';
+         toast(`${name} has been blocked.`);
+         if (socket) socket.emit('leave_conversation', id);
+         navigate('/conversations');
+      } catch (err) {
+         toast(`Could not block: ${err.message || 'unknown error'}`, 'error');
+      }
+   };
 
    const handleSendMessage = (e) => {
       e.preventDefault();
@@ -235,6 +255,29 @@ export default function ChatPage() {
                   >
                      {m.body}
                   </div>
+                  {m.sender_id !== currentUser?.user_id && m.sender && (
+                     <button
+                        type="button"
+                        onClick={() => setReportTarget({ message: m, user: m.sender })}
+                        aria-label="Report this message"
+                        title="Report"
+                        style={{
+                           background: 'transparent',
+                           border: 'none',
+                           color: '#9b8880',
+                           cursor: 'pointer',
+                           padding: '0.15rem 0.25rem',
+                           marginTop: '0.2rem',
+                           fontSize: '0.7rem',
+                           display: 'inline-flex',
+                           alignItems: 'center',
+                           gap: '0.25rem',
+                        }}
+                     >
+                        <Flag size={11} strokeWidth={2} />
+                        Report
+                     </button>
+                  )}
                </div>
             ))}
             {typing && (
@@ -275,6 +318,15 @@ export default function ChatPage() {
                Send
             </button>
          </form>
+
+         {reportTarget && (
+            <ReportMessageModal
+               message={reportTarget.message}
+               reportedUser={reportTarget.user}
+               onClose={() => setReportTarget(null)}
+               onBlock={() => blockUser(reportTarget.user)}
+            />
+         )}
       </div>
    );
 }

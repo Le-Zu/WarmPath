@@ -239,6 +239,12 @@ model Users {
   connector_prompts    ConnectorPrompts[]         @relation("AssignedPrompts")
   volunteer_prompts    ConnectorPrompts[]         @relation("VolunteeredPrompts")
 
+  // Moderation: reports filed against / by this user, and blocks initiated / received
+  reports_filed     Reports[]    @relation("FiledReports")
+  reports_received  Reports[]    @relation("ReceivedReports")
+  blocks_initiated  UserBlocks[] @relation("InitiatedBlocks")
+  blocks_received   UserBlocks[] @relation("ReceivedBlocks")
+
   @@map("users")
 }
 
@@ -536,6 +542,7 @@ model Messages {
 
   conversation Conversations @relation("ContainsMessages", fields: [conversation_id], references: [conversation_id], onDelete: Restrict, onUpdate: Cascade)
   sender       Users         @relation("SentMessages",     fields: [sender_id],       references: [user_id],         onDelete: Restrict, onUpdate: Cascade)
+  reports      Reports[]     @relation("ReportedMessage")
 
   @@index([conversation_id])
   @@index([sender_id])
@@ -598,4 +605,70 @@ model ConnectorPrompts {
   @@index([connector_id])
   @@index([intent_id])
   @@map("connector_prompts")
+}
+
+// ------------------------------------------------------------
+// Reports — moderation intake
+// A user reports another user (optionally tied to a specific
+// message that prompted the report). Stored open until an admin
+// resolves or dismisses. No admin UI in app yet; reviewed via DB.
+// ------------------------------------------------------------
+enum ReportReason {
+  harassment
+  spam
+  impersonation
+  other
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  open
+  resolved
+  dismissed
+
+  @@map("report_status")
+}
+
+model Reports {
+  report_id    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporter_id  String       @db.Uuid
+  reported_id  String       @db.Uuid
+  message_id   String?      @db.Uuid
+  reason       ReportReason
+  notes        String?      @db.Text
+  status       ReportStatus @default(open)
+  created_at   DateTime     @default(now())
+  resolved_at  DateTime?
+
+  reporter Users     @relation("FiledReports",    fields: [reporter_id], references: [user_id],    onDelete: Restrict, onUpdate: Cascade)
+  reported Users     @relation("ReceivedReports", fields: [reported_id], references: [user_id],    onDelete: Restrict, onUpdate: Cascade)
+  message  Messages? @relation("ReportedMessage", fields: [message_id],  references: [message_id], onDelete: SetNull,  onUpdate: Cascade)
+
+  @@index([reporter_id])
+  @@index([reported_id])
+  @@index([status])
+  @@map("reports")
+}
+
+// ------------------------------------------------------------
+// UserBlocks — directional block records
+// Unique (blocker_id, blocked_id) pair. Lookups in either
+// direction are used to filter paths, connections, intros, and
+// chats so a blocked user effectively vanishes from the blocker's
+// surfaces, and vice versa where surfaces are symmetric.
+// ------------------------------------------------------------
+model UserBlocks {
+  block_id   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blocker_id String   @db.Uuid
+  blocked_id String   @db.Uuid
+  created_at DateTime @default(now())
+
+  blocker Users @relation("InitiatedBlocks", fields: [blocker_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  blocked Users @relation("ReceivedBlocks",  fields: [blocked_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([blocker_id, blocked_id])
+  @@index([blocker_id])
+  @@index([blocked_id])
+  @@map("user_blocks")
 }

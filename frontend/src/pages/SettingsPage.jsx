@@ -163,6 +163,32 @@ export default function SettingsPage() {
    });
 
    const [savingStatus, setSavingStatus] = useState(false);
+   const [blocks, setBlocks] = useState([]);
+   const [loadingBlocks, setLoadingBlocks] = useState(false);
+   const [unblockingId, setUnblockingId] = useState(null);
+
+   useEffect(() => {
+      if (activeTab !== 'privacy') return;
+      setLoadingBlocks(true);
+      apiFetch('/api/blocks')
+         .then((data) => setBlocks(data.blocks || []))
+         .catch(() => setBlocks([]))
+         .finally(() => setLoadingBlocks(false));
+   }, [activeTab]);
+
+   const handleUnblock = async (block) => {
+      setUnblockingId(block.block_id);
+      try {
+         await apiFetch(`/api/blocks/${block.blocked_id}`, { method: 'DELETE' });
+         setBlocks((prev) => prev.filter((b) => b.block_id !== block.block_id));
+         const name = [block.blocked?.first_name, block.blocked?.last_name].filter(Boolean).join(' ') || block.blocked?.email || 'User';
+         toast(`${name} unblocked.`);
+      } catch (err) {
+         toast(`Could not unblock: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setUnblockingId(null);
+      }
+   };
 
    const handleSaveStatus = async (text, expiresAt) => {
       setSavingStatus(true);
@@ -952,6 +978,55 @@ export default function SettingsPage() {
                            <option value="nobody">No one (pause all requests)</option>
                         </select>
                         <p style={helperStyle}>Sets the furthest reach allowed for intro requests.</p>
+                     </div>
+
+                     <div style={{ marginBottom: "1.5rem" }}>
+                        <label style={labelStyle}>Blocked users</label>
+                        {loadingBlocks ? (
+                           <p style={helperStyle}>Loading…</p>
+                        ) : blocks.length === 0 ? (
+                           <p style={helperStyle}>You haven&rsquo;t blocked anyone. Blocking hides someone from your paths and prevents intro requests in either direction.</p>
+                        ) : (
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {blocks.map((b) => {
+                                 const name = [b.blocked?.first_name, b.blocked?.last_name].filter(Boolean).join(' ') || b.blocked?.email || 'Unknown user';
+                                 return (
+                                    <div
+                                       key={b.block_id}
+                                       style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          gap: '0.6rem',
+                                          padding: '0.55rem 0.7rem',
+                                          background: '#fff',
+                                          border: '1px solid var(--border)',
+                                          borderRadius: '4px',
+                                       }}
+                                    >
+                                       <span style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>{name}</span>
+                                       <button
+                                          type="button"
+                                          onClick={() => handleUnblock(b)}
+                                          disabled={unblockingId === b.block_id}
+                                          style={{
+                                             background: 'transparent',
+                                             border: '1px solid #7a6f68',
+                                             color: '#7a6f68',
+                                             padding: '0.35rem 0.85rem',
+                                             borderRadius: '100px',
+                                             fontWeight: 600,
+                                             fontSize: '0.78rem',
+                                             cursor: unblockingId === b.block_id ? 'not-allowed' : 'pointer',
+                                          }}
+                                       >
+                                          {unblockingId === b.block_id ? 'Unblocking…' : 'Unblock'}
+                                       </button>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                        )}
                      </div>
                   </>
                )}

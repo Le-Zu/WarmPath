@@ -11,6 +11,36 @@ import { checkRateLimit, describeRetryAfter } from './lib/rateLimiter';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DECLINE_COOLDOWN_MS = 7 * 24 * HOUR_MS;
+
+// Returns the set of user ids that are either blocked by `userId` or have
+// blocked `userId`. Used to filter every surface where the two users could
+// otherwise encounter each other.
+async function getBlockedUserIds(userId: string): Promise<Set<string>> {
+    const rows = await basePrisma.userBlocks.findMany({
+        where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] },
+        select: { blocker_id: true, blocked_id: true },
+    });
+    const ids = new Set<string>();
+    for (const r of rows) {
+        if (r.blocker_id !== userId) ids.add(r.blocker_id);
+        if (r.blocked_id !== userId) ids.add(r.blocked_id);
+    }
+    return ids;
+}
+
+// Cheap existence check between two specific users.
+async function isBlockedBetween(a: string, b: string): Promise<boolean> {
+    const found = await basePrisma.userBlocks.findFirst({
+        where: {
+            OR: [
+                { blocker_id: a, blocked_id: b },
+                { blocker_id: b, blocked_id: a },
+            ],
+        },
+        select: { block_id: true },
+    });
+    return !!found;
+}
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -526,6 +556,10 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
             return res.status(400).json({ error: 'You cannot connect with yourself.' });
         }
 
+        if (await isBlockedBetween(req.dbUser.user_id, peerId)) {
+            return res.status(403).json({ error: 'This connection cannot be created.' });
+        }
+
         // Enforce user_id_a < user_id_b ordering required by the DB constraint
         const userId = req.dbUser.user_id;
         const [user_id_a, user_id_b] = userId < peerId ? [userId, peerId] : [peerId, userId];
@@ -638,6 +672,7 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
     try {
+        const blocked = await getBlockedUserIds(req.dbUser.user_id);
         const participants = await basePrisma.conversationParticipants.findMany({
             where: { user_id: req.dbUser.user_id },
             include: {
@@ -660,7 +695,14 @@ app.get('/api/conversations', async (req: AuthRequest, res) => {
             },
         });
         
-        const conversations = await Promise.all(participants.map(async (p) => {
+        // Drop conversations where any other participant is blocked in either direction.
+        const visible = participants.filter((p) =>
+            p.conversation.participants.every(
+                (cp) => cp.user_id === req.dbUser!.user_id || !blocked.has(cp.user_id),
+            ),
+        );
+
+        const conversations = await Promise.all(visible.map(async (p) => {
             const conv = p.conversation;
             const ir = conv.intro_request;
             
@@ -890,6 +932,13 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
 
     if (!connectorId || !targetId || !message) {
         return res.status(400).json({ error: 'connectorId, targetId, and message are required.' });
+    }
+
+    if (
+        await isBlockedBetween(req.dbUser.user_id, targetId) ||
+        await isBlockedBetween(req.dbUser.user_id, connectorId)
+    ) {
+        return res.status(403).json({ error: 'This intro request cannot be sent.' });
     }
 
     try {
@@ -1246,6 +1295,140 @@ app.patch('/api/me/privacy', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error('[PATCH /api/me/privacy] Error:', error);
         res.status(500).json({ error: 'Failed to update privacy settings', details: error.message });
+    }
+});
+
+// ────────────────────────────────────────────────────────────
+// Moderation: reports + blocks
+// ────────────────────────────────────────────────────────────
+
+// Creates a report against another user. Optionally tied to a specific message.
+app.post('/api/reports', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { reported_id, message_id, reason, notes } = req.body;
+    const VALID_REASONS = ['harassment', 'spam', 'impersonation', 'other'];
+
+    if (!reported_id || !reason) {
+        return res.status(400).json({ error: 'reported_id and reason are required.' });
+    }
+    if (!VALID_REASONS.includes(reason)) {
+        return res.status(400).json({ error: 'Invalid reason.' });
+    }
+    if (reported_id === req.dbUser.user_id) {
+        return res.status(400).json({ error: 'You cannot report yourself.' });
+    }
+
+    try {
+        const report = await basePrisma.reports.create({
+            data: {
+                reporter_id: req.dbUser.user_id,
+                reported_id,
+                message_id: message_id || null,
+                reason,
+                notes: notes || null,
+            },
+        });
+        console.log(`[POST /api/reports] Report filed | report_id: ${report.report_id} | reporter: ${req.dbUser.user_id} | reported: ${reported_id} | reason: ${reason}`);
+        res.status(201).json({ report });
+    } catch (error: any) {
+        console.error('[POST /api/reports] Error:', error);
+        res.status(500).json({ error: 'Failed to file report', details: error.message });
+    }
+});
+
+// Lists the blocks the authenticated user has initiated, with peer details for display.
+app.get('/api/blocks', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    try {
+        const blocks = await basePrisma.userBlocks.findMany({
+            where: { blocker_id: req.dbUser.user_id },
+            include: {
+                blocked: {
+                    select: { user_id: true, email: true, first_name: true, last_name: true, profile_picture_url: true },
+                },
+            },
+            orderBy: { created_at: 'desc' },
+        });
+        res.json({ blocks });
+    } catch (error: any) {
+        console.error('[GET /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch blocks', details: error.message });
+    }
+});
+
+// Blocks another user. Side-effects on existing relationships:
+//  - any accepted/pending Connection between the pair is set to 'blocked'
+//  - any pending IntroRequest in either direction is declined
+app.post('/api/blocks', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const { blocked_id } = req.body;
+    if (!blocked_id) return res.status(400).json({ error: 'blocked_id is required.' });
+    if (blocked_id === req.dbUser.user_id) {
+        return res.status(400).json({ error: 'You cannot block yourself.' });
+    }
+
+    const userId = req.dbUser.user_id;
+
+    try {
+        // Upsert the block. Idempotent — re-blocking doesn't change anything.
+        const block = await basePrisma.userBlocks.upsert({
+            where: { blocker_id_blocked_id: { blocker_id: userId, blocked_id } },
+            create: { blocker_id: userId, blocked_id },
+            update: {},
+        });
+
+        // Soft-hide existing accepted/pending connection so neither party sees it.
+        await basePrisma.connections.updateMany({
+            where: {
+                OR: [
+                    { user_id_a: userId, user_id_b: blocked_id },
+                    { user_id_a: blocked_id, user_id_b: userId },
+                ],
+                status: { in: ['accepted', 'pending'] },
+            },
+            data: { status: 'blocked' },
+        });
+
+        // Auto-decline pending intro requests between the two users in either direction.
+        await basePrisma.introRequests.updateMany({
+            where: {
+                status: 'pending',
+                OR: [
+                    { requester_id: userId, target_id: blocked_id },
+                    { requester_id: blocked_id, target_id: userId },
+                    { connector_id: userId, target_id: blocked_id },
+                    { connector_id: blocked_id, target_id: userId },
+                ],
+            },
+            data: { status: 'declined', responded_at: new Date() },
+        });
+
+        console.log(`[POST /api/blocks] Block created | blocker: ${userId} | blocked: ${blocked_id}`);
+        res.status(201).json({ block });
+    } catch (error: any) {
+        console.error('[POST /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to create block', details: error.message });
+    }
+});
+
+// Removes a block. The hidden connection/intro records stay in their blocked/
+// declined state — users must re-request to reconnect.
+app.delete('/api/blocks/:blockedId', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const blockedId = req.params.blockedId as string;
+    try {
+        await basePrisma.userBlocks.deleteMany({
+            where: { blocker_id: req.dbUser.user_id, blocked_id: blockedId },
+        });
+        console.log(`[DELETE /api/blocks] Unblocked | blocker: ${req.dbUser.user_id} | blocked: ${blockedId}`);
+        res.status(200).json({ message: 'Block removed.' });
+    } catch (error: any) {
+        console.error('[DELETE /api/blocks] Error:', error);
+        res.status(500).json({ error: 'Failed to remove block', details: error.message });
     }
 });
 

@@ -1,11 +1,27 @@
 import { basePrisma } from '../lib/prisma'
 import { calculateBatchWarmthScores, calculateDeterministicWarmScore } from './gemini';
 
+// Fetches the set of user ids the requester has blocked or been blocked by;
+// either side of the relationship should remove the user from path discovery.
+async function getBlockedUserIds(userId: string): Promise<Set<string>> {
+  const rows = await basePrisma.userBlocks.findMany({
+    where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] },
+    select: { blocker_id: true, blocked_id: true },
+  });
+  const ids = new Set<string>();
+  for (const r of rows) {
+    if (r.blocker_id !== userId) ids.add(r.blocker_id);
+    if (r.blocked_id !== userId) ids.add(r.blocked_id);
+  }
+  return ids;
+}
+
 // Returns two-hop paths for a user, enriched with connector and target profile details.
 // When intentFilter is provided, only paths whose target has a matching interest category
 // are returned — this drives the intent filter bar on the Paths page.
 export async function getPathsForUser(userId: string, intentFilter?: string, performJitRefresh: boolean = false) {
   const intentStr = intentFilter || 'all';
+  const blocked = await getBlockedUserIds(userId);
   const rows = await basePrisma.$queryRaw<any[]>`
         SELECT
           v.requester_id,
@@ -72,7 +88,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
         ORDER BY strength DESC
         `
 
-        let finalPaths = rows.map((r) => {
+        // Drop rows touching a blocked user before any further processing.
+        const visibleRows = blocked.size === 0
+          ? rows
+          : rows.filter((r) => !blocked.has(r.connector_id) && !blocked.has(r.target_id));
+
+        let finalPaths = visibleRows.map((r) => {
           const isAnonymous = r.target_discovery_mode === 'anonymous';
           const targetName = isAnonymous 
             ? `${r.target_first_name} ${r.target_last_name ? r.target_last_name[0] + '.' : ''}`
