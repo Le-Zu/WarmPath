@@ -31,6 +31,9 @@ export default function ChatPage() {
    const [newMessage, setNewMessage] = useState("");
    const [isPrereadOpen, setIsPrereadOpen] = useState(false);
    const [reportTarget, setReportTarget] = useState(null);
+   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+   const [leaveReason, setLeaveReason] = useState("");
+   const [isLeaving, setIsLeaving] = useState(false);
    const toast = useToast();
 
    const blockUser = async (user) => {
@@ -61,15 +64,22 @@ export default function ChatPage() {
    };
 
    const handleLeaveChat = () => {
-      if (
-         window.confirm(
-            "You may leave the chat after facilitating. Are you sure?",
-         )
-      ) {
-         if (socket) {
-            socket.emit("leave_conversation", id);
-         }
-         navigate("/conversations");
+      setIsLeaveModalOpen(true);
+   };
+
+   const confirmLeaveChat = async () => {
+      setIsLeaving(true);
+      try {
+         await apiFetch(`/api/conversations/${id}/leave`, {
+            method: 'POST',
+            body: JSON.stringify({ reason: leaveReason }),
+         });
+         if (socket) socket.emit('leave_conversation', id);
+         navigate('/conversations');
+      } catch (err) {
+         toast(`Could not leave chat: ${err.message}`, 'error');
+      } finally {
+         setIsLeaving(false);
       }
    };
 
@@ -332,6 +342,68 @@ export default function ChatPage() {
                onClose={() => setReportTarget(null)}
                onBlock={() => blockUser(reportTarget.user)}
             />
+         )}
+
+         {isLeaveModalOpen && (
+            <div style={{
+               position: 'fixed',
+               top: 0,
+               left: 0,
+               right: 0,
+               bottom: 0,
+               background: 'rgba(0,0,0,0.5)',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               zIndex: 1000,
+               padding: '1rem'
+            }}>
+               <div className="app-card" style={{ maxWidth: '400px', width: '100%', padding: '1.5rem' }}>
+                  <div className="app-page-title" style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Leave Chat?</div>
+                  <p style={{ fontSize: '0.88rem', color: '#5a5550', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                     You can leave this chat if the intro is complete. Other participants will still be able to message each other.
+                  </p>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.5rem' }}>
+                        Why are you leaving? (Private feedback for developers)
+                     </label>
+                     <textarea
+                        value={leaveReason}
+                        onChange={(e) => setLeaveReason(e.target.value)}
+                        placeholder="e.g. Intro completed, no longer relevant..."
+                        style={{ 
+                           width: '100%', 
+                           padding: '0.75rem', 
+                           borderRadius: '6px', 
+                           border: '1px solid var(--border)', 
+                           fontSize: '0.88rem',
+                           minHeight: '80px',
+                           fontFamily: 'inherit',
+                           resize: 'vertical'
+                        }}
+                     />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                     <button 
+                        onClick={() => setIsLeaveModalOpen(false)}
+                        className="btn-ghost"
+                        style={{ flex: 1, padding: '0.75rem' }}
+                     >
+                        Cancel
+                     </button>
+                     <button 
+                        onClick={confirmLeaveChat}
+                        disabled={isLeaving}
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '0.75rem', background: '#d88c9a', borderColor: '#d88c9a', fontWeight: 600 }}
+                     >
+                        {isLeaving ? 'Leaving...' : 'Leave Chat'}
+                     </button>
+                  </div>
+               </div>
+            </div>
          )}
       </div>
    );

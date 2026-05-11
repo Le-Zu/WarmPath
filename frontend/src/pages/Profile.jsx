@@ -156,9 +156,18 @@ export default function Profile() {
                               alignItems: "center",
                               justifyContent: "center",
                               fontSize: "0.8rem",
+                              overflow: 'hidden'
                            }}
                         >
-                           <User size={18} strokeWidth={1.75} color="#7a6f68" />
+                           {c.peer.profile_picture_url ? (
+                              <img 
+                                 src={c.peer.profile_picture_url} 
+                                 alt="" 
+                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              />
+                           ) : (
+                              <User size={18} strokeWidth={1.75} color="#7a6f68" />
+                           )}
                         </div>
                         <div>
                            <div style={{ fontSize: "0.88rem", fontWeight: 500 }}>
@@ -189,6 +198,19 @@ export default function Profile() {
                               )}
                            </div>
                            <div style={{ fontSize: "0.75rem", color: "#7a6f68" }}>{c.context}</div>
+                           {c.peer.intent_status && (
+                              <div style={{ 
+                                 fontSize: "0.7rem", 
+                                 color: "var(--dark)", 
+                                 background: "rgba(231, 111, 81, 0.05)",
+                                 padding: "0.2rem 0.4rem",
+                                 borderRadius: "4px",
+                                 marginTop: "0.2rem",
+                                 display: "inline-block"
+                              }}>
+                                 📍 {c.peer.intent_status}
+                              </div>
+                           )}
                            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
                               {c.peer.linkedin_url && (
                                  <a 

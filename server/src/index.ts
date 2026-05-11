@@ -316,6 +316,28 @@ app.patch('/api/requests/:id', async (req: AuthRequest, res) => {
             });
             console.log(`[PATCH /api/requests/${id}] Conversation created | conversation_id: ${conversation.conversation_id}`);
 
+            // Create a formal connection between requester and target so they appear in "My Network"
+            const connectorName = [req.dbUser.first_name, req.dbUser.last_name].filter(Boolean).join(' ') || 'a connector';
+            const [uid1, uid2] = [existing.requester_id, existing.target_id].sort();
+            
+            try {
+                await basePrisma.connections.upsert({
+                    where: { uq_connection_pair: { user_id_a: uid1, user_id_b: uid2 } },
+                    update: { status: 'accepted', accepted_at: new Date() },
+                    create: {
+                        user_id_a: uid1,
+                        user_id_b: uid2,
+                        initiator_id: existing.requester_id,
+                        context: `Introduced by ${connectorName}`,
+                        status: 'accepted',
+                        accepted_at: new Date()
+                    }
+                });
+                console.log(`[PATCH /api/requests/${id}] Connection formally created between ${existing.requester_id} and ${existing.target_id}`);
+            } catch (connErr) {
+                console.error(`[PATCH /api/requests/${id}] Failed to create formal connection:`, connErr);
+            }
+
             // F7: Generate Context Pre-Reads
             try {
                 // 1. Fetch full profiles for requester and target
@@ -491,10 +513,9 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
                 status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
-                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
-            },
-        });
+               user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, profile_picture_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
+               user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, profile_picture_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
+            },        });
 
         // Normalize: always return the other person as "peer"; hide expired statuses.
         const result = connections.map(c => ({
@@ -843,6 +864,44 @@ app.post('/api/conversations/:id/messages', async (req: AuthRequest, res) => {
     }
 });
 
+// User leaves a conversation
+app.post('/api/conversations/:id/leave', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const id = req.params.id as string;
+    const { reason } = req.body;
+
+    try {
+        const membership = await basePrisma.conversationParticipants.findFirst({
+            where: { conversation_id: id, user_id: req.dbUser.user_id },
+        });
+
+        if (!membership) return res.status(403).json({ error: 'Not a participant in this conversation.' });
+
+        // Log the reason for developers
+        console.log(`[USER FEEDBACK] User ${req.dbUser.email} is leaving conversation ${id}. Reason: ${reason || 'No reason provided'}`);
+
+        // Mark participant as having left
+        await basePrisma.conversationParticipants.update({
+            where: { participant_id: membership.participant_id },
+            data: { left_at: new Date() }
+        });
+
+        // If the user is the connector, update the conversation status
+        if (membership.role === 'connector') {
+            await basePrisma.conversations.update({
+                where: { conversation_id: id },
+                data: { status: 'connector_left' }
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[POST /api/conversations/:id/leave] Error:', error);
+        res.status(500).json({ error: 'Failed to leave conversation', details: error.message });
+    }
+});
+
 // Returns the context pre-read for the authenticated user in a conversation
 app.get('/api/conversations/:id/preread', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
@@ -899,6 +958,7 @@ app.get('/api/requests/outgoing', async (req: AuthRequest, res) => {
             intent:    r.intent.category,
             draft_message:  r.draft_message,
             edited_message: r.edited_message,
+            connector_note: r.connector_note,
             connector: {
                 name: [r.connector.first_name, r.connector.last_name].filter(Boolean).join(' '),
             },
@@ -966,6 +1026,32 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
                     : 'A previous intro request to this person was declined recently — you can try again 7 days after the decline.',
                 previous_status: recentRequest.status,
             });
+        }
+
+        // Check if there is already an active conversation between these two
+        const existingActiveChat = await basePrisma.conversations.findFirst({
+            where: {
+                status: 'active',
+                participants: { some: { user_id: req.dbUser.user_id } },
+                AND: {
+                    participants: { some: { user_id: targetId } }
+                }
+            }
+        });
+        if (existingActiveChat) {
+            return res.status(409).json({ error: 'You already have an active conversation with this person.' });
+        }
+
+        // Check for a mutual pending request (target has already requested the requester)
+        const mutualRequest = await basePrisma.introRequests.findFirst({
+            where: {
+                requester_id: targetId,
+                target_id: req.dbUser.user_id,
+                status: 'pending'
+            }
+        });
+        if (mutualRequest) {
+            return res.status(409).json({ error: 'Great minds think alike! This person has already requested an intro to you. The request is currently pending approval.' });
         }
 
         const intent = await basePrisma.intents.findFirst({
