@@ -115,6 +115,156 @@ export default function Profile() {
       }
    };
 
+   const awaitingReply = connections.filter(c => c.status === "pending");
+   const newConnections = connections.filter(c => c.status === "accepted" && c.context?.startsWith("Introduced by"));
+   const connectors = connections.filter(c => c.status === "accepted" && !c.context?.startsWith("Introduced by"));
+
+   const renderConnectionList = (list, emptyMsg) => {
+      if (list.length === 0) {
+         return <div style={{ fontSize: "0.85rem", color: "#888", fontStyle: "italic", marginBottom: "1rem" }}>{emptyMsg}</div>;
+      }
+      return (
+         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1.5rem" }}>
+            {list.map((c) => {
+               const isIncomingRequest =
+                  c.status === "pending" &&
+                  c.initiator_id !== currentUser.user_id;
+               return (
+                  <div
+                     key={c.connection_id}
+                     style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        justifyContent: "space-between",
+                     }}
+                  >
+                     <div
+                        style={{
+                           display: "flex",
+                           alignItems: "center",
+                           gap: "0.75rem",
+                        }}
+                     >
+                        <div
+                           style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: "var(--cream)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "0.8rem",
+                           }}
+                        >
+                           <User size={18} strokeWidth={1.75} color="#7a6f68" />
+                        </div>
+                        <div>
+                           <div style={{ fontSize: "0.88rem", fontWeight: 500 }}>
+                              {[c.peer.first_name, c.peer.last_name].filter(Boolean).join(" ") || c.peer.email}
+                              {c.status === "pending" && !isIncomingRequest && (
+                                 <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "LightSalmon", textTransform: "uppercase" }}>
+                                    (Awaiting reply)
+                                 </span>
+                              )}
+                              {!c.peer.is_active && (
+                                 <button
+                                    type="button"
+                                    onClick={() => handleCopyInvite(c.peer)}
+                                    style={{
+                                       marginLeft: "0.5rem",
+                                       fontSize: "0.7rem",
+                                       background: "transparent",
+                                       border: "none",
+                                       color: "var(--warm)",
+                                       cursor: "pointer",
+                                       padding: 0,
+                                       textDecoration: "underline",
+                                       fontWeight: 500,
+                                    }}
+                                 >
+                                    Copy invite
+                                 </button>
+                              )}
+                           </div>
+                           <div style={{ fontSize: "0.75rem", color: "#7a6f68" }}>{c.context}</div>
+                           <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
+                              {c.peer.linkedin_url && (
+                                 <a 
+                                    href={c.peer.linkedin_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    title="LinkedIn"
+                                    style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       color: '#0077b5', 
+                                       textDecoration: 'none',
+                                    }}
+                                 >
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                       <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                    </svg>
+                                 </a>
+                              )}
+                              {c.peer.handshake_url && (
+                                 <a 
+                                    href={c.peer.handshake_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    title="Handshake"
+                                    style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       color: '#ff3b30', 
+                                       textDecoration: 'none',
+                                    }}
+                                 >
+                                    <div style={{ 
+                                       width: '16px', 
+                                       height: '16px', 
+                                       background: '#ff3b30', 
+                                       borderRadius: '2px', 
+                                       display: 'flex', 
+                                       alignItems: 'center', 
+                                       justifyContent: 'center',
+                                       color: '#fff',
+                                       fontSize: '10px',
+                                       fontWeight: 'bold',
+                                       fontFamily: 'sans-serif'
+                                    }}>h</div>
+                                 </a>
+                              )}
+                           </div>
+                        </div>
+                     </div>
+                     {isIncomingRequest && (
+                        <button
+                           onClick={() => handleAcceptConnection(c.connection_id)}
+                           disabled={acceptingId === c.connection_id}
+                           style={{
+                              fontSize: "0.75rem",
+                              padding: "0.4rem 0.8rem",
+                              borderRadius: "100px",
+                              border: "none",
+                              background: "LightSalmon",
+                              color: "#fff",
+                              fontWeight: "bold",
+                              cursor: acceptingId === c.connection_id ? "not-allowed" : "pointer",
+                              opacity: acceptingId === c.connection_id ? 0.6 : 1,
+                           }}
+                        >
+                           {acceptingId === c.connection_id ? "Accepting..." : "Accept"}
+                        </button>
+                     )}
+                  </div>
+               );
+            })}
+         </div>
+      );
+   };
+
    return (
       <div className="app-page">
          <div
@@ -383,219 +533,30 @@ export default function Profile() {
 
             <div>
                <div className="app-card" style={{ marginBottom: "1.5rem" }}>
-                  <div
-                     className="app-eyebrow"
-                     style={{ marginBottom: "0.75rem" }}
-                  >
+                  <div className="app-eyebrow" style={{ marginBottom: "0.75rem" }}>
                      My Network
                   </div>
                   {loadingConns ? (
                      <div style={{ fontSize: "0.85rem", color: "#888" }}>
                         Loading network...
                      </div>
-                  ) : connections.length === 0 ? (
-                     <div style={{ fontSize: "0.85rem", color: "#888" }}>
-                        You haven't added any connections yet. Add a connector
-                        to get started.
-                     </div>
                   ) : (
-                     <div
-                        style={{
-                           display: "flex",
-                           flexDirection: "column",
-                           gap: "1rem",
-                        }}
-                     >
-                        {connections.map((c) => {
-                           const isIncomingRequest =
-                              c.status === "pending" &&
-                              c.initiator_id !== currentUser.user_id;
-                           const isOutgoingRequest =
-                              c.status === "pending" &&
-                              c.initiator_id === currentUser.user_id;
+                     <>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
+                           Awaiting Reply
+                        </div>
+                        {renderConnectionList(awaitingReply, "No pending requests.")}
 
-                           return (
-                              <div
-                                 key={c.connection_id}
-                                 style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "0.75rem",
-                                    justifyContent: "space-between",
-                                 }}
-                              >
-                                 <div
-                                    style={{
-                                       display: "flex",
-                                       alignItems: "center",
-                                       gap: "0.75rem",
-                                    }}
-                                 >
-                                    <div
-                                       style={{
-                                          width: "32px",
-                                          height: "32px",
-                                          borderRadius: "50%",
-                                          background: "var(--cream)",
-                                          display: "flex",
-                                          alignItems: "center",
-                                          justifySelf: "center",
-                                          justifyContent: "center",
-                                          fontSize: "0.8rem",
-                                       }}
-                                    >
-                                       <User size={18} strokeWidth={1.75} color="#7a6f68" />
-                                    </div>
-                                    <div>
-                                       <div
-                                          style={{
-                                             fontSize: "0.88rem",
-                                             fontWeight: 500,
-                                          }}
-                                       >
-                                          {[c.peer.first_name, c.peer.last_name]
-                                             .filter(Boolean)
-                                             .join(" ") || c.peer.email}
-                                          {(!c.peer.is_active || c.status === "pending") && (
-                                             <span
-                                                style={{
-                                                   marginLeft: "0.5rem",
-                                                   fontSize: "0.7rem",
-                                                   color: "LightSalmon",
-                                                   textTransform: "uppercase",
-                                                }}
-                                             >
-                                                {!c.peer.is_active ? "(Invited)" : "(Awaiting reply)"}
-                                             </span>
-                                          )}
-                                          {!c.peer.is_active && (
-                                             <button
-                                                type="button"
-                                                onClick={() => handleCopyInvite(c.peer)}
-                                                style={{
-                                                   marginLeft: "0.5rem",
-                                                   fontSize: "0.7rem",
-                                                   background: "transparent",
-                                                   border: "none",
-                                                   color: "var(--warm)",
-                                                   cursor: "pointer",
-                                                   padding: 0,
-                                                   textDecoration: "underline",
-                                                   fontWeight: 500,
-                                                }}
-                                             >
-                                                Copy invite
-                                             </button>
-                                          )}
-                                       </div>
-                                       <div
-                                          style={{
-                                             fontSize: "0.75rem",
-                                             color: "#7a6f68",
-                                          }}
-                                       >
-                                          {c.context}
-                                       </div>
-                                       {c.peer.intent_status && (
-                                          <div
-                                             style={{
-                                                fontSize: "0.72rem",
-                                                color: "var(--warm)",
-                                                fontStyle: "italic",
-                                                marginTop: "0.15rem",
-                                                lineHeight: 1.3,
-                                             }}
-                                          >
-                                             📍 {c.peer.intent_status}
-                                          </div>
-                                       )}
-                                       <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
-                                          {c.peer.linkedin_url && (
-                                             <a 
-                                                href={c.peer.linkedin_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                title="LinkedIn"
-                                                style={{ 
-                                                   display: 'inline-flex', 
-                                                   alignItems: 'center', 
-                                                   color: '#0077b5', 
-                                                   textDecoration: 'none',
-                                                }}
-                                             >
-                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                                                   <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                                                </svg>
-                                             </a>
-                                          )}
-                                          {c.peer.handshake_url && (
-                                             <a 
-                                                href={c.peer.handshake_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                title="Handshake"
-                                                style={{ 
-                                                   display: 'inline-flex', 
-                                                   alignItems: 'center', 
-                                                   color: '#ff3b30', 
-                                                   textDecoration: 'none',
-                                                }}
-                                             >
-                                                <div style={{ 
-                                                   width: '16px', 
-                                                   height: '16px', 
-                                                   background: '#ff3b30', 
-                                                   borderRadius: '2px', 
-                                                   display: 'flex', 
-                                                   alignItems: 'center', 
-                                                   justifyContent: 'center',
-                                                   color: '#fff',
-                                                   fontSize: '10px',
-                                                   fontWeight: 'bold',
-                                                   fontFamily: 'sans-serif'
-                                                }}>h</div>
-                                             </a>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </div>
+                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
+                           Connectors
+                        </div>
+                        {renderConnectionList(connectors, "You haven't added any connectors yet.")}
 
-                                 {isIncomingRequest && (
-                                    <button
-                                       onClick={() =>
-                                          handleAcceptConnection(
-                                             c.connection_id,
-                                          )
-                                       }
-                                       disabled={
-                                          acceptingId === c.connection_id
-                                       }
-                                       style={{
-                                          fontSize: "0.75rem",
-                                          padding: "0.4rem 0.8rem",
-                                          borderRadius: "100px",
-                                          border: "none",
-                                          background: "LightSalmon",
-                                          color: "#fff",
-                                          fontWeight: "bold",
-                                          cursor:
-                                             acceptingId === c.connection_id
-                                                ? "not-allowed"
-                                                : "pointer",
-                                          opacity:
-                                             acceptingId === c.connection_id
-                                                ? 0.6
-                                                : 1,
-                                       }}
-                                    >
-                                       {acceptingId === c.connection_id
-                                          ? "Accepting..."
-                                          : "Accept"}
-                                    </button>
-                                 )}
-                              </div>
-                           );
-                        })}
+                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
+                           New Connections
+                        </div>
+                        {renderConnectionList(newConnections, "No intros completed yet.")}
+
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", marginBottom: showAddForm ? "1.5rem" : 0 }}>
                            <button
                               onClick={() => setShowAddForm(v => !v)}
@@ -710,7 +671,8 @@ export default function Profile() {
                               </form>
                            </div>
                         )}
-                        </div>                  )}
+                     </>
+                  )}
                </div>
 
                {/* TODO: When "view other user profile" page is built, hide this card if

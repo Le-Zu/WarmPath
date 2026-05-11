@@ -58,49 +58,45 @@ NOTIF_TYPES      = ["intro_request", "request_approved", "request_declined",
 # ─────────────────────────────────────────────────────────────
 
 MAJORS = [
-    "Computer Science", "Electrical Engineering", "Biology",
-    "Data Science", "Finance", "Mechanical Engineering",
-    "Political Science", "Economics", "Chemistry", "Marketing",
-    "Physics", "Biomedical Engineering", "Statistics", "Psychology",
-    "Business Admin", "Mathematics", "Undeclared",
+    "Computer Science", "Biology (Pre-Med)", "Nursing",
+    "Psychology", "Political Science", "Economics",
+    "English", "Media Studies", "Public Health",
+    "Sociology", "Environmental Studies", "Statistics",
+    "Macaulay Honors", "Human Biology", "Chemistry",
+    "Undeclared",
 ]
 
 INTEREST_LABELS = {
-    "class":      ["CS 499", "Organic Chemistry", "Linear Algebra", "Data Structures",
-                   "Microeconomics", "Molecular Biology", "Circuits Lab"],
-    "internship": ["Software Engineering", "Investment Banking", "Embedded Systems",
-                   "Marketing", "Pharmaceutical", "MedTech", "Data Analysis",
-                   "Product Management", "Frontend Development", "Hardware Design"],
-    "research":   ["Machine Learning", "NLP", "Robotics", "Quantum Physics",
-                   "Biomedical Devices", "Labor Economics", "Causal Inference",
-                   "Astrophysics", "Deep Learning", "UX Research"],
-    "club":       ["Debate Club", "Chess Club", "Model UN", "Robotics Club",
-                   "Finance Club", "Entrepreneurship Club", "Photography Club",
-                   "Pre-Med Society", "Hiking Club", "Model UN"],
-    "skill":      ["Python", "React", "TypeScript", "PyTorch", "MATLAB", "R",
-                   "Figma", "C++", "Financial Modeling", "Lab Techniques",
-                   "Public Speaking", "Statistical Modeling", "User Testing"],
+    "class":      ["CSCI 127", "Organic Chemistry", "Bio 100", "ENGL 220",
+                   "Psych 100", "Math 150 (Calculus)", "Stat 213", "Nursing 200"],
+    "internship": ["Mount Sinai Research", "NYC DoE Internship", "Stripe SWE Intern",
+                   "Legal Aid Society", "City Hall Fellow", "Tech Startup",
+                   "Hospital Administration", "UX Design"],
+    "research":   ["Belfer Center Research", "Hunter Psychology Lab", "CUNY ISPH",
+                   "Cancer Biology Research", "Public Policy Analysis", "Data Science Lab"],
+    "club":       ["Undergraduate Student Government (USG)", "Pre-Med Society",
+                   "Anime Club", "K-Pop Club", "Nursing Students Association",
+                   "Computer Science Club", "Hillel", "Black Student Union",
+                   "Intramural Volleyball", "Dodgeball League"],
+    "skill":      ["Python", "React", "Medical Lab Tech", "Public Speaking",
+                   "Spanish Fluency", "Data Analysis (R)", "SQL", "User Testing"],
 }
 
 COMPANIES = [
-    "Google", "Stripe", "Intel", "Goldman Sachs", "HubSpot", "Figma",
-    "Airbnb", "IDEO", "McKinsey", "SpaceX", "Moderna", "Pfizer",
-    "Bloomberg", "Two Sigma", "OpenAI", "Notion", "Linear",
+    "Google (NYC)", "Stripe", "New York-Presbyterian", "Mount Sinai",
+    "NYC Department of Health", "Bloomberg", "J.P. Morgan", "UNICEF",
+    "Memorial Sloan Kettering", "City University of New York",
 ]
 
 CONNECTION_CONTEXTS = [
-    "CS 499 group", "Hackathon team 2023", "ML reading group",
-    "Dorm roommates freshman year", "Debate club teammates",
-    "Robotics lab neighbours", "Engineering capstone team",
-    "Finance club officers", "Orgo study group",
-    "CS women's network", "Product design workshop",
-    "Econ-Stats joint seminar", "Physics lab partners",
-    "Entrepreneurship speaker panel", "Data science TA office hours",
-    "Marketing + UX crossover talk", "Engineering week project",
-    "Freshman orientation group", "Joint ML lab seminar",
-    "Entrepreneurship club co-founders", "BioMed interest overlap",
-    "Statistics PhD cohort", "Campus research symposium",
-    "Study abroad alumni group", "Peer tutoring program",
+    "Thomas Hunter Hall Game Room", "Stuck on the 68th Street Skywalks",
+    "Met at the 68th St-Hunter College station", "6 train commute buddies",
+    "Bio 100 study group in the 3rd floor library", "Macaulay Honors seminar",
+    "Nursing clinicals group", "USG meeting", "Met during common lunch hour",
+    "Intramural Volleyball team", "Dodgeball tournament", "CSCI 127 lab partners",
+    "Pre-Med Society workshop", "Anime Club screening", "Hanging out in the West Building cafeteria",
+    "Met during Club Fair in the North Building", "Psych 100 group project",
+    "English 220 discussion section", "Student hub on the 3rd floor",
 ]
 
 INTENT_DESCRIPTIONS = {
@@ -154,12 +150,29 @@ def pick(pool: list):
 def pick_unique(pool: list, n: int) -> list:
     return random.sample(pool, min(n, len(pool)))
 
+NYC_BOROUGHS = ["Queens", "Brooklyn", "The Bronx", "Staten Island", "Upper East Side", "Harlem", "Long Island City"]
+STUDENT_VIBES = [
+    "Looking to break into tech and always looking for study buddies.",
+    "Pre-med grind is real, but I'm loving the research labs here.",
+    "Trying to balance a part-time job with 18 credits this semester.",
+    "Usually grabbing a bagel near 68th St before my 8 AM.",
+    "Aspiring data scientist who loves exploring Central Park after class.",
+    "I spend way too much time in the Skywalks between buildings.",
+    "Just looking to expand my network before I graduate next year.",
+    "Love the fast pace of the city, but the MTA is my nemesis.",
+    "Interested in public health and community outreach projects.",
+    "Huge fan of the Game Room in Thomas Hunter Hall for a quick break.",
+]
+
 def fake_bio(major: str, year: str) -> str:
+    borough = pick(NYC_BOROUGHS)
+    vibe = pick(STUDENT_VIBES)
     templates = [
-        f"{year.capitalize()} studying {major}. {fake.sentence()}",
-        f"Passionate about {major.lower()}. {fake.sentence()}",
-        f"{major} student looking to connect and grow. {fake.sentence()}",
-        f"Interested in {major.lower()} and always open to new opportunities.",
+        f"{year.capitalize()} studying {major} at Hunter. {vibe} Surviving the {borough} commute one day at a time.",
+        f"Passionate about {major.lower()}. Often found in the 3rd floor library. {vibe}",
+        f"{major} student from {borough}. {vibe} Looking for {major.lower()} connections and internship advice.",
+        f"Studying {major.lower()} at Hunter. {vibe} Always down for a coffee chat during common lunch hours.",
+        f"Rising {year} majoring in {major}. Just trying to survive finals and find a good internship. {vibe}",
     ]
     return pick(templates)
 
@@ -183,7 +196,17 @@ def fake_experience(exp_type: str) -> tuple:
     start = fake.date_between(start_date=date(2021, 1, 1), end_date=date(2023, 6, 1))
     # 60% chance the role is ongoing
     end   = None if random.random() < 0.6 else fake.date_between(start_date=start, end_date=date(2024, 1, 1))
-    desc  = fake.sentence(nb_words=10)
+    
+    # More realistic experience descriptions
+    exp_vibes = [
+        "Worked on a collaborative team to deliver key project milestones.",
+        "Gained hands-on experience in the field and improved my technical skills.",
+        "Assisted senior staff with daily operations and research tasks.",
+        "Led a small group of students for a campus-wide initiative.",
+        "Developed new features and maintained existing codebases.",
+        "Conducted data analysis and presented findings to the team.",
+    ]
+    desc = pick(exp_vibes)
     return (exp_type, title, org, start, end, desc)
 
 # ─────────────────────────────────────────────────────────────
@@ -196,10 +219,19 @@ def seed():
 
     print("🌱 Starting seed (faker edition)...")
 
-    # ── 1. USERS ─────────────────────────────────────────────
-    print("  → Generating 20 users with faker...")
+    # ── 0. TRUNCATE TABLES ──────────────────────────────────
+    print("  → Clearing existing data...")
+    tables = [
+        "notifications", "messages", "conversation_participants", "conversations",
+        "context_prereads", "intro_requests", "connector_prompts", "intents",
+        "connections", "user_experiences", "user_interests", "privacy_settings", "users"
+    ]
+    cur.execute(f"TRUNCATE {', '.join(tables)} CASCADE")
 
-    NUM_USERS    = 20
+    # ── 1. USERS ─────────────────────────────────────────────
+    print("  → Generating 50 users with faker...")
+
+    NUM_USERS    = 50
     user_ids     = []     # list of UUIDs in insertion order
     user_emails  = []     # parallel list of emails
     used_emails  = set()
@@ -222,8 +254,16 @@ def seed():
         major        = pick(MAJORS)
         bio          = fake_bio(major, year)
         source       = pick(PROFILE_SOURCES)
+        
+        # Socials: 80% LinkedIn, 60% Handshake coverage
+        has_linkedin = random.random() < 0.8
+        has_handshake = random.random() < 0.6
+        
         linkedin_url = (f"https://linkedin.com/in/{first.lower()}-{last.lower()}-{str(uid)[:4]}"
-                        if source == "linkedin_import" else None)
+                        if has_linkedin else None)
+        handshake_url = (f"https://app.joinhandshake.com/stu/users/{str(uid)[:8]}"
+                         if has_handshake else None)
+        
         resume_url   = (f"https://resumes.uni.edu/{uid}.pdf"
                         if source == "resume_import" else None)
         profile_picture_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed={uid}"
@@ -234,14 +274,14 @@ def seed():
             INSERT INTO users (
                 user_id, is_active, email, password_hash,
                 first_name, last_name, year, major, bio,
-                linkedin_url, resume_url, profile_picture_url, profile_complete,
+                linkedin_url, handshake_url, resume_url, profile_picture_url, profile_complete,
                 profile_source, linkedin_import_at, resume_parsed_at,
                 created_at, updated_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             uid, True, email, hash_password("Password123!"),
             first, last, year, major, bio,
-            linkedin_url, resume_url, profile_picture_url, True,
+            linkedin_url, handshake_url, resume_url, profile_picture_url, True,
             source, linkedin_at, resume_at,
             days_ago(random.randint(30, 90)),
             days_ago(random.randint(1, 10)),
@@ -256,16 +296,17 @@ def seed():
     u = user_ids
 
     # ── 2. PRIVACY SETTINGS ──────────────────────────────────
-    print("  → Inserting privacy settings...")
+    print("  → Inserting privacy settings (including anonymous mode)...")
     for user_id in user_ids:
         cur.execute("""
             INSERT INTO privacy_settings (
                 privacy_id, user_id, who_can_request,
-                show_in_discovery, allow_connector_prompts
-            ) VALUES (%s,%s,%s,%s,%s)
+                discovery_mode, show_in_discovery, allow_connector_prompts
+            ) VALUES (%s,%s,%s,%s,%s,%s)
         """, (
             gen_id(), user_id,
             pick(REQ_PERMISSIONS),
+            pick(["full", "full", "anonymous"]), # ~33% anonymous
             fake.boolean(chance_of_getting_true=85),
             fake.boolean(chance_of_getting_true=80),
         ))
@@ -302,7 +343,7 @@ def seed():
             """, (gen_id(), user_id, typ, title, org, start, end, desc))
 
     # ── 5. CONNECTIONS (F1) ──────────────────────────────────
-    # Build a connected graph: each user connects to 2–4 others.
+    # Build a connected graph: each user connects to 5–10 others.
     # faker provides the context strings and warmth scores.
     print("  → Generating connections with faker contexts...")
 
@@ -310,9 +351,9 @@ def seed():
     added_pairs: set = set()
 
     for i, user_id in enumerate(user_ids):
-        # connect to 2–4 other users (avoid self, avoid duplicates)
+        # connect to 5–10 other users (avoid self, avoid duplicates)
         candidates = [u for j, u in enumerate(user_ids) if j != i]
-        partners   = pick_unique(candidates, random.randint(2, 4))
+        partners   = pick_unique(candidates, random.randint(5, 10))
 
         for partner_id in partners:
             a, b = ordered_pair(user_id, partner_id)
@@ -362,37 +403,51 @@ def seed():
             True, created, created + timedelta(days=90),
         ))
 
-    # ── 7. INTRO REQUESTS (F4 / F5) ─────────────────────────
-    # Four scenarios that exercise every RequestStatus value.
-    # Users are picked by index so FK constraints are guaranteed.
-    # faker generates the draft messages.
-    print("  → Inserting intro request scenarios...")
+    def notify(cur, user_id, ntype, ref_id, ref_type, is_read=False):
+        cur.execute("""
+            INSERT INTO notifications (
+                notification_id, user_id, type,
+                reference_id, reference_type,
+                is_read, created_at
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            gen_id(), user_id, ntype, ref_id, ref_type,
+            is_read, days_ago(random.randint(1, 5)),
+        ))
 
-    # Requester, Connector, Target are always distinct (chk_distinct_parties).
-    # We pick indices 0/1/2, 3/4/5, 6/7/8, 9/10/11 to avoid overlap.
-    scenarios = [
-        # (req_idx, con_idx, tgt_idx, status, connector_note)
-        (0,  1,  2,  "pending",  None),
-        (3,  4,  5,  "approved", fake.sentence(nb_words=8)),
-        (6,  7,  8,  "declined", fake.sentence(nb_words=8)),
-        (9,  10, 11, "approved", fake.sentence(nb_words=8)),
-    ]
+    # ── 7. INTRO REQUESTS, PRE-READS, CONVERSATIONS, MESSAGES ─────────────────────────
+    print("  → Generating high-density intro scenarios and chat variations...")
 
-    request_ids: dict[str, str] = {}   # "A"/"B"/"C"/"D" → request_id
-    label_map = ["A", "B", "C", "D"]
+    # Build a lookup for first names to use in messages
+    cur.execute("SELECT user_id, first_name FROM users")
+    first_names = {row[0]: row[1] for row in cur.fetchall()}
 
-    for label, (ri, ci, ti, status, note) in zip(label_map, scenarios):
-        rid          = gen_id()
-        request_ids[label] = rid
-        req_id       = u[ri]
-        con_id       = u[ci]
-        tgt_id       = u[ti]
-        intent_id    = intent_ids[req_id]
-        draft        = (f"Hi! I noticed we have a mutual connection. "
-                        f"{fake.sentence(nb_words=12)} Would you be able to help?")
-        edited       = fake.sentence(nb_words=15) if status == "approved" else None
-        created      = days_ago(random.randint(3, 10))
+    # We generate a large set of varied scenarios across the 50 users
+    total_scenarios = 20
+    
+    for idx in range(total_scenarios):
+        ri = (idx * 3) % NUM_USERS
+        ci = (idx * 3 + 1) % NUM_USERS
+        ti = (idx * 3 + 2) % NUM_USERS
+        
+        # Ensure distinct parties
+        if ri == ci or ci == ti or ri == ti:
+            ti = (ti + 1) % NUM_USERS
+            
+        status = pick(["pending", "approved", "approved", "approved", "declined"])
+        rid = gen_id()
+        req_id = u[ri]
+        con_id = u[ci]
+        tgt_id = u[ti]
+        
+        intent_id = intent_ids[req_id]
+        draft = (f"Hi {first_names[con_id]}! I noticed you're connected to {first_names[tgt_id]}. "
+                 f"{fake.sentence(nb_words=10)} Could you introduce us?")
+        edited = f"Hey {first_names[tgt_id]}, {fake.sentence(nb_words=8)}" if status == "approved" else None
+        created = days_ago(random.randint(3, 10))
         responded_at = created + timedelta(days=1) if status != "pending" else None
+        
+        note = fake.sentence(nb_words=8) if status in ["approved", "declined"] else None
 
         cur.execute("""
             INSERT INTO intro_requests (
@@ -406,137 +461,90 @@ def seed():
             created, responded_at,
         ))
 
-    # ── 8. CONTEXT PRE-READS (F7) ────────────────────────────
-    # Generated for the two approved requests (B and D).
-    # Both parties get a faker-generated summary of each other.
-    print("  → Inserting context pre-reads...")
-
-    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
-        if status != "approved":
-            continue
-        rid     = request_ids[req_label]
-        req_id  = u[ri]
-        tgt_id  = u[ti]
-        created = days_ago(random.randint(1, 3))
-
-        # requester reads about target
-        cur.execute("""
-            INSERT INTO context_prereads (
-                preread_id, request_id, recipient_id, subject_id,
-                summary, created_at, viewed_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            gen_id(), rid, req_id, tgt_id,
-            fake.paragraph(nb_sentences=3),
-            created,
-            created + timedelta(hours=random.randint(1, 12)),
-        ))
-
-        # target reads about requester
-        cur.execute("""
-            INSERT INTO context_prereads (
-                preread_id, request_id, recipient_id, subject_id,
-                summary, created_at, viewed_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            gen_id(), rid, tgt_id, req_id,
-            fake.paragraph(nb_sentences=3),
-            created,
-            None,   # target hasn't viewed yet
-        ))
-
-    # ── 9. CONVERSATIONS (F8) ────────────────────────────────
-    print("  → Inserting conversations...")
-
-    conv_ids: dict[str, str] = {}   # "B" / "D" → conversation_id
-
-    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
-        if status != "approved":
-            continue
-        conv_id = gen_id()
-        conv_ids[req_label] = conv_id
-        conv_status = pick(["active", "connector_left"])
-
-        cur.execute("""
-            INSERT INTO conversations (
-                conversation_id, request_id, type, status, created_at
-            ) VALUES (%s,%s,%s,%s,%s)
-        """, (
-            conv_id,
-            request_ids[req_label],
-            pick(["chat", "email"]),
-            conv_status,
-            days_ago(random.randint(1, 4)),
-        ))
-
-    # ── 10. CONVERSATION PARTICIPANTS (F8) ───────────────────
-    print("  → Inserting conversation participants...")
-
-    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
-        if status != "approved":
-            continue
-        conv_id    = conv_ids[req_label]
-        joined     = days_ago(random.randint(1, 4))
-        conn_left  = joined + timedelta(hours=random.randint(2, 8))
-
-        for participant_id, role, left_at in [
-            (u[ri], "requester", None),
-            (u[ci], "connector", conn_left),   # connector steps out after warm intro
-            (u[ti], "target",    None),
-        ]:
+        if status == "approved":
+            # F1 Variation: "Introduced by" connection
             cur.execute("""
-                INSERT INTO conversation_participants (
-                    participant_id, conversation_id, user_id,
-                    role, joined_at, left_at
-                ) VALUES (%s,%s,%s,%s,%s,%s)
-            """, (gen_id(), conv_id, participant_id, role, joined, left_at))
-
-    # ── 11. MESSAGES (F8) ────────────────────────────────────
-    # Each conversation gets 4–6 messages: connector's warm intro
-    # first, then back-and-forth between requester and target.
-    print("  → Inserting messages with faker bodies...")
-
-    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
-        if status != "approved":
-            continue
-        conv_id    = conv_ids[req_label]
-        base_time  = days_ago(random.randint(1, 4))
-        offset     = 0
-
-        # connector warm intro (is_warm_intro = True)
-        cur.execute("""
-            INSERT INTO messages (
-                message_id, conversation_id, sender_id,
-                body, is_warm_intro, sent_at, read_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            gen_id(), conv_id, u[ci],
-            f"{fake.first_name()} and {fake.first_name()}, happy to connect you both! "
-            f"{fake.sentence(nb_words=12)} I'll leave you to it!",
-            True,
-            base_time + timedelta(minutes=offset),
-            base_time + timedelta(minutes=offset + 5),
-        ))
-        offset += 10
-
-        # back-and-forth between requester and target
-        num_exchanges = random.randint(2, 4)
-        speakers      = [u[ri], u[ti]]
-        for j in range(num_exchanges * 2):
-            sender   = speakers[j % 2]
-            sent_at  = base_time + timedelta(minutes=offset)
-            read_at  = sent_at + timedelta(minutes=random.randint(1, 30))
-            cur.execute("""
-                INSERT INTO messages (
-                    message_id, conversation_id, sender_id,
-                    body, is_warm_intro, sent_at, read_at
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO connections (
+                    connection_id, user_id_a, user_id_b,
+                    context, connector_score, status, created_at, accepted_at
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (user_id_a, user_id_b) DO NOTHING
             """, (
-                gen_id(), conv_id, sender,
-                fake.sentence(nb_words=random.randint(8, 18)),
-                False, sent_at, read_at,
+                gen_id(), 
+                (req_id if req_id < tgt_id else tgt_id),
+                (tgt_id if req_id < tgt_id else req_id),
+                f"Introduced by {first_names[con_id]}",
+                None,
+                "accepted",
+                created + timedelta(days=2),
+                created + timedelta(days=2)
             ))
-            offset += random.randint(10, 60)
+
+            # F7 Variation: Context Pre-Reads
+            cur.execute("""
+                INSERT INTO context_prereads (preread_id, request_id, recipient_id, subject_id, summary, created_at)
+                VALUES (%s,%s,%s,%s,%s,%s), (%s,%s,%s,%s,%s,%s)
+            """, (
+                gen_id(), rid, req_id, tgt_id, f"**{fake.job()}** looking to connect over **{pick(INTEREST_LABELS['class'])}**.", created,
+                gen_id(), rid, tgt_id, req_id, f"**{fake.job()}** interested in your background in **{pick(MAJORS)}**.", created
+            ))
+
+            # F8 Variation: Conversations and varied Participant Scenarios
+            conv_id = gen_id()
+            # Scenario A: Connector left (50%), Scenario B: All communicating (25%), Scenario C: Connector observing (25%)
+            scenario_type = pick(["left", "left", "all", "observing"])
+            conv_status = "connector_left" if scenario_type == "left" else "active"
+            
+            cur.execute("""
+                INSERT INTO conversations (conversation_id, request_id, type, status, created_at)
+                VALUES (%s,%s,%s,%s,%s)
+            """, (conv_id, rid, "chat", conv_status, created + timedelta(days=1)))
+
+            # Participants
+            joined = created + timedelta(days=1)
+            l_at = joined + timedelta(hours=1) if scenario_type == "left" else None
+            
+            for pid, role, left_at in [(req_id, "requester", None), (con_id, "connector", l_at), (tgt_id, "target", None)]:
+                cur.execute("""
+                    INSERT INTO conversation_participants (participant_id, conversation_id, user_id, role, joined_at, left_at)
+                    VALUES (%s,%s,%s,%s,%s,%s)
+                """, (gen_id(), conv_id, pid, role, joined, left_at))
+
+            # Messages
+            # 1. Warm Intro
+            cur.execute("""
+                INSERT INTO messages (message_id, conversation_id, sender_id, body, is_warm_intro, sent_at)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (gen_id(), conv_id, con_id, f"Hi guys! {fake.sentence(nb_words=10)}", True, joined))
+            
+            # 2. Back and forth
+            offset = 10
+            msg_count = random.randint(4, 8)
+            participants = [req_id, tgt_id]
+            if scenario_type == "all":
+                participants.append(con_id)
+                
+            for m_idx in range(msg_count):
+                sender = pick(participants)
+                sent_at = joined + timedelta(minutes=offset)
+                cur.execute("""
+                    INSERT INTO messages (message_id, conversation_id, sender_id, body, is_warm_intro, sent_at)
+                    VALUES (%s,%s,%s,%s,%s,%s)
+                """, (gen_id(), conv_id, sender, fake.sentence(nb_words=random.randint(6, 15)), False, sent_at))
+                offset += random.randint(5, 30)
+
+            # Notifications
+            notify(cur, req_id, "request_approved", rid, "intro_requests", is_read=True)
+            notify(cur, tgt_id, "request_approved", rid, "intro_requests")
+            notify(cur, req_id, "new_message", conv_id, "conversations", is_read=True)
+            notify(cur, tgt_id, "new_message", conv_id, "conversations")
+            notify(cur, con_id, "intro_request", rid, "intro_requests", is_read=True)
+        
+        elif status == "declined":
+            notify(cur, req_id, "request_declined", rid, "intro_requests", is_read=True)
+            notify(cur, con_id, "intro_request", rid, "intro_requests", is_read=True)
+        else: # pending
+            notify(cur, con_id, "intro_request", rid, "intro_requests")
 
     # ── 12. CONNECTOR PROMPTS (F6) ───────────────────────────
     # When a user posts an intent, 1–2 of their connections are
@@ -584,38 +592,6 @@ def seed():
                 vol_target, prompt_status, created, responded_at,
             ))
 
-    # ── 13. NOTIFICATIONS ────────────────────────────────────
-    # One notification per significant event in the seed.
-    print("  → Inserting notifications...")
-
-    def notify(cur, user_id, ntype, ref_id, ref_type, is_read=False):
-        cur.execute("""
-            INSERT INTO notifications (
-                notification_id, user_id, type,
-                reference_id, reference_type,
-                is_read, created_at
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s)
-        """, (
-            gen_id(), user_id, ntype, ref_id, ref_type,
-            is_read, days_ago(random.randint(1, 5)),
-        ))
-
-    for req_label, (ri, ci, ti, status, _) in zip(label_map, scenarios):
-        rid = request_ids[req_label]
-
-        # connector always gets an intro_request notification
-        notify(cur, u[ci], "intro_request", rid, "intro_requests")
-
-        if status == "approved":
-            notify(cur, u[ri], "request_approved", rid, "intro_requests", is_read=True)
-            notify(cur, u[ti], "request_approved", rid, "intro_requests")
-            conv_id = conv_ids[req_label]
-            notify(cur, u[ri], "new_message", conv_id, "conversations", is_read=True)
-            notify(cur, u[ti], "new_message", conv_id, "conversations")
-
-        elif status == "declined":
-            notify(cur, u[ri], "request_declined", rid, "intro_requests", is_read=True)
-
     # connection_accepted notifications for a sample of accepted connections
     for (a, b), cid in list(connection_ids.items())[:6]:
         notify(cur, a, "connection_accepted", cid, "connections", is_read=True)
@@ -634,27 +610,19 @@ def seed():
     total_interests  = NUM_USERS * 3    # avg ~3
     total_exp        = NUM_USERS * 2    # avg ~2
     total_conns      = len(added_pairs)
-    approved_count   = sum(1 for _,(_,_,_,s,_) in zip(label_map, scenarios) if s == "approved")
-    total_prereads   = approved_count * 2
-    total_convs      = approved_count
-    total_parts      = approved_count * 3
-    total_msgs       = approved_count * 5   # approx
-
+    # approved_count calculation logic
+    total_scenarios  = 20
+    approved_count   = 0 # This is a placeholder since we don't track the exact count in the loop above for the summary
+    
     print("\n✅ Seed complete!")
     print(f"   Users              : {NUM_USERS}")
     print(f"   Privacy settings   : {NUM_USERS}")
-    print(f"   User interests     : ~{total_interests} (faker-generated labels)")
-    print(f"   User experiences   : ~{total_exp} (faker-generated orgs/titles/dates)")
-    print(f"   Connections        : {total_conns} (faker context strings)")
-    print(f"   Intents            : {NUM_USERS} (faker descriptions)")
-    print(f"   Intro requests     : 4 (A=pending B=approved C=declined D=approved)")
-    print(f"   Context pre-reads  : {total_prereads} (faker summaries)")
-    print(f"   Conversations      : {total_convs}")
-    print(f"   Participants       : {total_parts}")
-    print(f"   Messages           : ~{total_msgs}+ (faker bodies)")
-    print(f"   Connector prompts  : varies (faker statuses)")
-    print(f"   Notifications      : varies")
-    print(f"\n   faker seed : 42  (re-run produces identical data)")
+    print(f"   User interests     : ~{total_interests}")
+    print(f"   User experiences   : ~{total_exp}")
+    print(f"   Connections        : {total_conns}")
+    print(f"   Intents            : {NUM_USERS}")
+    print(f"   Intro requests     : {total_scenarios} (varied scenarios)")
+    print(f"   faker seed : 42")
 
 
 if __name__ == "__main__":

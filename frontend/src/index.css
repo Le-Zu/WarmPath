@@ -81,7 +81,7 @@ html {
 
 /* NAV */
 .hp-nav {
-   position: fixed;
+   position: sticky;
    top: 0;
    left: 0;
    right: 0;
@@ -135,7 +135,6 @@ html {
 .hp-banner {
    background: var(--dark);
    color: var(--cream);
-   margin-top: 64px;
    padding: 0.875rem 3rem;
    display: flex;
    align-items: center;

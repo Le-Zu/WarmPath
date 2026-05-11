@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Lightbulb, Flag } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useSocket } from "@/context/SocketContextInstance";
 import { useUser } from "@/context/UserContext";
 import { WarmthScore } from "@/features/gemini";
@@ -194,10 +195,15 @@ export default function ChatPage() {
                         lineHeight: "1.5",
                         borderTop: "1px solid #f2e9e4",
                         paddingTop: "0.75rem",
-                        whiteSpace: "pre-wrap",
                      }}
                   >
-                     {preread.summary}
+                     <ReactMarkdown
+                        components={{
+                           p: ({ ...props }) => <p style={{ margin: 0 }} {...props} />,
+                        }}
+                     >
+                        {preread.summary}
+                     </ReactMarkdown>
                   </div>
                )}
             </div>
