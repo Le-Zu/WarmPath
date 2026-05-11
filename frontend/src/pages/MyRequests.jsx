@@ -78,6 +78,23 @@ export default function MyRequests() {
               <div style={{ fontSize: '0.88rem', color: '#5a5550', background: 'var(--cream)', padding: '1rem', borderRadius: '4px' }}>
                 <MessageDiff original={r.draft_message} edited={r.edited_message || r.draft_message} />
               </div>
+
+              {r.connector_note && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div className="app-eyebrow" style={{ fontSize: '0.65rem', marginBottom: '0.35rem' }}>Connector's Private Note</div>
+                  <div style={{ 
+                    fontSize: '0.88rem', 
+                    color: '#5a5550', 
+                    background: 'rgba(216, 140, 154, 0.05)', 
+                    padding: '0.85rem', 
+                    borderRadius: '4px',
+                    borderLeft: '3px solid var(--warm)',
+                    fontStyle: 'italic'
+                  }}>
+                    "{r.connector_note}"
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
