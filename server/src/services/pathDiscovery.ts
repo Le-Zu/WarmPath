@@ -42,6 +42,8 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
           t.handshake_url AS target_handshake_url,
           t.updated_at  AS target_updated_at,
           t.profile_picture_url AS target_picture_url,
+          t.intent_status AS target_intent_status,
+          t.intent_status_expires_at AS target_intent_status_expires_at,
           ps_target.discovery_mode AS target_discovery_mode,
           ws_specific.updated_at AS score_updated_at,
           (SELECT STRING_AGG(label, ', ') FROM user_interests WHERE user_id = v.target_id) AS target_interests
@@ -93,6 +95,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
         linkedinUrl: isAnonymous ? null : (r.target_linkedin_url ?? null),
         handshakeUrl: isAnonymous ? null : (r.target_handshake_url ?? null),
               isAnonymous,
+              // Intent status surfaces only when present, not expired, and the contact isn't anonymous.
+              intentStatus: (() => {
+                if (isAnonymous || !r.target_intent_status) return null;
+                if (r.target_intent_status_expires_at && new Date(r.target_intent_status_expires_at).getTime() <= Date.now()) return null;
+                return r.target_intent_status;
+              })(),
             },
             strength: Number(r.strength),
             // Metadata block designed for easy AI prompting

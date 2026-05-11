@@ -457,18 +457,18 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
                 status: { in: ['accepted', 'pending'] },
             },
             include: {
-                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
-                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true } },
+                user_a: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
+                user_b: { select: { user_id: true, email: true, first_name: true, last_name: true, major: true, year: true, linkedin_url: true, handshake_url: true, is_active: true, intent_status: true, intent_status_expires_at: true } },
             },
         });
 
-        // Normalize: always return the other person as "peer"
+        // Normalize: always return the other person as "peer"; hide expired statuses.
         const result = connections.map(c => ({
             connection_id: c.connection_id,
             context: c.context,
             connector_score: c.connector_score,
             status: c.status,
-            peer: c.user_id_a === userId ? c.user_b : c.user_a,
+            peer: withFreshStatus(c.user_id_a === userId ? c.user_b : c.user_a),
         }));
 
         res.json({ connections: result });
@@ -556,10 +556,12 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
                 first_name: true,
                 last_name: true,
                 is_active: true,
+                intent_status: true,
+                intent_status_expires_at: true,
             },
         });
 
-        res.status(201).json({ connection, peer: peerForResponse, was_created: wasCreated });
+        res.status(201).json({ connection, peer: peerForResponse ? withFreshStatus(peerForResponse) : null, was_created: wasCreated });
     } catch (error: any) {
         if (error.code === 'P2002') {
             return res.status(409).json({ error: 'You are already connected with this person.' });
@@ -1041,6 +1043,18 @@ app.post('/api/paths/assess', async (req: AuthRequest, res) => {
 });
 
 // Get the current authenticated user's full profile from DB
+// Hide intent_status if its expiry has passed. The DB row stays as-is so
+// users can re-enable a status by clearing the expiry; reads just don't
+// surface stale text.
+function withFreshStatus<T extends { intent_status?: string | null; intent_status_expires_at?: Date | null }>(user: T): T {
+    if (!user) return user;
+    const expiresAt = user.intent_status_expires_at;
+    if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+        return { ...user, intent_status: null, intent_status_expires_at: null };
+    }
+    return user;
+}
+
 app.get('/api/me', (req: AuthRequest, res) => {
     if (!req.dbUser) {
         console.log(`[GET /api/me] No DB record for Firebase user: ${req.user?.email}`);
@@ -1049,7 +1063,7 @@ app.get('/api/me', (req: AuthRequest, res) => {
 
     console.log(`[GET /api/me] Profile fetched | user_id: ${req.dbUser.user_id} | email: ${req.dbUser.email} | firebase_uid: ${req.dbUser.firebase_uid} | profile_complete: ${req.dbUser.profile_complete}`);
 
-    res.json({ user: req.dbUser });
+    res.json({ user: withFreshStatus(req.dbUser) });
 });
 
 // Batch updates interests for the authenticated user
@@ -1122,11 +1136,20 @@ app.post('/api/me/experiences', async (req: AuthRequest, res) => {
 app.patch('/api/me', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
-    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'handshake_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete'];
+    const ALLOWED = ['first_name', 'last_name', 'bio', 'major', 'year', 'linkedin_url', 'handshake_url', 'profile_picture_url', 'banner_picture_url', 'profile_complete', 'intent_status', 'intent_status_expires_at'];
     const updates: Record<string, any> = {};
 
     for (const field of ALLOWED) {
         if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+    // Coerce expiry from ISO string to Date (or null) so Prisma accepts it.
+    if (updates.intent_status_expires_at !== undefined) {
+        updates.intent_status_expires_at = updates.intent_status_expires_at ? new Date(updates.intent_status_expires_at) : null;
+    }
+    // Empty string clears the status.
+    if (updates.intent_status !== undefined && updates.intent_status === '') {
+        updates.intent_status = null;
+        updates.intent_status_expires_at = null;
     }
 
     if (Object.keys(updates).length === 0) {

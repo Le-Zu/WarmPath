@@ -193,6 +193,11 @@ model Users {
   banner_picture_url  String?    @db.VarChar(500)
   profile_complete Boolean       @default(false)
 
+  // Free-form "what I'm up to" status. Optional expiry — read paths hide the
+  // status when expires_at has passed; the row isn't actively cleared.
+  intent_status            String?   @db.VarChar(280)
+  intent_status_expires_at DateTime?
+
   // Profile creation tracking (like-to-have F: Profile Creation A/B)
   profile_source   ProfileSource @default(manual)
   linkedin_import_at DateTime?   // set when LinkedIn import is run

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Briefcase, Microscope, BookOpen, Users, Wrench } from 'lucide-react';
+import { Briefcase, Microscope, BookOpen, Users, Wrench, X } from 'lucide-react';
 import apiFetch from '@/services/client';
 import { getConnections } from '@/services/connections';
 import ProfileCompletionNudge from '../components/ProfileCompletionNudge';
 import ConnectionNudge from '@/components/ConnectionNudge';
+import StatusEditor from '@/components/StatusEditor';
 import { useToast } from '@/context/ToastContext';
+import { useUser } from '@/context/UserContext';
 
 const intents = [
   { id: 'internship', icon: Briefcase,  label: 'Internship', desc: 'Find someone with industry experience in your target field' },
@@ -18,14 +20,56 @@ const intents = [
 export default function Home() {
   const nav = useNavigate();
   const toast = useToast();
+  const { currentUser, refreshUser } = useUser();
   const [loadingId, setLoadingId] = useState(null);
   const [connectorCount, setConnectorCount] = useState(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   useEffect(() => {
     getConnections()
       .then((data) => setConnectorCount((data.connections || []).length))
       .catch(() => setConnectorCount(null));
   }, []);
+
+  const handleSaveStatus = async (text, expiresAt) => {
+    setSavingStatus(true);
+    try {
+      await apiFetch('/api/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          intent_status: text,
+          intent_status_expires_at: expiresAt ? expiresAt.toISOString() : null,
+        }),
+      });
+      await refreshUser();
+      toast('Status saved.');
+      setStatusOpen(false);
+    } catch (err) {
+      toast(`Failed to save status: ${err.message || 'unknown error'}`, 'error');
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  const handleClearStatus = async () => {
+    setSavingStatus(true);
+    try {
+      await apiFetch('/api/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ intent_status: '' }),
+      });
+      await refreshUser();
+      toast('Status cleared.');
+      setStatusOpen(false);
+    } catch (err) {
+      toast(`Failed to clear status: ${err.message || 'unknown error'}`, 'error');
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
+  const hasStatus = Boolean(currentUser?.intent_status);
 
   const handleSelect = async (id, label) => {
     setLoadingId(id);
@@ -52,9 +96,129 @@ export default function Home() {
       <div className="app-eyebrow">— What are you looking for —</div>
       <div className="app-page-title">What are you<br />looking for?</div>
       <div className="app-page-sub">Choose a goal and we'll find the best connections to help you get there.</div>
+
+      <div style={{ width: '100%', maxWidth: 480, marginTop: '0.5rem', marginBottom: '0.5rem', textAlign: 'left' }}>
+        {hasStatus ? (
+          <div
+            style={{
+              padding: '0.7rem 0.85rem',
+              borderRadius: '6px',
+              background: 'rgba(231, 111, 81, 0.06)',
+              border: '1px solid rgba(231, 111, 81, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.6rem',
+            }}
+          >
+            <span style={{ fontSize: '0.82rem', color: 'var(--dark)', lineHeight: 1.4 }}>
+              {currentUser.intent_status}
+            </span>
+            <button
+              type="button"
+              onClick={() => setStatusOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--warm)',
+                fontWeight: 600,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              Update
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStatusOpen(true)}
+            style={{
+              background: 'transparent',
+              border: '1px dashed rgba(231, 111, 81, 0.4)',
+              color: 'var(--warm)',
+              padding: '0.55rem 0.9rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              width: '100%',
+            }}
+          >
+            + Set a status
+          </button>
+        )}
+      </div>
+
       <div style={{ width: '100%', maxWidth: 480, marginTop: '1rem' }}>
         <ConnectionNudge count={connectorCount} />
       </div>
+
+      {statusOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setStatusOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.45)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              width: '100%',
+              maxWidth: '460px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+              position: 'relative',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setStatusOpen(false)}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: '0.6rem',
+                right: '0.6rem',
+                background: 'transparent',
+                border: 'none',
+                color: '#7a6f68',
+                cursor: 'pointer',
+                padding: '0.3rem',
+                display: 'inline-flex',
+              }}
+            >
+              <X size={18} />
+            </button>
+            <h3 style={{ fontSize: '1.1rem', color: 'var(--dark)', marginTop: 0, marginBottom: '0.4rem' }}>
+              Set your status
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: '#7a6f68', marginTop: 0, marginBottom: '1rem' }}>
+              A short note that shows on your Profile and the path cards your contacts see.
+            </p>
+            <StatusEditor
+              initialStatus={currentUser?.intent_status || ''}
+              initialExpiresAt={currentUser?.intent_status_expires_at || null}
+              saving={savingStatus}
+              onSave={handleSaveStatus}
+              onClear={handleClearStatus}
+            />
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', maxWidth: 480 }}>
         {intents.map(it => (
           <button key={it.id} 

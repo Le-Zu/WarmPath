@@ -12,6 +12,7 @@ import { useUser } from "@/context/UserContext";
 import apiFetch from "@/services/client";
 import { useToast } from "@/context/ToastContext";
 import InfoTooltip from "@/components/InfoTooltip";
+import StatusEditor from "@/components/StatusEditor";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -160,6 +161,43 @@ export default function SettingsPage() {
       discovery_mode: "full",
       allow_connector_prompts: true,
    });
+
+   const [savingStatus, setSavingStatus] = useState(false);
+
+   const handleSaveStatus = async (text, expiresAt) => {
+      setSavingStatus(true);
+      try {
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({
+               intent_status: text,
+               intent_status_expires_at: expiresAt ? expiresAt.toISOString() : null,
+            }),
+         });
+         await refreshUser();
+         toast('Status saved.');
+      } catch (err) {
+         toast(`Failed to save status: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setSavingStatus(false);
+      }
+   };
+
+   const handleClearStatus = async () => {
+      setSavingStatus(true);
+      try {
+         await apiFetch('/api/me', {
+            method: 'PATCH',
+            body: JSON.stringify({ intent_status: '' }),
+         });
+         await refreshUser();
+         toast('Status cleared.');
+      } catch (err) {
+         toast(`Failed to clear status: ${err.message || 'unknown error'}`, 'error');
+      } finally {
+         setSavingStatus(false);
+      }
+   };
 
    const [profileFile, setProfileFile] = useState(null);
    const [bannerFile, setBannerFile] = useState(null);
@@ -664,11 +702,29 @@ export default function SettingsPage() {
                         <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
                      </div>
 
+                     <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "rgba(231,111,81,0.04)", border: "1px solid rgba(231,111,81,0.18)", borderRadius: "6px" }}>
+                        <label style={{ ...labelStyle, marginBottom: '0.6rem', display: 'flex', alignItems: 'center' }}>
+                           Status
+                           <InfoTooltip
+                              label="What is a status?"
+                              text="A short note about what you're up to right now — an event you're attending, what you're looking for, or something you're hosting. Shows on your Profile and the path cards your contacts see."
+                              width={250}
+                           />
+                        </label>
+                        <StatusEditor
+                           initialStatus={currentUser?.intent_status || ''}
+                           initialExpiresAt={currentUser?.intent_status_expires_at || null}
+                           saving={savingStatus}
+                           onSave={handleSaveStatus}
+                           onClear={handleClearStatus}
+                        />
+                     </div>
+
                      <div style={{ marginBottom: "1rem" }}>
                         <label style={labelStyle}>Bio</label>
-                        <textarea 
-                           style={{...inputStyle, height: '100px'}} 
-                           value={form.bio} 
+                        <textarea
+                           style={{...inputStyle, height: '100px'}}
+                           value={form.bio}
                            onChange={set("bio")}
                            placeholder="Tell us about yourself..."
                         />

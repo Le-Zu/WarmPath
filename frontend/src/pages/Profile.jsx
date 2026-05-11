@@ -222,6 +222,27 @@ export default function Profile() {
             </div>
          </div>
 
+         {currentUser.intent_status && (
+            <div
+               style={{
+                  margin: "0 0 1.5rem",
+                  padding: "0.85rem 1rem",
+                  background: "rgba(231, 111, 81, 0.08)",
+                  border: "1px solid rgba(231, 111, 81, 0.3)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  fontSize: "0.9rem",
+                  color: "var(--dark)",
+                  lineHeight: 1.4,
+               }}
+            >
+               <span style={{ fontSize: "1rem", lineHeight: 1 }}>📍</span>
+               <span style={{ flex: 1 }}>{currentUser.intent_status}</span>
+            </div>
+         )}
+
          <div
             style={{
                display: "grid",
@@ -475,6 +496,19 @@ export default function Profile() {
                                        >
                                           {c.context}
                                        </div>
+                                       {c.peer.intent_status && (
+                                          <div
+                                             style={{
+                                                fontSize: "0.72rem",
+                                                color: "var(--warm)",
+                                                fontStyle: "italic",
+                                                marginTop: "0.15rem",
+                                                lineHeight: 1.3,
+                                             }}
+                                          >
+                                             📍 {c.peer.intent_status}
+                                          </div>
+                                       )}
                                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.3rem' }}>
                                           {c.peer.linkedin_url && (
                                              <a 
