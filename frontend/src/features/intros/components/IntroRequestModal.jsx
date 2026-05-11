@@ -24,7 +24,13 @@ export default function IntroRequestModal({ path, onClose }) {
       .then(() => setSent(true))
       .catch((err) => {
         console.error('[IntroRequestModal] Failed to send request:', err);
-        setError(err.message || 'Failed to send request. Please try again.');
+        // 429 (rate limit) and 409 (pending/cooldown) come back from the
+        // server with user-friendly text; fall back to a generic message.
+        if (err.status === 429 || err.status === 409) {
+          setError(err.message);
+        } else {
+          setError(err.message || 'Failed to send request. Please try again.');
+        }
       })
       .finally(() => setLoading(false));
   };

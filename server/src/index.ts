@@ -7,6 +7,10 @@ import { basePrisma } from './lib/prisma';
 import { getPathsForUser } from './services/pathDiscovery';
 import { calculateBatchWarmthScores, generateContextPreread } from './services/gemini';
 import { refreshWarmthScoresForUser } from './services/warmthScorer';
+import { checkRateLimit, describeRetryAfter } from './lib/rateLimiter';
+
+const HOUR_MS = 60 * 60 * 1000;
+const DECLINE_COOLDOWN_MS = 7 * 24 * HOUR_MS;
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -482,6 +486,14 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
 app.post('/api/connections', async (req: AuthRequest, res) => {
     if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
 
+    const limit = checkRateLimit(req.dbUser.user_id, 'add-connector', 10, HOUR_MS);
+    if (!limit.ok) {
+        return res.status(429).json({
+            error: `You've added a lot of connectors recently — try again ${describeRetryAfter(limit.retryAfterMs ?? 0)}.`,
+            retry_after_ms: limit.retryAfterMs,
+        });
+    }
+
     let { peerId, email, context, connector_score, first_name, last_name } = req.body;
     if ((!peerId && !email) || !context) {
         return res.status(400).json({ error: 'peerId or email, and context are required.' });
@@ -866,6 +878,14 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
         return res.status(404).json({ message: 'User not found in database.' });
     }
 
+    const limit = checkRateLimit(req.dbUser.user_id, 'send-intro', 5, HOUR_MS);
+    if (!limit.ok) {
+        return res.status(429).json({
+            error: `You've sent a lot of intro requests in the last hour — try again ${describeRetryAfter(limit.retryAfterMs ?? 0)}.`,
+            retry_after_ms: limit.retryAfterMs,
+        });
+    }
+
     const { connectorId, targetId, message, messageToConnector } = req.body;
 
     if (!connectorId || !targetId || !message) {
@@ -873,6 +893,30 @@ app.post('/api/requests', async (req: AuthRequest, res) => {
     }
 
     try {
+        // Block re-requests to the same target while one is pending or within the
+        // post-decline cooldown. Approved requests are intentionally not blocked —
+        // a user may want a second intro later (e.g., new role, new event).
+        const cooldownStart = new Date(Date.now() - DECLINE_COOLDOWN_MS);
+        const recentRequest = await basePrisma.introRequests.findFirst({
+            where: {
+                requester_id: req.dbUser.user_id,
+                target_id: targetId,
+                OR: [
+                    { status: 'pending' },
+                    { status: 'declined', created_at: { gte: cooldownStart } },
+                ],
+            },
+            orderBy: { created_at: 'desc' },
+        });
+        if (recentRequest) {
+            return res.status(409).json({
+                error: recentRequest.status === 'pending'
+                    ? 'You already have a pending intro request to this person.'
+                    : 'A previous intro request to this person was declined recently — you can try again 7 days after the decline.',
+                previous_status: recentRequest.status,
+            });
+        }
+
         const intent = await basePrisma.intents.findFirst({
             where: { user_id: req.dbUser.user_id, is_active: true },
         });

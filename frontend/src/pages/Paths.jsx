@@ -96,11 +96,11 @@ export default function Paths() {
          refresh();
          refreshConnectorCount();
       } catch (err) {
-         const msg = err.status === 409
-            ? "You are already connected with this person."
-            : err.status === 400
-               ? "Please fill in all required fields."
-               : "Could not add connector. Please try again.";
+         let msg;
+         if (err.status === 409) msg = "You are already connected with this person.";
+         else if (err.status === 429) msg = err.message;
+         else if (err.status === 400) msg = "Please fill in all required fields.";
+         else msg = "Could not add connector. Please try again.";
          toast(msg, "error");
       } finally {
          setSavingConn(false);
