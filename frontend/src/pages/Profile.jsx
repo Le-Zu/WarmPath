@@ -5,6 +5,7 @@ import { UserContext } from "@/context/UserContext.jsx";
 import { getConnections, respondToConnection } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
 import apiFetch from "@/services/client";
+import handshakeIcon from "@/assets/handshake-icon.png";
 import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
@@ -243,19 +244,17 @@ export default function Profile() {
                                        textDecoration: 'none',
                                     }}
                                  >
-                                    <div style={{ 
-                                       width: '16px', 
-                                       height: '16px', 
-                                       background: '#ff3b30', 
-                                       borderRadius: '2px', 
-                                       display: 'flex', 
-                                       alignItems: 'center', 
-                                       justifyContent: 'center',
-                                       color: '#fff',
-                                       fontSize: '10px',
-                                       fontWeight: 'bold',
-                                       fontFamily: 'sans-serif'
-                                    }}>h</div>
+                                    <img
+                                       src={handshakeIcon}
+                                       alt="Handshake"
+                                       style={{
+                                          width: '16px',
+                                          height: '16px',
+                                          borderRadius: '2px',
+                                          display: 'block',
+                                          objectFit: 'cover',
+                                       }}
+                                    />
                                  </a>
                               )}
                            </div>
@@ -777,19 +776,17 @@ export default function Profile() {
                               fontWeight: 500,
                            }}
                         >
-                           <div style={{ 
-                              width: '24px', 
-                              height: '24px', 
-                              background: '#ff3b30', 
-                              borderRadius: '4px', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center',
-                              color: '#fff',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              fontFamily: 'sans-serif'
-                           }}>h</div>
+                           <img
+                              src={handshakeIcon}
+                              alt="Handshake"
+                              style={{
+                                 width: '24px',
+                                 height: '24px',
+                                 borderRadius: '4px',
+                                 display: 'block',
+                                 objectFit: 'cover',
+                              }}
+                           />
                            <span>
                               {[currentUser.first_name, currentUser.last_name]
                                  .filter(Boolean)
