@@ -499,6 +499,7 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
         // Normalize: always return the other person as "peer"; hide expired statuses.
         const result = connections.map(c => ({
             connection_id: c.connection_id,
+            initiator_id: c.initiator_id,
             context: c.context,
             connector_score: c.connector_score,
             status: c.status,
@@ -568,6 +569,7 @@ app.post('/api/connections', async (req: AuthRequest, res) => {
             data: { 
                 user_id_a, 
                 user_id_b, 
+                initiator_id: userId,
                 context, 
                 connector_score: connector_score ?? null, 
                 status: 'pending' 

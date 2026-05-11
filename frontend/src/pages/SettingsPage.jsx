@@ -71,6 +71,7 @@ const INTENT_MAP = {
    'Class Help': 'class',
    'Club':       'club',
    'Skill':      'skill',
+   'Coffee Chat': 'coffee',
 };
 
 const FIELD_MAP = {
@@ -578,16 +579,16 @@ export default function SettingsPage() {
          >
             <div
                style={{
-                  width: "520px",
+                  width: "800px",
                   maxWidth: "100%",
-                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.3)",
-                  padding: "45px 25px",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.15)",
+                  padding: "45px 40px",
                   borderRadius: "10px",
                   background: "#fff",
                }}
             >
-               <h2 style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>Settings</h2>
-               <p style={{ fontSize: "0.95rem", color: "#6a994e", marginBottom: "1.5rem" }}>
+               <h2 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>Settings</h2>
+               <p style={{ fontSize: "1rem", color: "#6a994e", marginBottom: "2rem" }}>
                   Manage your account and privacy preferences.
                </p>
 
@@ -718,17 +719,24 @@ export default function SettingsPage() {
                      </div>
 
                      {/* Account fields */}
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>First Name</label>
-                        <input style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>First Name</label>
+                           <input style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
+                        </div>
+
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Last Name</label>
+                           <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
+                        </div>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Last Name</label>
-                        <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
-                     </div>
-
-                     <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "rgba(231,111,81,0.04)", border: "1px solid rgba(231,111,81,0.18)", borderRadius: "6px" }}>
+                     <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "rgba(231,111,81,0.04)", border: "1px solid rgba(231,111,81,0.18)", borderRadius: "6px" }}>
                         <label style={{ ...labelStyle, marginBottom: '0.6rem', display: 'flex', alignItems: 'center' }}>
                            Status
                            <InfoTooltip
@@ -746,7 +754,7 @@ export default function SettingsPage() {
                         />
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
+                     <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>Bio</label>
                         <textarea
                            style={{...inputStyle, height: '100px'}}
@@ -756,50 +764,64 @@ export default function SettingsPage() {
                         />
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
+                     <div style={{ marginBottom: "1.5rem" }}>
                         <label style={labelStyle}>Email</label>
                         <input style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
                         <p style={helperStyle}>Need to change your email? Contact support at support@warmpath.com.</p>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Major</label>
-                        <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Major</label>
+                           <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
+                        </div>
+
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Year</label>
+                           <select style={inputStyle} value={form.year} onChange={set("year")}>
+                              <option value="">Select Year</option>
+                              <option value="freshman">Freshman</option>
+                              <option value="sophomore">Sophomore</option>
+                              <option value="junior">Junior</option>
+                              <option value="senior">Senior</option>
+                              <option value="grad">Grad Student</option>
+                              <option value="other">Other</option>
+                           </select>
+                        </div>
                      </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Year</label>
-                        <select style={inputStyle} value={form.year} onChange={set("year")}>
-                           <option value="">Select Year</option>
-                           <option value="freshman">Freshman</option>
-                           <option value="sophomore">Sophomore</option>
-                           <option value="junior">Junior</option>
-                           <option value="senior">Senior</option>
-                           <option value="grad">Grad Student</option>
-                           <option value="other">Other</option>
-                        </select>
-                     </div>
+                     <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+                        gap: '1.5rem', 
+                        marginBottom: '1rem' 
+                     }}>
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>LinkedIn URL</label>
+                           <input
+                              style={inputStyle}
+                              type="url"
+                              value={form.linkedinUrl}
+                              onChange={set("linkedinUrl")}
+                              placeholder="linkedin.com/in/yourname"
+                           />
+                        </div>
 
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>LinkedIn URL</label>
-                        <input
-                           style={inputStyle}
-                           type="url"
-                           value={form.linkedinUrl}
-                           onChange={set("linkedinUrl")}
-                           placeholder="linkedin.com/in/yourname"
-                        />
-                     </div>
-
-                     <div style={{ marginBottom: "1rem" }}>
-                        <label style={labelStyle}>Handshake URL</label>
-                        <input
-                           style={inputStyle}
-                           type="url"
-                           value={form.handshakeUrl}
-                           onChange={set("handshakeUrl")}
-                           placeholder="app.joinhandshake.com/profiles/yourname"
-                        />
+                        <div style={{ marginBottom: "1rem" }}>
+                           <label style={labelStyle}>Handshake URL</label>
+                           <input
+                              style={inputStyle}
+                              type="url"
+                              value={form.handshakeUrl}
+                              onChange={set("handshakeUrl")}
+                              placeholder="app.joinhandshake.com/profiles/yourname"
+                           />
+                        </div>
                      </div>
 
                      {/* Change Password */}
@@ -824,26 +846,32 @@ export default function SettingsPage() {
                                  autoComplete="current-password"
                               />
                            </div>
-                           <div style={{ marginBottom: "0.75rem" }}>
-                              <label style={labelStyle}>New Password</label>
-                              <input
-                                 style={inputStyle}
-                                 type="password"
-                                 value={form.newPassword}
-                                 onChange={set("newPassword")}
-                                 autoComplete="new-password"
-                                 placeholder="At least 8 characters"
-                              />
-                           </div>
-                           <div style={{ marginBottom: "0.5rem" }}>
-                              <label style={labelStyle}>Confirm New Password</label>
-                              <input
-                                 style={inputStyle}
-                                 type="password"
-                                 value={form.confirmPassword}
-                                 onChange={set("confirmPassword")}
-                                 autoComplete="new-password"
-                              />
+                           <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+                              gap: '1.25rem' 
+                           }}>
+                              <div style={{ marginBottom: "0.75rem" }}>
+                                 <label style={labelStyle}>New Password</label>
+                                 <input
+                                    style={inputStyle}
+                                    type="password"
+                                    value={form.newPassword}
+                                    onChange={set("newPassword")}
+                                    autoComplete="new-password"
+                                    placeholder="At least 8 characters"
+                                 />
+                              </div>
+                              <div style={{ marginBottom: "0.5rem" }}>
+                                 <label style={labelStyle}>Confirm New Password</label>
+                                 <input
+                                    style={inputStyle}
+                                    type="password"
+                                    value={form.confirmPassword}
+                                    onChange={set("confirmPassword")}
+                                    autoComplete="new-password"
+                                 />
+                              </div>
                            </div>
                            {form.newPassword && !passwordsMatch && (
                               <p style={{ ...helperStyle, color: "Tomato" }}>

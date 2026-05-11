@@ -36,7 +36,19 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Connector Node */}
         <div className="path-node">
-          <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>{initials(path.connector.name)}</div>
+          {path.connector.pictureUrl ? (
+            <img 
+              src={path.connector.pictureUrl} 
+              alt={path.connector.name} 
+              className="path-dot connector" 
+              style={{ objectFit: 'cover' }}
+              title={`Connector — ${path.connector.name} (forwards your intro request)`}
+            />
+          ) : (
+            <div className="path-dot connector" title={`Connector — ${path.connector.name} (forwards your intro request)`}>
+              {initials(path.connector.name)}
+            </div>
+          )}
           <div>
             <div className="path-node-label">{path.connector.name}</div>
           </div>
@@ -52,7 +64,19 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
         {/* Target Node (Chain only shows Name now) */}
         <div className="path-node">
-          <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>{initials(path.target.name)}</div>
+          {!path.target.isAnonymous && path.target.pictureUrl ? (
+            <img 
+              src={path.target.pictureUrl} 
+              alt={path.target.name} 
+              className="path-dot target" 
+              style={{ objectFit: 'cover' }}
+              title={`Contact — ${path.target.name} (the person you want to meet)`}
+            />
+          ) : (
+            <div className="path-dot target" title={`Contact — ${path.target.name} (the person you want to meet)`}>
+              {initials(path.target.name)}
+            </div>
+          )}
           <div>
             <div className="path-node-label">{path.target.name}</div>
           </div>

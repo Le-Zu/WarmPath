@@ -225,6 +225,7 @@ model Users {
   // Connections — user appears as either side (F1)
   connections_a        Connections[]             @relation("InitiatedConnections")
   connections_b        Connections[]             @relation("ReceivedConnections")
+  connections_initiated Connections[]            @relation("SentConnectionRequests")
 
   // Intro requests — three roles (F4/F5)
   requests_sent        IntroRequests[]           @relation("RequestedIntros")
@@ -326,6 +327,7 @@ model Connections {
   connection_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id_a     String           @db.Uuid
   user_id_b     String           @db.Uuid
+  initiator_id  String           @db.Uuid
   // F1: context is required — "CS 499 group", "Debate club", etc.
   context       String           @db.Text
   // F3: connector_score used to rank paths (1 = weak, 5 = strong)
@@ -336,10 +338,12 @@ model Connections {
 
   user_a Users @relation("InitiatedConnections", fields: [user_id_a], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
   user_b Users @relation("ReceivedConnections",  fields: [user_id_b], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
+  initiator Users @relation("SentConnectionRequests", fields: [initiator_id], references: [user_id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([user_id_a, user_id_b], name: "uq_connection_pair")
   @@index([user_id_a])
   @@index([user_id_b])
+  @@index([initiator_id])
   @@map("connections")
 }
 

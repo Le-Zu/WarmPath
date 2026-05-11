@@ -49,23 +49,9 @@ export default function InfoTooltip({ text, label = 'More info', width = 220 }) 
         <span
           id={id}
           role="tooltip"
+          className="info-tooltip-content"
           style={{
-            position: 'absolute',
-            bottom: '130%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
             width: `${width}px`,
-            padding: '0.65rem 0.8rem',
-            background: 'var(--dark)',
-            color: 'var(--cream)',
-            fontSize: '0.75rem',
-            lineHeight: 1.45,
-            borderRadius: '6px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-            pointerEvents: 'none',
-            fontWeight: 400,
-            textAlign: 'left',
           }}
         >
           {text}

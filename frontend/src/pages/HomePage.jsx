@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "@/config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
-const intents = ["Internship", "Research", "Class Help", "Club", "Skill"];
+const intents = ["Internship", "Research", "Class Help", "Club", "Skill", "Coffee Chat"];
 
 const features = [
    {
@@ -214,65 +214,86 @@ export default function HomePage() {
 
             {/* FEATURES */}
             <section className="hp-features" id="features">
-               <div className="hp-sec-header">
-                  <h2>
-                     Built for <em>intentional</em> networking
-                  </h2>
-                  <p>
-                     No cold browsing. No spam. Every connection is contextual,
-                     every intro is earned.
-                  </p>
-               </div>
-
-               <div className="hp-features-grid">
-                  {features.map((f, i) => (
-                     <div key={i} className="hp-feature-item">
-                        <div className="hp-feature-num">{f.num}</div>
-                        <div className="hp-feature-title">{f.title}</div>
-                        <p className="hp-feature-desc">{f.desc}</p>
+               <div className="hp-section-with-img">
+                  <div>
+                     <div className="hp-sec-header" style={{ textAlign: 'left', marginBottom: '3rem' }}>
+                        <h2>
+                           Built for <em>intentional</em> networking
+                        </h2>
+                        <p style={{ margin: '0' }}>
+                           No cold browsing. No spam. Every connection is contextual,
+                           every intro is earned.
+                        </p>
                      </div>
-                  ))}
+
+                     <div className="hp-features-grid">
+                        {features.map((f, i) => (
+                           <div key={i} className="hp-feature-item">
+                              <div className="hp-feature-num">{f.num}</div>
+                              <div className="hp-feature-title">{f.title}</div>
+                              <p className="hp-feature-desc">{f.desc}</p>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+                  <div className="hp-img-placeholder">
+                     <span>Image Placeholder: Platform UI / Dashboard</span>
+                  </div>
                </div>
             </section>
 
             {/* HOW IT WORKS */}
             <section className="hp-how" id="how">
                <div className="hp-how-inner">
-                  <h2>
-                     How <em>WarmPath</em> works
-                  </h2>
-                  <div className="hp-steps">
-                     {steps.map((s, i) => (
-                        <div key={i} className="hp-step">
-                           <div className="hp-step-num">{s.num}</div>
-                           <div className="hp-step-title">{s.title}</div>
-                           <p className="hp-step-desc">{s.desc}</p>
+                  <div className="hp-section-with-img">
+                     <div className="hp-img-placeholder" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(242,233,228,0.5)' }}>
+                        <span>Image Placeholder: How it works Illustration</span>
+                     </div>
+                     <div>
+                        <h2>
+                           How <em>WarmPath</em> works
+                        </h2>
+                        <div className="hp-steps">
+                           {steps.map((s, i) => (
+                              <div key={i} className="hp-step">
+                                 <div className="hp-step-num">{s.num}</div>
+                                 <div className="hp-step-title">{s.title}</div>
+                                 <p className="hp-step-desc">{s.desc}</p>
+                              </div>
+                           ))}
                         </div>
-                     ))}
+                     </div>
                   </div>
                </div>
             </section>
 
             {/* CTA */}
             <section className="hp-cta">
-               <h2>
-                  Your next
-                  <br />
-                  <em>opportunity</em>
-                  <br />
-                  is one intro away.
-               </h2>
-               <p>
-                  Join WarmPath and start finding paths that actually lead
-                  somewhere.
-               </p>
-               <Link
-                  to="/register"
-                  className="hp-btn-primary"
-                  style={{ fontSize: "1rem", padding: "1rem 2.5rem" }}
-               >
-                  Get Early Access
-               </Link>
+               <div className="hp-section-with-img">
+                  <div>
+                     <h2>
+                        Your next
+                        <br />
+                        <em>opportunity</em>
+                        <br />
+                        is one intro away.
+                     </h2>
+                     <p>
+                        Join WarmPath and start finding paths that actually lead
+                        somewhere.
+                     </p>
+                     <Link
+                        to="/register"
+                        className="hp-btn-primary"
+                        style={{ fontSize: "1rem", padding: "1rem 2.5rem" }}
+                     >
+                        Get Early Access
+                     </Link>
+                  </div>
+                  <div className="hp-img-placeholder">
+                     <span>Image Placeholder: Call to Action Visual</span>
+                  </div>
+               </div>
             </section>
 
             {/* FOOTER */}

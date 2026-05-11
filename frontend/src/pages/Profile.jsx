@@ -542,18 +542,39 @@ export default function Profile() {
                      </div>
                   ) : (
                      <>
-                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
-                           Awaiting Reply
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              Awaiting Reply
+                           </div>
+                           <InfoTooltip
+                              label="Awaiting Reply"
+                              text="Requests you have sent that are waiting for the other person to accept."
+                              width={220}
+                           />
                         </div>
                         {renderConnectionList(awaitingReply, "No pending requests.")}
 
-                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
-                           Connectors
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              Connectors
+                           </div>
+                           <InfoTooltip
+                              label="Connectors"
+                              text="People you know who can introduce you to their network. The more connectors you add, the more paths you'll find."
+                              width={240}
+                           />
                         </div>
                         {renderConnectionList(connectors, "You haven't added any connectors yet.")}
 
-                        <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68", marginBottom: "0.5rem" }}>
-                           New Connections
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              New Connections
+                           </div>
+                           <InfoTooltip
+                              label="New Connections"
+                              text="People you have recently connected with, either directly or through an intro from a connector."
+                              width={220}
+                           />
                         </div>
                         {renderConnectionList(newConnections, "No intros completed yet.")}
 

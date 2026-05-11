@@ -158,6 +158,8 @@ export default function Paths() {
                display: "flex",
                alignItems: "center",
                justifyContent: "space-between",
+               flexWrap: "wrap",
+               gap: "1rem",
                margin: "1rem 0 1.75rem",
             }}
          >

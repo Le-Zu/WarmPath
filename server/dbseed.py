@@ -97,34 +97,66 @@ CONNECTION_CONTEXTS = [
     "Pre-Med Society workshop", "Anime Club screening", "Hanging out in the West Building cafeteria",
     "Met during Club Fair in the North Building", "Psych 100 group project",
     "English 220 discussion section", "Student hub on the 3rd floor",
+    "Brookdale campus shuttle", "Hunter North 10th floor study lounge",
+    "Lexington Avenue entrance crowd", "Leon and Toby Cooperman Library (8th floor)",
+    "Baker Hall orientation", "Kaye Playhouse event",
 ]
 
 INTENT_DESCRIPTIONS = {
     "class":      [
-        "Looking for a study partner or TA connection for {cat} coursework.",
-        "Struggling with {cat} and hoping to find someone who has taken it.",
-        "Want to form a study group for {cat} this semester.",
+        "I'm currently taking {cat} and looking for a study partner or someone who has taken it before to share some tips on the exams.",
+        "Really struggling with the latest {cat} assignment. Hoping to connect with a TA or a student who is comfortable with the material.",
+        "Starting a study group for {cat} this semester. Looking for motivated people to review concepts weekly in the library.",
     ],
     "internship": [
-        "Targeting {cat} internships for next summer and looking for referrals.",
-        "Seeking a {cat} internship — open to any industry advice.",
-        "Looking for warm intros to recruiters in {cat}.",
+        "I'm targeting {cat} internships for next summer and would love to hear from anyone who has interned there or at similar companies.",
+        "Seeking a {cat} internship in NYC. Looking for advice on the application process and maybe a warm intro to the recruiting team.",
+        "Interested in {cat} roles. I've been working on my portfolio and would appreciate a critique or any industry connections.",
     ],
     "research":   [
-        "Looking for a faculty advisor or lab opening in {cat}.",
-        "Seeking collaborators on a {cat} project.",
-        "Want to connect with grad students doing {cat} research.",
+        "Looking for a faculty advisor or an undergraduate lab opening in {cat}. I have a strong background in lab techniques.",
+        "Seeking collaborators for a {cat} project I'm starting. Interested in data analysis and public policy implications.",
+        "Want to connect with grad students or seniors doing {cat} research to learn about their experience and how they got involved.",
     ],
     "club":       [
-        "Interested in joining a {cat} and looking for an intro to current members.",
-        "Looking for the right {cat} to get involved with this semester.",
-        "Want to meet people active in {cat} on campus.",
+        "Interested in joining {cat} and looking for an intro to current members to learn more about their upcoming events.",
+        "Looking for the right {cat} to get involved with this semester. I want to build my leadership skills and meet new people.",
+        "I'm a new member of {cat} and looking to connect with others who are passionate about our mission and activities.",
     ],
     "skill":      [
-        "Trying to improve my {cat} skills and looking for a mentor or peer.",
-        "Working on a project requiring {cat} — need guidance.",
-        "Looking to pair up with someone experienced in {cat}.",
+        "Trying to improve my {cat} skills for a project I'm working on. Looking for a mentor or peer to pair program with.",
+        "I've been teaching myself {cat} but hit a wall. Looking for guidance from someone more experienced in the Hunter community.",
+        "Looking to pair up with someone experienced in {cat} to build a side project for our portfolios this winter break.",
     ],
+}
+
+PREREAD_SUMMARIES = [
+    "**{name}** is a {year} {major} major who is currently {vibe}. They are a great match for this intro because they {reason}.",
+    "Given your shared interests, **{name}** ({year}) would be a valuable connection. They {reason}.",
+    "**{name}** ({major}, {year}) is in {target}'s network. They {reason}.",
+]
+
+CHAT_TEMPLATES = {
+    "all": [
+        ("connector", "Hey {req}, happy to introduce you to {tgt}! {tgt}, {req} is a {req_year} {req_major} student here at Hunter."),
+        ("requester", "Hi {tgt}, thanks for the intro {con}! I saw your experience at {org} and would love to ask a few questions about it."),
+        ("target", "Hey {req}, nice to meet you! Happy to help. {org} was a great experience. What specifically were you curious about?"),
+        ("requester", "Mainly how you balanced the internship with classes. I'm taking {class_name} right now and it's a lot."),
+        ("target", "Oh, I totally get that. {class_name} is notorious. I usually did my work in the 8th floor library to stay focused."),
+        ("connector", "Glad you guys are connecting! I'll leave you to it."),
+    ],
+    "left": [
+        ("connector", "Hi {tgt}, I wanted to introduce you to {req}. They are looking for some advice on {intent}."),
+        ("connector", "I'll step out now and let you two chat!"),
+        ("requester", "Thanks {con}! Hi {tgt}, thanks for taking the time. I'm really interested in your work with {org}."),
+        ("target", "No problem at all! I'm happy to share what I know. Are you looking into their summer program?"),
+    ],
+    "observing": [
+        ("connector", "Hey both, {req} is a fellow {req_major} student and wanted to ask about {intent}. Thought you two should meet!"),
+        ("requester", "Thanks for the intro! Hi {tgt}, I'm a {req_year} and I've been following your research in {cat}."),
+        ("target", "Hi {req}, thanks for reaching out. That research was a lot of work but very rewarding. Are you looking to join a lab?"),
+        ("requester", "Yes, exactly. I'm trying to find an opening for the spring semester."),
+    ]
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -162,6 +194,14 @@ STUDENT_VIBES = [
     "Love the fast pace of the city, but the MTA is my nemesis.",
     "Interested in public health and community outreach projects.",
     "Huge fan of the Game Room in Thomas Hunter Hall for a quick break.",
+    "Spending most of my gaps in the 4th floor lounge of the North Building.",
+    "Commuting from Brookdale every morning—the shuttle is a lifesaver.",
+    "Trying to find the best quiet spot in the Cooperman Library.",
+    "Active in USG and always running between meetings in the West Building.",
+    "Just finished a long lab session in the 10th floor Bio labs.",
+    "Looking for the best coffee spots around the 68th Street station.",
+    "Surviving the nursing clinicals at Mount Sinai this semester.",
+    "Always hanging out near the 3rd floor cafeteria between classes.",
 ]
 
 def fake_bio(major: str, year: str) -> str:
@@ -343,17 +383,18 @@ def seed():
             """, (gen_id(), user_id, typ, title, org, start, end, desc))
 
     # ── 5. CONNECTIONS (F1) ──────────────────────────────────
-    # Build a connected graph: each user connects to 5–10 others.
+    # Build a connected graph: each user connects to 0–15 others.
     # faker provides the context strings and warmth scores.
-    print("  → Generating connections with faker contexts...")
+    print("  → Generating connections with varied counts...")
 
     connection_ids: dict[tuple, str] = {}
     added_pairs: set = set()
 
     for i, user_id in enumerate(user_ids):
-        # connect to 5–10 other users (avoid self, avoid duplicates)
+        # connect to 0–15 other users (varied range)
+        max_conns = random.randint(0, 15)
         candidates = [u for j, u in enumerate(user_ids) if j != i]
-        partners   = pick_unique(candidates, random.randint(5, 10))
+        partners   = pick_unique(candidates, max_conns)
 
         for partner_id in partners:
             a, b = ordered_pair(user_id, partner_id)
@@ -370,12 +411,12 @@ def seed():
             connection_ids[(a, b)] = cid
             cur.execute("""
                 INSERT INTO connections (
-                    connection_id, user_id_a, user_id_b,
+                    connection_id, user_id_a, user_id_b, initiator_id,
                     context, connector_score, status,
                     created_at, accepted_at
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
-                cid, a, b, context, warmth, status,
+                cid, a, b, pick([a, b]), context, warmth, status,
                 created,
                 created + timedelta(days=random.randint(1, 3)) if status == "accepted" else None,
             ))
@@ -385,14 +426,17 @@ def seed():
     print("  → Inserting intents with faker descriptions...")
 
     intent_ids: dict[str, str] = {}   # user_id → intent_id
+    intent_data: dict[str, tuple] = {} # user_id -> (category, label)
 
     for user_id in user_ids:
         iid      = gen_id()
         category = pick(INTENT_CATS)
-        desc     = fake_intent_description(category)
+        label    = pick(INTEREST_LABELS[category])
+        desc     = pick(INTENT_DESCRIPTIONS[category]).format(cat=label)
         created  = days_ago(random.randint(7, 21))
 
         intent_ids[user_id] = iid
+        intent_data[user_id] = (category, label)
         cur.execute("""
             INSERT INTO intents (
                 intent_id, user_id, category, description,
@@ -418,36 +462,36 @@ def seed():
     # ── 7. INTRO REQUESTS, PRE-READS, CONVERSATIONS, MESSAGES ─────────────────────────
     print("  → Generating high-density intro scenarios and chat variations...")
 
-    # Build a lookup for first names to use in messages
-    cur.execute("SELECT user_id, first_name FROM users")
-    first_names = {row[0]: row[1] for row in cur.fetchall()}
+    # Build a lookup for user details to use in messages and summaries
+    cur.execute("SELECT user_id, first_name, last_name, year, major, bio FROM users")
+    user_info = {row[0]: {"first": row[1], "last": row[2], "year": row[3], "major": row[4], "bio": row[5]} for row in cur.fetchall()}
 
     # We generate a large set of varied scenarios across the 50 users
-    total_scenarios = 20
+    total_scenarios = 30
     
     for idx in range(total_scenarios):
         ri = (idx * 3) % NUM_USERS
         ci = (idx * 3 + 1) % NUM_USERS
         ti = (idx * 3 + 2) % NUM_USERS
         
-        # Ensure distinct parties
         if ri == ci or ci == ti or ri == ti:
             ti = (ti + 1) % NUM_USERS
             
         status = pick(["pending", "approved", "approved", "approved", "declined"])
         rid = gen_id()
-        req_id = u[ri]
-        con_id = u[ci]
-        tgt_id = u[ti]
+        req_id, con_id, tgt_id = u[ri], u[ci], u[ti]
         
         intent_id = intent_ids[req_id]
-        draft = (f"Hi {first_names[con_id]}! I noticed you're connected to {first_names[tgt_id]}. "
-                 f"{fake.sentence(nb_words=10)} Could you introduce us?")
-        edited = f"Hey {first_names[tgt_id]}, {fake.sentence(nb_words=8)}" if status == "approved" else None
+        category, label = intent_data[req_id]
+        
+        draft = (f"Hi {user_info[con_id]['first']}! I noticed you're connected to {user_info[tgt_id]['first']}. "
+                 f"I'm really interested in their experience with {label} and was wondering if you could introduce us?")
+        
+        edited = f"Hey {user_info[tgt_id]['first']}, meeting {user_info[req_id]['first']}. They are a {user_info[req_id]['major']} major interested in your background in {label}." if status == "approved" else None
         created = days_ago(random.randint(3, 10))
         responded_at = created + timedelta(days=1) if status != "pending" else None
         
-        note = fake.sentence(nb_words=8) if status in ["approved", "declined"] else None
+        note = f"Happy to help! {user_info[req_id]['first']} is a great student." if status == "approved" else (f"Sorry, I don't know {user_info[tgt_id]['first']} that well." if status == "declined" else None)
 
         cur.execute("""
             INSERT INTO intro_requests (
@@ -465,33 +509,58 @@ def seed():
             # F1 Variation: "Introduced by" connection
             cur.execute("""
                 INSERT INTO connections (
-                    connection_id, user_id_a, user_id_b,
+                    connection_id, user_id_a, user_id_b, initiator_id,
                     context, connector_score, status, created_at, accepted_at
-                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                ON CONFLICT (user_id_a, user_id_b) DO NOTHING
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (user_id_a, user_id_b) DO UPDATE SET 
+                    context = EXCLUDED.context, 
+                    status = 'accepted',
+                    accepted_at = EXCLUDED.accepted_at,
+                    initiator_id = EXCLUDED.initiator_id
             """, (
                 gen_id(), 
                 (req_id if req_id < tgt_id else tgt_id),
                 (tgt_id if req_id < tgt_id else req_id),
-                f"Introduced by {first_names[con_id]}",
+                req_id,
+                f"Introduced by {user_info[con_id]['first']}",
                 None,
                 "accepted",
                 created + timedelta(days=2),
                 created + timedelta(days=2)
             ))
 
-            # F7 Variation: Context Pre-Reads
+            # F7 Variation: Substantial Context Pre-Reads
+            # Summary A for Requester about Target
+            summary_req = pick(PREREAD_SUMMARIES).format(
+                name=user_info[tgt_id]["first"],
+                year=user_info[tgt_id]["year"],
+                major=user_info[tgt_id]["major"],
+                vibe=user_info[tgt_id]["bio"].split('.')[0],
+                intent=label,
+                reason=f"have extensive experience in {label}",
+                target=user_info[con_id]["first"]
+            )
+            # Summary B for Target about Requester
+            summary_tgt = pick(PREREAD_SUMMARIES).format(
+                name=user_info[req_id]["first"],
+                year=user_info[req_id]["year"],
+                major=user_info[req_id]["major"],
+                vibe=user_info[req_id]["bio"].split('.')[0],
+                intent=label,
+                reason=f"are looking to learn more about {label}",
+                target=user_info[con_id]["first"]
+            )
+
             cur.execute("""
                 INSERT INTO context_prereads (preread_id, request_id, recipient_id, subject_id, summary, created_at)
                 VALUES (%s,%s,%s,%s,%s,%s), (%s,%s,%s,%s,%s,%s)
             """, (
-                gen_id(), rid, req_id, tgt_id, f"**{fake.job()}** looking to connect over **{pick(INTEREST_LABELS['class'])}**.", created,
-                gen_id(), rid, tgt_id, req_id, f"**{fake.job()}** interested in your background in **{pick(MAJORS)}**.", created
+                gen_id(), rid, req_id, tgt_id, summary_req, created,
+                gen_id(), rid, tgt_id, req_id, summary_tgt, created
             ))
 
             # F8 Variation: Conversations and varied Participant Scenarios
             conv_id = gen_id()
-            # Scenario A: Connector left (50%), Scenario B: All communicating (25%), Scenario C: Connector observing (25%)
             scenario_type = pick(["left", "left", "all", "observing"])
             conv_status = "connector_left" if scenario_type == "left" else "active"
             
@@ -510,34 +579,40 @@ def seed():
                     VALUES (%s,%s,%s,%s,%s,%s)
                 """, (gen_id(), conv_id, pid, role, joined, left_at))
 
-            # Messages
-            # 1. Warm Intro
-            cur.execute("""
-                INSERT INTO messages (message_id, conversation_id, sender_id, body, is_warm_intro, sent_at)
-                VALUES (%s,%s,%s,%s,%s,%s)
-            """, (gen_id(), conv_id, con_id, f"Hi guys! {fake.sentence(nb_words=10)}", True, joined))
+            # Messages using Templates
+            template = CHAT_TEMPLATES[scenario_type]
+            offset = 0
             
-            # 2. Back and forth
-            offset = 10
-            msg_count = random.randint(4, 8)
-            participants = [req_id, tgt_id]
-            if scenario_type == "all":
-                participants.append(con_id)
+            # Find an organization the target worked at
+            cur.execute("SELECT organization FROM user_experiences WHERE user_id = %s LIMIT 1", (tgt_id,))
+            row = cur.fetchone()
+            org = row[0] if row else "Hunter College"
+
+            for role, body_template in template:
+                sender_id = req_id if role == "requester" else (con_id if role == "connector" else tgt_id)
+                body = body_template.format(
+                    req=user_info[req_id]["first"],
+                    con=user_info[con_id]["first"],
+                    tgt=user_info[tgt_id]["first"],
+                    req_year=user_info[req_id]["year"],
+                    req_major=user_info[req_id]["major"],
+                    org=org,
+                    class_name=pick(INTEREST_LABELS["class"]),
+                    intent=label,
+                    cat=category
+                )
                 
-            for m_idx in range(msg_count):
-                sender = pick(participants)
-                sent_at = joined + timedelta(minutes=offset)
                 cur.execute("""
                     INSERT INTO messages (message_id, conversation_id, sender_id, body, is_warm_intro, sent_at)
                     VALUES (%s,%s,%s,%s,%s,%s)
-                """, (gen_id(), conv_id, sender, fake.sentence(nb_words=random.randint(6, 15)), False, sent_at))
-                offset += random.randint(5, 30)
+                """, (gen_id(), conv_id, sender_id, body, (role == "connector" and offset == 0), joined + timedelta(minutes=offset)))
+                offset += random.randint(5, 60)
 
-            # Notifications
+            # Notifications (Increase density)
             notify(cur, req_id, "request_approved", rid, "intro_requests", is_read=True)
             notify(cur, tgt_id, "request_approved", rid, "intro_requests")
-            notify(cur, req_id, "new_message", conv_id, "conversations", is_read=True)
-            notify(cur, tgt_id, "new_message", conv_id, "conversations")
+            notify(cur, req_id, "new_message", conv_id, "conversations", is_read=random.random() < 0.7)
+            notify(cur, tgt_id, "new_message", conv_id, "conversations", is_read=random.random() < 0.5)
             notify(cur, con_id, "intro_request", rid, "intro_requests", is_read=True)
         
         elif status == "declined":
@@ -553,17 +628,17 @@ def seed():
 
     prompted_pairs: set = set()   # avoid uq_prompt_per_connector
 
-    for user_id in user_ids[:12]:   # prompt for first 12 users' intents
+    for user_id in user_ids[:15]:   # prompt for first 15 users' intents
         intent_id   = intent_ids[user_id]
-        connections = [
-            (a if b == user_id else b)
-            for (a, b) in added_pairs
-            if user_id in (a, b)
-        ]
+        # Fetch active connections for this user
+        cur.execute("SELECT user_id_a, user_id_b FROM connections WHERE (user_id_a = %s OR user_id_b = %s) AND status = 'accepted'", (user_id, user_id))
+        rows = cur.fetchall()
+        connections = [(a if b == user_id else b) for (a, b) in rows]
+        
         if not connections:
             continue
 
-        num_prompts  = random.randint(1, min(2, len(connections)))
+        num_prompts  = random.randint(1, min(3, len(connections)))
         connectors   = pick_unique(connections, num_prompts)
 
         for connector_id in connectors:
@@ -573,7 +648,6 @@ def seed():
             prompted_pairs.add(pair)
 
             prompt_status = pick(PROMPT_STATUSES)
-            # only set volunteered_target if status is volunteered
             vol_target    = None
             if prompt_status == "volunteered":
                 candidates = [v for v in user_ids if v not in (user_id, connector_id)]
@@ -593,12 +667,12 @@ def seed():
             ))
 
     # connection_accepted notifications for a sample of accepted connections
-    for (a, b), cid in list(connection_ids.items())[:6]:
+    for (a, b), cid in list(connection_ids.items())[:10]:
         notify(cur, a, "connection_accepted", cid, "connections", is_read=True)
-        notify(cur, b, "connection_accepted", cid, "connections")
+        notify(cur, b, "connection_accepted", cid, "connections", is_read=random.random() < 0.5)
 
     # connector_prompt notifications
-    for pair_str in list(prompted_pairs)[:8]:
+    for pair_str in list(prompted_pairs)[:12]:
         intent_id_str, connector_id_str = pair_str
         notify(cur, connector_id_str, "connector_prompt", intent_id_str, "intents")
 
@@ -610,9 +684,7 @@ def seed():
     total_interests  = NUM_USERS * 3    # avg ~3
     total_exp        = NUM_USERS * 2    # avg ~2
     total_conns      = len(added_pairs)
-    # approved_count calculation logic
-    total_scenarios  = 20
-    approved_count   = 0 # This is a placeholder since we don't track the exact count in the loop above for the summary
+    total_scenarios  = 30
     
     print("\n✅ Seed complete!")
     print(f"   Users              : {NUM_USERS}")
