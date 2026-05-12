@@ -99,11 +99,13 @@ export default function PathCard({ path, score = '...', loading = false }) {
         {path.target.intentStatus && (
           <div
             style={{
-              fontSize: '0.78rem',
-              color: 'var(--warm)',
-              fontStyle: 'italic',
+              fontSize: '0.75rem',
+              color: 'var(--dark)',
+              background: 'rgba(231, 111, 81, 0.05)',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '4px',
               marginBottom: '1.25rem',
-              lineHeight: 1.4,
+              display: 'inline-block',
             }}
           >
             📍 {path.target.intentStatus}

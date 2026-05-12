@@ -11,3 +11,8 @@ export const respondToConnection = (id, status) =>
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
+
+export const removeConnection = (id) =>
+  apiFetch(`/api/connections/${id}`, {
+    method: 'DELETE',
+  });

@@ -524,9 +524,10 @@ app.get('/api/connections', async (req: AuthRequest, res) => {
             context: c.context,
             connector_score: c.connector_score,
             status: c.status,
+            accepted_at: c.accepted_at,
+            created_at: c.created_at,
             peer: withFreshStatus(c.user_id_a === userId ? c.user_b : c.user_a),
-        }));
-
+            }));
         res.json({ connections: result });
     } catch (error: any) {
         console.error('[GET /api/connections] Error:', error);
@@ -687,6 +688,35 @@ app.patch('/api/connections/:id', async (req: AuthRequest, res) => {
     } catch (error: any) {
         console.error('[PATCH /api/connections/:id] Error:', error);
         res.status(500).json({ error: 'Failed to update connection', details: error.message });
+    }
+});
+
+// Removes a connection. User must be a participant.
+app.delete('/api/connections/:id', async (req: AuthRequest, res) => {
+    if (!req.dbUser) return res.status(404).json({ message: 'User not found in database.' });
+
+    const id = req.params.id as string;
+    try {
+        const conn = await basePrisma.connections.findUnique({
+            where: { connection_id: id },
+        });
+
+        if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+
+        const userId = req.dbUser.user_id;
+        if (conn.user_id_a !== userId && conn.user_id_b !== userId) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+
+        await basePrisma.connections.delete({
+            where: { connection_id: id },
+        });
+
+        console.log(`[DELETE /api/connections/:id] Connection removed | connection_id: ${id} | by user: ${userId}`);
+        res.json({ message: 'Connection removed.' });
+    } catch (error: any) {
+        console.error('[DELETE /api/connections/:id] Error:', error);
+        res.status(500).json({ error: 'Failed to remove connection', details: error.message });
     }
 });
 
