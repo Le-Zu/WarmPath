@@ -60,6 +60,16 @@ export const initSocket = (server: HttpServer) => {
             });
         });
 
+        socket.on('leave_conversation', (conversationId: string) => {
+            socket.leave(conversationId);
+            // Broadcast to others that this user left
+            io.to(conversationId).emit('user_left', {
+                userId: dbUser.user_id,
+                leftAt: new Date().toISOString()
+            });
+            console.log(`User ${dbUser.email} left room: ${conversationId}`);
+        });
+
         socket.on('send_message', async (data: { conversationId: string, body: string }) => {
             const { conversationId, body } = data;
 

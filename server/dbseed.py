@@ -312,8 +312,8 @@ def seed():
         
         resume_url   = (f"https://resumes.uni.edu/{uid}.pdf"
                         if source == "resume_import" else None)
-        profile_picture_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed={uid}"
-        linkedin_at  = days_ago(random.randint(5, 30)) if source == "linkedin_import" else None
+        # profile_picture_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed={uid}"
+        profile_picture_url = f"https://api.dicebear.com/7.x/avataaars/svg?seed={uid}&mouth=smile,twinkle&eyebrows=default&eyes=default&v=3"        linkedin_at  = days_ago(random.randint(5, 30)) if source == "linkedin_import" else None
         resume_at    = days_ago(random.randint(5, 30)) if source == "resume_import"   else None
 
         cur.execute("""

@@ -16,7 +16,9 @@
     "db:populate-linkedin": "tsx scripts/populate-linkedin.ts",
     "db:migrate:views": "npx prisma db execute --file ./prisma/migrations/001_views.sql",
     "db:migrate:rls": "npx prisma db execute --file ./prisma/migrations/002_rls.sql",
-    "db:migrate": "npm run db:migrate:views && npm run db:migrate:rls"
+    "db:migrate": "npm run db:migrate:views && npm run db:migrate:rls",
+    "db:cleanup-chats": "tsx scripts/delete-duplicate-chats.ts",
+    "db:update-avatars": "tsx scripts/update-avatars.ts"
   },
   "keywords": [],
   "author": "",

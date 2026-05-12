@@ -2,7 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import { UserContext } from "@/context/UserContext.jsx";
-import { getConnections, respondToConnection } from "@/services/connections";
+import { getConnections, respondToConnection, removeConnection } from "@/services/connections";
 import { useToast } from "@/context/ToastContext";
 import apiFetch from "@/services/client";
 import handshakeIcon from "@/assets/handshake-icon.png";
@@ -10,6 +10,7 @@ import { splitFullName } from "@/utils/formatters";
 import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
 import InviteConnectorPanel from "@/components/InviteConnectorPanel";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function Profile() {
    const navigate = useNavigate();
@@ -18,6 +19,8 @@ export default function Profile() {
    const [connections, setConnections] = useState([]);
    const [loadingConns, setLoadingConns] = useState(false);
    const [acceptingId, setAcceptingId] = useState(null);
+   const [removingConn, setRemovingConn] = useState(null);
+   const [isRemoving, setIsRemoving] = useState(false);
 
    const [showAddForm, setShowAddForm] = useState(false);
    const [newConn, setNewConn] = useState({
@@ -95,6 +98,27 @@ export default function Profile() {
       }
    };
 
+   const handleRemoveConnection = async (connectionId) => {
+      const conn = connections.find(c => c.connection_id === connectionId);
+      setRemovingConn(conn);
+   };
+
+   const confirmRemoveConnection = async () => {
+      if (!removingConn) return;
+      setIsRemoving(true);
+      try {
+         await removeConnection(removingConn.connection_id);
+         const data = await getConnections();
+         setConnections(data.connections || []);
+         toast("Connection removed.");
+      } catch (err) {
+         toast("Failed to remove connection: " + err.message, "error");
+      } finally {
+         setIsRemoving(false);
+         setRemovingConn(null);
+      }
+   };
+
    if (loading) return <LoadingScreen page="profile" />;
    if (error) return <div className="app-page">Failed to load profile.</div>;
    if (!currentUser) return null;
@@ -117,8 +141,19 @@ export default function Profile() {
    };
 
    const awaitingReply = connections.filter(c => c.status === "pending");
-   const newConnections = connections.filter(c => c.status === "accepted" && c.context?.startsWith("Introduced by"));
-   const connectors = connections.filter(c => c.status === "accepted" && !c.context?.startsWith("Introduced by"));
+   
+   const sevenDaysAgo = new Date();
+   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+   
+   const accepted = connections.filter(c => c.status === "accepted");
+   const newConnections = accepted.filter(c => {
+      const acceptedAt = c.accepted_at ? new Date(c.accepted_at) : new Date(c.created_at);
+      return acceptedAt > sevenDaysAgo;
+   });
+   const connectors = accepted.filter(c => {
+      const acceptedAt = c.accepted_at ? new Date(c.accepted_at) : new Date(c.created_at);
+      return acceptedAt <= sevenDaysAgo;
+   });
 
    const renderConnectionList = (list, emptyMsg) => {
       if (list.length === 0) {
@@ -277,6 +312,31 @@ export default function Profile() {
                            }}
                         >
                            {acceptingId === c.connection_id ? "Accepting..." : "Accept"}
+                        </button>
+                     )}
+                     {(c.status === "accepted" || (c.status === "pending" && !isIncomingRequest)) && (
+                        <button
+                           onClick={() => handleRemoveConnection(c.connection_id)}
+                           style={{
+                              fontSize: "0.7rem",
+                              padding: "0.25rem 0.6rem",
+                              borderRadius: "4px",
+                              border: "1px solid #ddd",
+                              background: "transparent",
+                              color: "#888",
+                              cursor: "pointer",
+                              transition: "all 0.2s",
+                           }}
+                           onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "#d9534f";
+                              e.currentTarget.style.borderColor = "#d9534f";
+                           }}
+                           onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "#888";
+                              e.currentTarget.style.borderColor = "#ddd";
+                           }}
+                        >
+                           Remove
                         </button>
                      )}
                   </div>
@@ -829,6 +889,21 @@ export default function Profile() {
                </div>
             </div>
          </div>
+
+         <ConfirmationModal 
+            isOpen={!!removingConn}
+            onClose={() => setRemovingConn(null)}
+            onConfirm={confirmRemoveConnection}
+            title={removingConn?.status === 'pending' ? "Withdraw Request?" : "Remove Connection?"}
+            message={
+               removingConn?.status === 'pending'
+               ? `Are you sure you want to withdraw your connection request to ${[removingConn?.peer?.first_name, removingConn?.peer?.last_name].filter(Boolean).join(' ') || removingConn?.peer?.email}?`
+               : `Are you sure you want to remove ${[removingConn?.peer?.first_name, removingConn?.peer?.last_name].filter(Boolean).join(' ') || removingConn?.peer?.email} from your network? This will also remove any paths discovered through them.`
+            }
+            confirmText={removingConn?.status === 'pending' ? "Withdraw" : "Remove"}
+            isDanger={true}
+            isLoading={isRemoving}
+         />
       </div>
    );
 }

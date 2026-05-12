@@ -55,6 +55,18 @@ export function useChat(id, socket) {
         setMessages((prev) => [...prev, message]);
       });
 
+      socket.on("user_left", (data) => {
+        setConversation((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            participants: prev.participants.map((p) =>
+              p.user_id === data.userId ? { ...p, left_at: data.leftAt } : p
+            ),
+          };
+        });
+      });
+
       socket.on("user_typing", (data) => {
         if (data.isTyping) {
           setTyping(data.userName);

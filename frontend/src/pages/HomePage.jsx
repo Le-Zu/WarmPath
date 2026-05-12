@@ -45,21 +45,25 @@ const steps = [
       num: "01",
       title: "Declare your intent",
       desc: "Tell the platform what you need — internship, research, a club, a skill. No intent, no browsing.",
+      img: "/visuals/step-01-visual.png",
    },
    {
       num: "02",
       title: "Discover your path",
       desc: "WarmPath maps who you know and who they know, surfacing paths with full relationship context.",
+      img: "/visuals/step-02-visual.png",
    },
    {
       num: "03",
       title: "Request an intro",
       desc: "Send a request to your connector. We draft the message — you edit it. Private until approved.",
+      img: "/visuals/step-03-visual.png",
    },
    {
       num: "04",
       title: "Have the conversation",
       desc: "A warm chat, a context pre-read, and a connector who makes the intro. Then the conversation is yours.",
+      img: "/visuals/step-04-visual.png",
    },
 ];
 
@@ -214,30 +218,25 @@ export default function HomePage() {
 
             {/* FEATURES */}
             <section className="hp-features" id="features">
-               <div className="hp-section-with-img">
-                  <div>
-                     <div className="hp-sec-header" style={{ textAlign: 'left', marginBottom: '3rem' }}>
-                        <h2>
-                           Built for <em>intentional</em> networking
-                        </h2>
-                        <p style={{ margin: '0' }}>
-                           No cold browsing. No spam. Every connection is contextual,
-                           every intro is earned.
-                        </p>
-                     </div>
-
-                     <div className="hp-features-grid">
-                        {features.map((f, i) => (
-                           <div key={i} className="hp-feature-item">
-                              <div className="hp-feature-num">{f.num}</div>
-                              <div className="hp-feature-title">{f.title}</div>
-                              <p className="hp-feature-desc">{f.desc}</p>
-                           </div>
-                        ))}
-                     </div>
+               <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  <div className="hp-sec-header" style={{ textAlign: 'center', marginBottom: '4rem' }}>
+                     <h2>
+                        Built for <em>intentional</em> networking
+                     </h2>
+                     <p style={{ margin: '0' }}>
+                        No cold browsing. No spam. Every connection is contextual,
+                        every intro is earned.
+                     </p>
                   </div>
-                  <div className="hp-img-placeholder">
-                     <span>Image Placeholder: Platform UI / Dashboard</span>
+
+                  <div className="hp-features-grid">
+                     {features.map((f, i) => (
+                        <div key={i} className="hp-feature-item">
+                           <div className="hp-feature-num">{f.num}</div>
+                           <div className="hp-feature-title">{f.title}</div>
+                           <p className="hp-feature-desc">{f.desc}</p>
+                        </div>
+                     ))}
                   </div>
                </div>
             </section>
@@ -245,23 +244,21 @@ export default function HomePage() {
             {/* HOW IT WORKS */}
             <section className="hp-how" id="how">
                <div className="hp-how-inner">
-                  <div className="hp-section-with-img">
-                     <div className="hp-img-placeholder" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(242,233,228,0.5)' }}>
-                        <span>Image Placeholder: How it works Illustration</span>
-                     </div>
-                     <div>
-                        <h2>
-                           How <em>WarmPath</em> works
-                        </h2>
-                        <div className="hp-steps">
-                           {steps.map((s, i) => (
-                              <div key={i} className="hp-step">
-                                 <div className="hp-step-num">{s.num}</div>
-                                 <div className="hp-step-title">{s.title}</div>
-                                 <p className="hp-step-desc">{s.desc}</p>
+                  <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                     <h2 style={{ textAlign: 'center', marginBottom: '3rem' }}>
+                        How <em>WarmPath</em> works
+                     </h2>
+                     <div className="hp-steps">
+                        {steps.map((s, i) => (
+                           <div key={i} className="hp-step">
+                              <div className="hp-step-img-wrap">
+                                 <img src={s.img} alt={`Step ${s.num}`} className="hp-step-img" />
                               </div>
-                           ))}
-                        </div>
+                              <div className="hp-step-num">{s.num}</div>
+                              <div className="hp-step-title">{s.title}</div>
+                              <p className="hp-step-desc">{s.desc}</p>
+                           </div>
+                        ))}
                      </div>
                   </div>
                </div>
@@ -269,30 +266,29 @@ export default function HomePage() {
 
             {/* CTA */}
             <section className="hp-cta">
-               <div className="hp-section-with-img">
-                  <div>
-                     <h2>
-                        Your next
-                        <br />
-                        <em>opportunity</em>
-                        <br />
-                        is one intro away.
-                     </h2>
-                     <p>
-                        Join WarmPath and start finding paths that actually lead
-                        somewhere.
-                     </p>
-                     <Link
-                        to="/register"
-                        className="hp-btn-primary"
-                        style={{ fontSize: "1rem", padding: "1rem 2.5rem" }}
-                     >
-                        Get Early Access
-                     </Link>
-                  </div>
-                  <div className="hp-img-placeholder">
-                     <span>Image Placeholder: Call to Action Visual</span>
-                  </div>
+               <div className="hp-cta-decor hp-cta-decor-1" />
+               <div className="hp-cta-decor hp-cta-decor-2" />
+               <div className="hp-cta-decor hp-cta-decor-3" />
+               
+               <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                  <h2>
+                     Your next
+                     <br />
+                     <em>opportunity</em>
+                     <br />
+                     is one intro away.
+                  </h2>
+                  <p style={{ marginBottom: '2rem' }}>
+                     Join WarmPath and start finding paths that actually lead
+                     somewhere.
+                  </p>
+                  <Link
+                     to="/register"
+                     className="hp-btn-primary"
+                     style={{ fontSize: "1rem", padding: "1rem 2.5rem" }}
+                  >
+                     Get Early Access
+                  </Link>
                </div>
             </section>
 

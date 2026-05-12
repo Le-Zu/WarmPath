@@ -49,6 +49,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
           c.year        AS connector_year,
           c.bio         AS connector_bio,
           c.updated_at  AS connector_updated_at,
+          c.profile_picture_url AS connector_picture_url,
           t.first_name  AS target_first_name,
           t.last_name   AS target_last_name,
           t.major       AS target_major,
@@ -76,6 +77,12 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
              AND ws_all.target_id = v.target_id 
              AND ws_all.intent = 'all'
         WHERE v.requester_id = ${userId}
+          AND NOT EXISTS (
+            SELECT 1 FROM connections c_direct
+            WHERE ((c_direct.user_id_a = ${userId} AND c_direct.user_id_b = v.target_id)
+               OR (c_direct.user_id_a = v.target_id AND c_direct.user_id_b = ${userId}))
+              AND c_direct.status = 'accepted'
+          )
           AND COALESCE(ps_target.discovery_mode, 'full'::discovery_mode) <> 'hidden'::discovery_mode
           AND COALESCE(ps_target.show_in_discovery, TRUE) = TRUE
           AND COALESCE(ps_target.who_can_request, 'connections_of_connections'::request_permission) 
@@ -105,6 +112,7 @@ export async function getPathsForUser(userId: string, intentFilter?: string, per
               id: r.connector_id,
               name: [r.connector_first_name, r.connector_last_name].filter(Boolean).join(' '),
               role: [r.connector_major, r.connector_year].filter(Boolean).join(', ') || null,
+              pictureUrl: r.connector_picture_url ?? null,
               relation: r.requester_connector_context ?? null,
               targetRelation: r.connector_target_context ?? null,
             },
