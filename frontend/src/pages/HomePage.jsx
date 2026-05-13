@@ -223,7 +223,7 @@ export default function HomePage() {
                      <h2>
                         Built for <em>intentional</em> networking
                      </h2>
-                     <p style={{ margin: '0' }}>
+                     <p>
                         No cold browsing. No spam. Every connection is contextual,
                         every intro is earned.
                      </p>
