@@ -155,7 +155,15 @@ export default function NotificationBell({ light }) {
                 return (
                   <div key={item.notification_id} 
                        className={`bell-item ${item.is_read ? 'read' : 'unread'}`}
-                       onClick={() => !item.is_read && handleMarkRead(item.notification_id)}>
+                       role="button"
+                       tabIndex={0}
+                       onClick={() => !item.is_read && handleMarkRead(item.notification_id)}
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter' || e.key === ' ') {
+                           e.preventDefault();
+                           if (!item.is_read) handleMarkRead(item.notification_id);
+                         }
+                       }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
                       <div className="bell-item-title">{info.title}</div>
                       <span style={{ fontSize: '0.7rem', color: '#a09792', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>

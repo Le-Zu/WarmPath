@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, ShieldAlert } from 'lucide-react';
 import apiFetch from '@/services/client';
 import { useToast } from '@/context/ToastContext';
@@ -18,6 +18,53 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const previousFocusedElement = document.activeElement;
+
+    // Trap focus inside modal
+    const focusableElements = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements && focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!focusableElements || focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previousFocusedElement) {
+        previousFocusedElement.focus();
+      }
+    };
+  }, [onClose]);
 
   const displayName =
     [reportedUser?.first_name, reportedUser?.last_name].filter(Boolean).join(' ') ||
@@ -48,13 +95,9 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0, 0, 0, 0.45)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
@@ -63,7 +106,23 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
+        role="button"
+        tabIndex={-1}
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
+        aria-label="Close modal"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.45)',
+          cursor: 'pointer',
+        }}
+      />
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-modal-title"
         style={{
           background: '#fff',
           borderRadius: '8px',
@@ -88,6 +147,7 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
             cursor: 'pointer',
             padding: '0.3rem',
             display: 'inline-flex',
+            zIndex: 1,
           }}
         >
           <X size={18} />
@@ -97,7 +157,7 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
               <ShieldAlert size={18} color="var(--warm)" />
-              <h3 style={{ fontSize: '1.05rem', color: 'var(--dark)', margin: 0 }}>
+              <h3 id="report-modal-title" style={{ fontSize: '1.05rem', color: 'var(--dark)', margin: 0 }}>
                 Report {displayName}
               </h3>
             </div>
@@ -125,28 +185,31 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
             )}
 
             <form onSubmit={handleSubmit}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.35rem' }}>
-                Reason
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1rem' }}>
-                {REASONS.map((r) => (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--dark)', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="report-reason"
-                      value={r.id}
-                      checked={reason === r.id}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                    {r.label}
-                  </label>
-                ))}
-              </div>
+              <fieldset style={{ border: 'none', padding: 0, margin: 0, marginBottom: '1rem' }}>
+                <legend style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.35rem' }}>
+                  Reason
+                </legend>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {REASONS.map((r) => (
+                    <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--dark)', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="report-reason"
+                        value={r.id}
+                        checked={reason === r.id}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                      {r.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.35rem' }}>
+              <label htmlFor="report-notes" style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.35rem' }}>
                 Notes (optional)
               </label>
               <textarea
+                id="report-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value.slice(0, 1000))}
                 rows={3}
@@ -203,7 +266,7 @@ export default function ReportMessageModal({ message, reportedUser, onClose, onB
           </>
         ) : (
           <>
-            <h3 style={{ fontSize: '1.05rem', color: 'var(--dark)', margin: 0, marginBottom: '0.3rem' }}>
+            <h3 id="report-modal-title" style={{ fontSize: '1.05rem', color: 'var(--dark)', margin: 0, marginBottom: '0.3rem' }}>
               Report sent
             </h3>
             <p style={{ fontSize: '0.85rem', color: '#7a6f68', lineHeight: 1.5, marginTop: 0, marginBottom: '1.1rem' }}>

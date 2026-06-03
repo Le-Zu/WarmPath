@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import apiFetch from '@/services/client';
 
@@ -8,6 +8,53 @@ export default function IntroRequestModal({ path, onClose }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const previousFocusedElement = document.activeElement;
+
+    // Trap focus inside modal
+    const focusableElements = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements && focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!focusableElements || focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previousFocusedElement) {
+        previousFocusedElement.focus();
+      }
+    };
+  }, [onClose]);
 
   const sendRequest = () => {
     setLoading(true);
@@ -36,12 +83,27 @@ export default function IntroRequestModal({ path, onClose }) {
   };
 
   if (sent) return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div 
+        role="button"
+        tabIndex={-1}
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
+        aria-label="Close modal"
+        style={{ position: 'absolute', inset: 0 }}
+      />
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="intro-sent-title"
+        className="modal-box" 
+        style={{ position: 'relative', textAlign: 'center', zIndex: 1 }}
+      >
         <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
           <CheckCircle2 size={48} strokeWidth={1.75} color="#6a994e" />
         </div>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.5rem' }}>Request Sent</div>
+        <div id="intro-sent-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.5rem' }}>Request Sent</div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.5rem' }}>
           {path.connector.name} will be notified and can accept or decline.
         </div>
@@ -51,9 +113,24 @@ export default function IntroRequestModal({ path, onClose }) {
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>Ask for an Introduction</div>
+    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div 
+        role="button"
+        tabIndex={-1}
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }}
+        aria-label="Close modal"
+        style={{ position: 'absolute', inset: 0 }}
+      />
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="intro-request-title"
+        className="modal-box" 
+        style={{ maxWidth: '520px', position: 'relative', zIndex: 1 }}
+      >
+        <div id="intro-request-title" style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>Ask for an Introduction</div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: '1.5rem' }}>
           We'll ask <strong>{path.connector.name}</strong> to introduce you to <strong>{path.target.name}</strong>.
         </div>
@@ -63,10 +140,11 @@ export default function IntroRequestModal({ path, onClose }) {
         )}
 
         <div style={{ marginBottom: '1.25rem' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--dark)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+          <label htmlFor="connector-note" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--dark)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
             Note to {path.connector.name.split(' ')[0]} (Private)
           </label>
           <textarea 
+            id="connector-note"
             rows={3} 
             value={connectorNote} 
             onChange={e => setConnectorNote(e.target.value)} 
@@ -76,10 +154,11 @@ export default function IntroRequestModal({ path, onClose }) {
         </div>
 
         <div style={{ marginBottom: '2rem' }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--dark)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+          <label htmlFor="target-message" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--dark)', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
             Message for {path.target.name.split(' ')[0]}
           </label>
           <textarea 
+            id="target-message"
             rows={5} 
             value={targetMessage} 
             onChange={e => setTargetMessage(e.target.value)} 

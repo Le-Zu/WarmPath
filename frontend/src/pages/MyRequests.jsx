@@ -41,8 +41,17 @@ export default function MyRequests() {
         <div 
           key={r.id} 
           className="app-card" 
+          role="button"
+          tabIndex={0}
+          aria-expanded={expandedId === r.id}
           style={{ marginBottom: '0.85rem', cursor: 'pointer' }}
           onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setExpandedId(expandedId === r.id ? null : r.id);
+            }
+          }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -57,6 +66,7 @@ export default function MyRequests() {
           </div>
           
           {expandedId === r.id && (
+            /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */
             <div 
               style={{ 
                 marginTop: '1.25rem', 

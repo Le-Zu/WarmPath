@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useConversations } from '@/hooks/useConversations';
 import { useUser } from '@/context/UserContext';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -6,7 +6,6 @@ import LoadingScreen from '@/components/LoadingScreen';
 export default function Conversations() {
   const { conversations, loading, error } = useConversations();
   const { currentUser } = useUser();
-  const navigate = useNavigate();
 
   if (loading) return <LoadingScreen page="chats" />;
   if (error) return <div className="app-page">Failed to load conversations.</div>;
@@ -40,8 +39,9 @@ export default function Conversations() {
             }
 
             return (
-              <div 
+              <Link 
                 key={conv.conversation_id} 
+                to={`/chat/${conv.conversation_id}`}
                 className="app-card" 
                 style={{ 
                   marginBottom: '1rem', 
@@ -49,9 +49,9 @@ export default function Conversations() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1.25rem'
+                  padding: '1.25rem',
+                  textDecoration: 'none'
                 }}
-                onClick={() => navigate(`/chat/${conv.conversation_id}`)}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
@@ -85,7 +85,7 @@ export default function Conversations() {
                   </div>
                 </div>
                 <div style={{ color: 'var(--warm)', fontSize: '1.25rem' }}>→</div>
-              </div>
+              </Link>
             );
           })
         )}

@@ -96,6 +96,7 @@ function Toggle({ on, onToggle, label }) {
          onClick={onToggle}
          type="button"
          aria-label={label}
+         aria-pressed={on}
          style={{
             width: "44px",
             height: "24px",
@@ -619,7 +620,7 @@ export default function SettingsPage() {
                      {/* Profile Images */}
                      <div style={{ marginBottom: "1.5rem" }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.35rem' }}>
-                           <label style={{ ...labelStyle, marginBottom: 0 }}>Profile Banner</label>
+                           <label htmlFor="banner-input" style={{ ...labelStyle, marginBottom: 0 }}>Profile Banner</label>
                            {bannerPreview && (
                               <button 
                                  onClick={() => handleRemoveImage('banner')}
@@ -630,6 +631,9 @@ export default function SettingsPage() {
                            )}
                         </div>
                         <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Choose profile banner image"
                            style={{ 
                               width: "100%", 
                               height: "120px", 
@@ -647,6 +651,12 @@ export default function SettingsPage() {
                               border: "1px solid #d88c9a"
                            }}
                            onClick={() => document.getElementById('banner-input').click()}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                 e.preventDefault();
+                                 document.getElementById('banner-input').click();
+                              }
+                           }}
                         >
                            {!bannerPreview && <span style={{ fontSize: '0.8rem', color: '#888' }}>Click to upload banner</span>}
                            <div style={{
@@ -665,6 +675,9 @@ export default function SettingsPage() {
 
                      <div style={{ marginBottom: "1.5rem", display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Choose profile picture image"
                            style={{ 
                               width: "80px", 
                               height: "80px", 
@@ -683,6 +696,12 @@ export default function SettingsPage() {
                               position: 'relative'
                            }}
                            onClick={() => document.getElementById('profile-input').click()}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                 e.preventDefault();
+                                 document.getElementById('profile-input').click();
+                              }
+                           }}
                         >
                            {!profilePreview && <User size={28} strokeWidth={1.5} color="#7a6f68" />}
                            <div style={{
@@ -697,9 +716,10 @@ export default function SettingsPage() {
                            }}>{profilePreview ? "Edit" : "Add"}</div>
                         </div>
                         <div>
-                           <label style={labelStyle}>Profile Picture</label>
+                           <label htmlFor="profile-input" style={labelStyle}>Profile Picture</label>
                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                               <button 
+                                 type="button"
                                  onClick={() => document.getElementById('profile-input').click()}
                                  style={{ ...tagStyle(false), padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
                               >
@@ -707,6 +727,7 @@ export default function SettingsPage() {
                               </button>
                               {profilePreview && (
                                  <button 
+                                    type="button"
                                     onClick={() => handleRemoveImage('profile')}
                                     style={{ ...tagStyle(false), padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderColor: 'Tomato', color: 'Tomato' }}
                                  >
@@ -726,25 +747,25 @@ export default function SettingsPage() {
                         marginBottom: '1rem' 
                      }}>
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>First Name</label>
-                           <input style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
+                           <label htmlFor="settings-first-name" style={labelStyle}>First Name</label>
+                           <input id="settings-first-name" style={inputStyle} type="text" value={form.firstName} onChange={set("firstName")} />
                         </div>
 
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>Last Name</label>
-                           <input style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
+                           <label htmlFor="settings-last-name" style={labelStyle}>Last Name</label>
+                           <input id="settings-last-name" style={inputStyle} type="text" value={form.lastName} onChange={set("lastName")} />
                         </div>
                      </div>
 
                      <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "rgba(231,111,81,0.04)", border: "1px solid rgba(231,111,81,0.18)", borderRadius: "6px" }}>
-                        <label style={{ ...labelStyle, marginBottom: '0.6rem', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ ...labelStyle, marginBottom: '0.6rem', display: 'flex', alignItems: 'center' }}>
                            Status
                            <InfoTooltip
                               label="What is a status?"
                               text="A short note about what you're up to right now — an event you're attending, what you're looking for, or something you're hosting. Shows on your Profile and the path cards your contacts see."
                               width={250}
                            />
-                        </label>
+                        </span>
                         <StatusEditor
                            initialStatus={currentUser?.intent_status || ''}
                            initialExpiresAt={currentUser?.intent_status_expires_at || null}
@@ -755,8 +776,9 @@ export default function SettingsPage() {
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Bio</label>
+                        <label htmlFor="settings-bio" style={labelStyle}>Bio</label>
                         <textarea
+                           id="settings-bio"
                            style={{...inputStyle, height: '100px'}}
                            value={form.bio}
                            onChange={set("bio")}
@@ -765,8 +787,8 @@ export default function SettingsPage() {
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Email</label>
-                        <input style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
+                        <label htmlFor="settings-email" style={labelStyle}>Email</label>
+                        <input id="settings-email" style={readonlyInputStyle} type="email" value={currentUser?.email || ""} readOnly />
                         <p style={helperStyle}>Need to change your email? Contact support at support@warmpath.com.</p>
                      </div>
 
@@ -777,13 +799,13 @@ export default function SettingsPage() {
                         marginBottom: '1rem' 
                      }}>
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>Major</label>
-                           <input style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
+                           <label htmlFor="settings-major" style={labelStyle}>Major</label>
+                           <input id="settings-major" style={inputStyle} type="text" value={form.major} onChange={set("major")} placeholder="Computer Science" />
                         </div>
 
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>Year</label>
-                           <select style={inputStyle} value={form.year} onChange={set("year")}>
+                           <label htmlFor="settings-year" style={labelStyle}>Year</label>
+                           <select id="settings-year" style={inputStyle} value={form.year} onChange={set("year")}>
                               <option value="">Select Year</option>
                               <option value="freshman">Freshman</option>
                               <option value="sophomore">Sophomore</option>
@@ -802,8 +824,9 @@ export default function SettingsPage() {
                         marginBottom: '1rem' 
                      }}>
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>LinkedIn URL</label>
+                           <label htmlFor="settings-linkedin" style={labelStyle}>LinkedIn URL</label>
                            <input
+                              id="settings-linkedin"
                               style={inputStyle}
                               type="url"
                               value={form.linkedinUrl}
@@ -813,8 +836,9 @@ export default function SettingsPage() {
                         </div>
 
                         <div style={{ marginBottom: "1rem" }}>
-                           <label style={labelStyle}>Handshake URL</label>
+                           <label htmlFor="settings-handshake" style={labelStyle}>Handshake URL</label>
                            <input
+                              id="settings-handshake"
                               style={inputStyle}
                               type="url"
                               value={form.handshakeUrl}
@@ -837,8 +861,9 @@ export default function SettingsPage() {
                      ) : (
                         <div style={{ marginBottom: "1rem" }}>
                            <div style={{ marginBottom: "0.75rem" }}>
-                              <label style={labelStyle}>Current Password</label>
+                              <label htmlFor="settings-current-password" style={labelStyle}>Current Password</label>
                               <input
+                                 id="settings-current-password"
                                  style={inputStyle}
                                  type="password"
                                  value={form.currentPassword}
@@ -852,8 +877,9 @@ export default function SettingsPage() {
                               gap: '1.25rem' 
                            }}>
                               <div style={{ marginBottom: "0.75rem" }}>
-                                 <label style={labelStyle}>New Password</label>
+                                 <label htmlFor="settings-new-password" style={labelStyle}>New Password</label>
                                  <input
+                                    id="settings-new-password"
                                     style={inputStyle}
                                     type="password"
                                     value={form.newPassword}
@@ -863,8 +889,9 @@ export default function SettingsPage() {
                                  />
                               </div>
                               <div style={{ marginBottom: "0.5rem" }}>
-                                 <label style={labelStyle}>Confirm New Password</label>
+                                 <label htmlFor="settings-confirm-password" style={labelStyle}>Confirm New Password</label>
                                  <input
+                                    id="settings-confirm-password"
                                     style={inputStyle}
                                     type="password"
                                     value={form.confirmPassword}
@@ -960,11 +987,12 @@ export default function SettingsPage() {
                      </p>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>
+                        <label htmlFor="settings-discovery-mode" style={labelStyle}>
                            Discovery Mode
                            <InfoTooltip text="Visible: full name and photo shown. Anonymous: shows your first name and the first letter of your last name; photo is hidden until you approve an intro. Hidden: removes you from search and path discovery entirely." />
                         </label>
                         <select
+                           id="settings-discovery-mode"
                            style={inputStyle}
                            value={privacyForm.discovery_mode}
                            onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
@@ -978,24 +1006,26 @@ export default function SettingsPage() {
 
                      <div style={toggleRowStyle}>
                         <div>
-                           <label style={{ ...labelStyle, marginBottom: 0 }}>
+                           <span style={{ ...labelStyle, display: 'block', marginBottom: 0 }}>
                               Be suggested as a connector
                               <InfoTooltip text="When someone wants to meet a contact you know, we may ask if you can help make the intro. Turn off to opt out." />
-                           </label>
+                           </span>
                            <p style={{ ...helperStyle, marginTop: 0 }}>Lets others ask you to introduce them to people you know.</p>
                         </div>
                         <Toggle
                            on={privacyForm.allow_connector_prompts}
                            onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)}
+                           label="Be suggested as a connector"
                         />
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>
+                        <label htmlFor="settings-who-can-request" style={labelStyle}>
                            Who can request introductions?
                            <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). Choosing 'No one' pauses all incoming intro requests until you change it back." />
                         </label>
                         <select
+                           id="settings-who-can-request"
                            style={inputStyle}
                            value={privacyForm.who_can_request}
                            onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
@@ -1009,7 +1039,7 @@ export default function SettingsPage() {
                      </div>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Blocked users</label>
+                        <span style={{ ...labelStyle, display: 'block', marginBottom: '0.5rem' }}>Blocked users</span>
                         {loadingBlocks ? (
                            <p style={helperStyle}>Loading…</p>
                         ) : blocks.length === 0 ? (

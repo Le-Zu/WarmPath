@@ -711,10 +711,11 @@ export default function Profile() {
                            >
                               <form onSubmit={handleAddConnector}>
                                  <div style={{ marginBottom: "1rem" }}>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
+                                    <label htmlFor="profile-connector-name" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
                                        Name
                                     </label>
                                     <input
+                                       id="profile-connector-name"
                                        type="text"
                                        value={newConn.name}
                                        onChange={(e) => setNewConn({ ...newConn, name: e.target.value })}
@@ -723,10 +724,11 @@ export default function Profile() {
                                     />
                                  </div>
                                  <div style={{ marginBottom: "1rem" }}>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
+                                    <label htmlFor="profile-connector-email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
                                        Email *
                                     </label>
                                     <input
+                                       id="profile-connector-email"
                                        type="email"
                                        required
                                        value={newConn.email}
@@ -736,7 +738,7 @@ export default function Profile() {
                                     />
                                  </div>
                                  <div style={{ marginBottom: "1rem" }}>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
+                                    <label htmlFor="profile-connector-relationship" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--dark)', marginBottom: '0.3rem' }}>
                                        Relationship Context *
                                        <InfoTooltip
                                           label="What goes in Relationship Context?"
@@ -745,6 +747,7 @@ export default function Profile() {
                                        />
                                     </label>
                                     <input
+                                       id="profile-connector-relationship"
                                        type="text"
                                        required
                                        value={newConn.relationship}

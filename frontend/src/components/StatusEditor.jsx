@@ -125,6 +125,7 @@ export default function StatusEditor({
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
         placeholder="What are you up to right now?"
+        aria-label="Status message"
         rows={3}
         style={{
           width: '100%',
@@ -142,8 +143,9 @@ export default function StatusEditor({
       </div>
 
       <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <label style={{ fontSize: '0.8rem', color: '#7a6f68' }}>Clears after</label>
+        <label htmlFor="status-expiry-select" style={{ fontSize: '0.8rem', color: '#7a6f68' }}>Clears after</label>
         <select
+          id="status-expiry-select"
           value={expiryOption}
           onChange={(e) => setExpiryOption(e.target.value)}
           style={{

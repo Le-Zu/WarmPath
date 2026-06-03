@@ -259,8 +259,9 @@ export default function Paths() {
                   style={{ maxWidth: "360px", textAlign: "left" }}
                >
                   <div style={{ marginBottom: "1rem" }}>
-                     <label style={labelStyle}>Name</label>
+                     <label htmlFor="connector-name" style={labelStyle}>Name</label>
                      <input
+                        id="connector-name"
                         type="text"
                         value={newConn.name}
                         onChange={(e) =>
@@ -271,8 +272,9 @@ export default function Paths() {
                      />
                   </div>
                   <div style={{ marginBottom: "1rem" }}>
-                     <label style={labelStyle}>Email *</label>
+                     <label htmlFor="connector-email" style={labelStyle}>Email *</label>
                      <input
+                        id="connector-email"
                         type="email"
                         required
                         value={newConn.email}
@@ -284,7 +286,7 @@ export default function Paths() {
                      />
                   </div>
                   <div style={{ marginBottom: "1rem" }}>
-                     <label style={labelStyle}>
+                     <label htmlFor="connector-relationship" style={labelStyle}>
                         Relationship Context *
                         <InfoTooltip
                            label="What goes in Relationship Context?"
@@ -293,6 +295,7 @@ export default function Paths() {
                         />
                      </label>
                      <input
+                        id="connector-relationship"
                         type="text"
                         required
                         value={newConn.relationship}

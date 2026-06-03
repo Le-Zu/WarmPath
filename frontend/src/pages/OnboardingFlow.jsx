@@ -371,8 +371,9 @@ export default function OnboardingFlow() {
                      </p>
 
                      <div style={{ marginBottom: "1rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>First Name</label>
+                        <label htmlFor="onboarding-first-name" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>First Name</label>
                         <input
+                           id="onboarding-first-name"
                            type="text"
                            value={form.firstName}
                            onChange={set("firstName")}
@@ -381,8 +382,9 @@ export default function OnboardingFlow() {
                         />
                      </div>
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Last Name</label>
+                        <label htmlFor="onboarding-last-name" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Last Name</label>
                         <input
+                           id="onboarding-last-name"
                            type="text"
                            value={form.lastName}
                            onChange={set("lastName")}
@@ -416,8 +418,9 @@ export default function OnboardingFlow() {
                      </p>
 
                      <div style={{ marginBottom: "1rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Major</label>
+                        <label htmlFor="onboarding-major" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Major</label>
                         <input
+                           id="onboarding-major"
                            type="text"
                            value={form.major}
                            onChange={set("major")}
@@ -426,8 +429,8 @@ export default function OnboardingFlow() {
                         />
                      </div>
                      <div style={{ marginBottom: "1rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Year</label>
-                        <select value={form.year} onChange={set("year")} style={inputStyle}>
+                        <label htmlFor="onboarding-year" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Year</label>
+                        <select id="onboarding-year" value={form.year} onChange={set("year")} style={inputStyle}>
                            <option value="">Select Year</option>
                            <option value="freshman">Freshman</option>
                            <option value="sophomore">Sophomore</option>
@@ -438,8 +441,9 @@ export default function OnboardingFlow() {
                         </select>
                      </div>
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Short Bio</label>
+                        <label htmlFor="onboarding-bio" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Short Bio</label>
                         <textarea
+                           id="onboarding-bio"
                            value={form.bio}
                            onChange={set("bio")}
                            placeholder="Tell us a bit about yourself..."
@@ -464,8 +468,11 @@ export default function OnboardingFlow() {
                      </p>
 
                      <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.5rem" }}>Profile Banner</label>
+                        <label htmlFor="banner-input" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.5rem" }}>Profile Banner</label>
                         <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Choose profile banner image"
                            style={{ 
                               width: "100%", 
                               height: "100px", 
@@ -483,6 +490,12 @@ export default function OnboardingFlow() {
                               border: "1px solid #d88c9a"
                            }}
                            onClick={() => document.getElementById('banner-input').click()}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                 e.preventDefault();
+                                 document.getElementById('banner-input').click();
+                              }
+                           }}
                         >
                            {!bannerPreview && <span style={{ fontSize: '0.8rem', color: '#888' }}>Click to upload banner</span>}
                            <div style={{
@@ -501,6 +514,9 @@ export default function OnboardingFlow() {
 
                      <div style={{ marginBottom: "2rem", display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Choose profile picture image"
                            style={{ 
                               width: "80px", 
                               height: "80px", 
@@ -519,6 +535,12 @@ export default function OnboardingFlow() {
                               position: 'relative'
                            }}
                            onClick={() => document.getElementById('profile-input').click()}
+                           onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                 e.preventDefault();
+                                 document.getElementById('profile-input').click();
+                              }
+                           }}
                         >
                            {!profilePreview && <User size={28} strokeWidth={1.5} color="#7a6f68" />}
                            <div style={{
@@ -533,8 +555,9 @@ export default function OnboardingFlow() {
                            }}>Edit</div>
                         </div>
                         <div>
-                           <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Profile Picture</label>
+                           <label htmlFor="profile-input" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Profile Picture</label>
                            <button 
+                              type="button"
                               onClick={() => document.getElementById('profile-input').click()}
                               style={{ ...tagStyle, padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
                            >

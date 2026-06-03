@@ -198,6 +198,9 @@ export default function ChatPage() {
                }}
             >
                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isPrereadOpen}
                   style={{
                      display: "flex",
                      justifyContent: "space-between",
@@ -205,6 +208,12 @@ export default function ChatPage() {
                      cursor: "pointer",
                   }}
                   onClick={() => setIsPrereadOpen(!isPrereadOpen)}
+                  onKeyDown={(e) => {
+                     if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsPrereadOpen(!isPrereadOpen);
+                     }
+                  }}
                >
                   <div
                      style={{

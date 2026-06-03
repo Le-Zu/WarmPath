@@ -968,3 +968,27 @@ html {
 
 /* ── GLOBAL OVERFLOW FIX ── */
 html, body { overflow-x: hidden; width: 100%; }
+
+/* ── ACCESSIBILITY: Keyboard focus outlines & sr-only utility ── */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--warm);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+

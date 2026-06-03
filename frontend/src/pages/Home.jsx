@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Microscope, BookOpen, Users, Wrench, X, Coffee } from 'lucide-react';
 import apiFetch from '@/services/client';
@@ -26,6 +26,55 @@ export default function Home() {
   const [connectorCount, setConnectorCount] = useState(null);
   const [statusOpen, setStatusOpen] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const statusModalRef = useRef(null);
+
+  useEffect(() => {
+    if (!statusOpen) return;
+
+    const previousFocusedElement = document.activeElement;
+
+    // Trap focus inside modal
+    const focusableElements = statusModalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements && focusableElements.length > 0) {
+      focusableElements[0].focus();
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setStatusOpen(false);
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!focusableElements || focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (previousFocusedElement) {
+        previousFocusedElement.focus();
+      }
+    };
+  }, [statusOpen]);
 
   useEffect(() => {
     getConnections()
@@ -160,13 +209,9 @@ export default function Home() {
 
       {statusOpen && (
         <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setStatusOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.45)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
@@ -174,8 +219,19 @@ export default function Home() {
             padding: '1rem',
           }}
         >
+          <div 
+            role="button"
+            tabIndex={-1}
+            onClick={() => setStatusOpen(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setStatusOpen(false); }}
+            aria-label="Close modal"
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.45)', cursor: 'pointer' }}
+          />
           <div
-            onClick={(e) => e.stopPropagation()}
+            ref={statusModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="status-modal-title"
             style={{
               background: '#fff',
               borderRadius: '8px',
@@ -184,6 +240,7 @@ export default function Home() {
               maxWidth: '500px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
               position: 'relative',
+              zIndex: 1,
             }}
           >
             <button
@@ -204,7 +261,7 @@ export default function Home() {
             >
               <X size={20} />
             </button>
-            <h3 style={{ fontSize: '1.25rem', color: 'var(--dark)', marginTop: 0, marginBottom: '0.5rem' }}>
+            <h3 id="status-modal-title" style={{ fontSize: '1.25rem', color: 'var(--dark)', marginTop: 0, marginBottom: '0.5rem' }}>
               Set your status
             </h3>
             <p style={{ fontSize: '0.9rem', color: '#7a6f68', marginTop: 0, marginBottom: '1.5rem' }}>
