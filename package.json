@@ -31,7 +31,7 @@
     "refresh": "npm run clean && rm -f package-lock.json server/package-lock.json frontend/package-lock.json && npm run setup"
   },
   "dependencies": {
-    "@google/genai": "^2.7.0",
+    "@google/genai": "^2.8.0",
     "@prisma/client": "^7.8.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
