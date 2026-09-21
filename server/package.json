@@ -29,7 +29,7 @@
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.0",
     "express": "^5.2.1",
     "firebase-admin": "^13.7.0",
     "pg": "^8.20.0",
