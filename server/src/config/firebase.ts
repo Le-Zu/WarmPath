@@ -1,4 +1,5 @@
-import * as admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import {readFileSync } from 'fs';
 import path from 'path';
 
@@ -9,9 +10,9 @@ const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json')
 const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
 // Initialize the Admin app
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+initializeApp({
+    credential: cert(serviceAccount)
 });
 
 // Export the auth module, so that middleware can use it
-export const adminAuth = admin.auth();
+export const adminAuth = getAuth();

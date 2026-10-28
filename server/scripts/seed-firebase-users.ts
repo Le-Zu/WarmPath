@@ -13,7 +13,9 @@
  * Re-running is safe — existing accounts are detected and linked instead.
  */
 
-import * as admin from 'firebase-admin';
+import type { ServiceAccount } from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { basePrisma } from '../src/lib/prisma';
@@ -22,11 +24,11 @@ import 'dotenv/config';
 const serviceAccountPath = path.join(process.cwd(), 'server', 'serviceAccountKey.json');
 const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+initializeApp({
+    credential: cert(serviceAccount as ServiceAccount),
 });
 
-const firebaseAuth = admin.auth();
+const firebaseAuth = getAuth();
 const SEED_PASSWORD = 'Password123!';
 
 async function seedFirebaseUsers() {
