@@ -101,7 +101,7 @@ function Toggle({ on, onToggle, label }) {
             height: "24px",
             borderRadius: "12px",
             border: "none",
-            background: on ? "LightSalmon" : "#ccc",
+            background: on ? "var(--warm)" : "#ccc",
             position: "relative",
             cursor: "pointer",
             transition: "background 0.2s",
@@ -129,7 +129,7 @@ export default function SettingsPage() {
    const { currentUser, refreshUser } = useUser();
    const toast = useToast();
    const navigate = useNavigate();
-   const [activeTab, setActiveTab] = useState("account");
+   const [activeTab, setActiveTab] = useState("profile");
    const [showPasswordFields, setShowPasswordFields] = useState(false);
    const [copied, setCopied] = useState(false);
    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -138,6 +138,14 @@ export default function SettingsPage() {
    const [hoveredDelete, setHoveredDelete] = useState(false);
    const [hoveredDeleteConfirm, setHoveredDeleteConfirm] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
+   const [isMobile, setIsMobile] = useState(false);
+
+   useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+   }, []);
    
    const [form, setForm] = useState({
       firstName: "",
@@ -372,7 +380,7 @@ export default function SettingsPage() {
 
    const canSave =
       !isSaving &&
-      (activeTab === "account" ? (
+      (activeTab === "profile" ? (
          form.firstName.trim() &&
          form.lastName.trim() &&
          (!showPasswordFields || (form.currentPassword && passwordsMatch))
@@ -382,7 +390,7 @@ export default function SettingsPage() {
       if (!canSave) return;
       setIsSaving(true);
       try {
-         if (activeTab === "account") {
+         if (activeTab === "profile") {
             // Validate LinkedIn URL before any uploads so we fail fast.
             let linkedinUrl;
             let handshakeUrl;
@@ -547,8 +555,8 @@ export default function SettingsPage() {
       borderRadius: "20px",
       cursor: "pointer",
       border: "1px solid",
-      borderColor: selected ? "LightSalmon" : "#d88c9a",
-      background: selected ? "LightSalmon" : "#fff",
+      borderColor: selected ? "var(--warm)" : "#d88c9a",
+      background: selected ? "var(--warm)" : "#fff",
       color: selected ? "#fff" : "#386641",
       transition: "all 0.15s",
    });
@@ -579,43 +587,80 @@ export default function SettingsPage() {
          >
             <div
                style={{
-                  width: "800px",
+                  width: "900px",
                   maxWidth: "100%",
-                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.15)",
-                  padding: "45px 40px",
-                  borderRadius: "10px",
-                  background: "#fff",
+                  boxShadow: "0 4px 24px rgba(0, 0, 0, 0.08)",
+                  padding: "40px",
+                  borderRadius: "8px",
+                  background: "var(--white)",
+                  border: "1px solid var(--border)",
                }}
             >
-               <h2 style={{ fontSize: "1.8rem", marginBottom: "0.25rem" }}>Settings</h2>
-               <p style={{ fontSize: "1rem", color: "#6a994e", marginBottom: "2rem" }}>
+               <h2 style={{ fontSize: "1.8rem", marginBottom: "0.25rem", fontFamily: "var(--font-serif)", color: "var(--dark)" }}>Settings</h2>
+               <p style={{ fontSize: "0.95rem", color: "#7a6f68", marginBottom: "2.5rem" }}>
                   Manage your account and privacy preferences.
                </p>
 
-               {/* Tab Navigation */}
-               <div style={{ display: 'flex', borderBottom: '1px solid #d88c9a', marginBottom: '2rem' }}>
-                  {['account', 'privacy'].map(tab => (
-                     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        style={{
-                           padding: '10px 20px',
-                           border: 'none',
-                           background: 'none',
-                           borderBottom: activeTab === tab ? '2px solid LightSalmon' : 'none',
-                           color: activeTab === tab ? 'LightSalmon' : '#386641',
-                           cursor: 'pointer',
-                           fontWeight: activeTab === tab ? 'bold' : 'normal',
-                           textTransform: 'capitalize'
-                        }}
-                     >
-                        {tab}
-                     </button>
-                  ))}
-               </div>
+               <div style={{ 
+                  display: 'flex', 
+                  flexDirection: isMobile ? 'column' : 'row', 
+                  gap: isMobile ? '1.5rem' : '2.5rem',
+                  alignItems: 'stretch'
+               }}>
+                  {/* Left Rail / Sidebar Navigation */}
+                  <div style={{ 
+                     display: 'flex', 
+                     flexDirection: isMobile ? 'row' : 'column', 
+                     gap: '0.4rem',
+                     borderBottom: isMobile ? '1.5px solid var(--border)' : 'none',
+                     borderRight: isMobile ? 'none' : '1.5px solid var(--border)',
+                     paddingBottom: isMobile ? '0.75rem' : 0,
+                     paddingRight: isMobile ? 0 : '1.5rem',
+                     width: isMobile ? '100%' : '180px',
+                     flexShrink: 0,
+                     overflowX: isMobile ? 'auto' : 'visible'
+                  }}>
+                     {[
+                        { id: 'profile', label: 'Profile Info' },
+                        { id: 'privacy', label: 'Privacy & Security' },
+                        { id: 'danger', label: 'Danger Zone' }
+                     ].map(tab => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                           <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => {
+                                 setActiveTab(tab.id);
+                                 setShowDeleteConfirm(false);
+                                 setDeleteText("");
+                              }}
+                              style={{
+                                 padding: '0.65rem 1rem',
+                                 border: 'none',
+                                 borderRadius: 4,
+                                 background: isActive ? 'rgba(231, 111, 81, 0.08)' : 'transparent',
+                                 color: isActive ? 'var(--warm)' : 'var(--charcoal)',
+                                 cursor: 'pointer',
+                                 fontWeight: isActive ? 600 : 400,
+                                 fontSize: '0.85rem',
+                                 textAlign: 'left',
+                                 whiteSpace: 'nowrap',
+                                 fontFamily: 'var(--font-sans)',
+                                 transition: 'all 0.15s',
+                                 borderBottom: isMobile && isActive ? '2px solid var(--warm)' : 'none'
+                              }}
+                           >
+                              {tab.label}
+                           </button>
+                        );
+                     })}
+                  </div>
 
-               {activeTab === 'account' ? (
-                  <>
+                  {/* Right Column Content */}
+                  <div style={{ flex: 1 }}>
+                     {activeTab === 'profile' && (
+                        <>
                      {/* Profile Images */}
                      <div style={{ marginBottom: "1.5rem" }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.35rem' }}>
@@ -952,222 +997,230 @@ export default function SettingsPage() {
                         ))}
                      </div>
                   </>
-               ) : (
-                  <>
-                     <h3 style={sectionHeadingStyle}>Privacy Settings</h3>
-                     <p style={{ fontSize: '0.9rem', color: '#6a994e', marginBottom: '1.5rem' }}>
-                        Control how you appear to others and who can interact with you.
-                     </p>
-
-                     <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>
-                           Discovery Mode
-                           <InfoTooltip text="Visible: full name and photo shown. Anonymous: shows your first name and the first letter of your last name; photo is hidden until you approve an intro. Hidden: removes you from search and path discovery entirely." />
-                        </label>
-                        <select
-                           style={inputStyle}
-                           value={privacyForm.discovery_mode}
-                           onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
-                        >
-                           <option value="full">Visible</option>
-                           <option value="anonymous">Anonymous</option>
-                           <option value="hidden">Hidden</option>
-                        </select>
-                        <p style={helperStyle}>How you appear in warm path discovery results.</p>
-                     </div>
-
-                     <div style={toggleRowStyle}>
-                        <div>
-                           <label style={{ ...labelStyle, marginBottom: 0 }}>
-                              Be suggested as a connector
-                              <InfoTooltip text="When someone wants to meet a contact you know, we may ask if you can help make the intro. Turn off to opt out." />
-                           </label>
-                           <p style={{ ...helperStyle, marginTop: 0 }}>Lets others ask you to introduce them to people you know.</p>
-                        </div>
-                        <Toggle
-                           on={privacyForm.allow_connector_prompts}
-                           onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)}
-                        />
-                     </div>
-
-                     <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>
-                           Who can request introductions?
-                           <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). Choosing 'No one' pauses all incoming intro requests until you change it back." />
-                        </label>
-                        <select
-                           style={inputStyle}
-                           value={privacyForm.who_can_request}
-                           onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
-                        >
-                           <option value="anyone">Anyone</option>
-                           <option value="connections">Direct connections</option>
-                           <option value="connections_of_connections">Friends of friends</option>
-                           <option value="nobody">No one (pause all requests)</option>
-                        </select>
-                        <p style={helperStyle}>Sets the furthest reach allowed for intro requests.</p>
-                     </div>
-
-                     <div style={{ marginBottom: "1.5rem" }}>
-                        <label style={labelStyle}>Blocked users</label>
-                        {loadingBlocks ? (
-                           <p style={helperStyle}>Loading…</p>
-                        ) : blocks.length === 0 ? (
-                           <p style={helperStyle}>You haven&rsquo;t blocked anyone. Blocking hides someone from your paths and prevents intro requests in either direction.</p>
-                        ) : (
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {blocks.map((b) => {
-                                 const name = [b.blocked?.first_name, b.blocked?.last_name].filter(Boolean).join(' ') || b.blocked?.email || 'Unknown user';
-                                 return (
-                                    <div
-                                       key={b.block_id}
-                                       style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          gap: '0.6rem',
-                                          padding: '0.55rem 0.7rem',
-                                          background: '#fff',
-                                          border: '1px solid var(--border)',
-                                          borderRadius: '4px',
-                                       }}
-                                    >
-                                       <span style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>{name}</span>
-                                       <button
-                                          type="button"
-                                          onClick={() => handleUnblock(b)}
-                                          disabled={unblockingId === b.block_id}
-                                          style={{
-                                             background: 'transparent',
-                                             border: '1px solid #7a6f68',
-                                             color: '#7a6f68',
-                                             padding: '0.35rem 0.85rem',
-                                             borderRadius: '100px',
-                                             fontWeight: 600,
-                                             fontSize: '0.78rem',
-                                             cursor: unblockingId === b.block_id ? 'not-allowed' : 'pointer',
-                                          }}
-                                       >
-                                          {unblockingId === b.block_id ? 'Unblocking…' : 'Unblock'}
-                                       </button>
-                                    </div>
-                                 );
-                              })}
-                           </div>
-                        )}
-                     </div>
-                  </>
                )}
 
-               {/* Save */}
-               <hr style={dividerStyle} />
-               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button
-                     disabled={!canSave}
-                     onClick={handleSave}
-                     onMouseEnter={() => setHoveredSave(true)}
-                     onMouseLeave={() => setHoveredSave(false)}
-                     style={{
-                        backgroundColor: !canSave ? "#ccc" : hoveredSave ? "#e8825a" : "LightSalmon",
-                        padding: "1rem 2rem",
-                        borderRadius: "100px",
-                        border: "1px",
-                        fontSize: "1rem",
-                        fontWeight: "bold",
-                        cursor: canSave ? "pointer" : "not-allowed",
-                        transition: "background-color 0.1s",
-                        color: "#fff",
-                     }}
-                  >
-                     {isSaving ? "Saving..." : "Save Changes"}
-                  </button>
-               </div>
+                     {activeTab === 'privacy' && (
+                        <>
+                           <h3 style={sectionHeadingStyle}>Privacy Settings</h3>
+                           <p style={{ fontSize: '0.9rem', color: '#6a994e', marginBottom: '1.5rem' }}>
+                              Control how you appear to others and who can interact with you.
+                           </p>
 
-               {/* Danger Zone */}
-               {activeTab === 'account' && (
-                  <div
-                     style={{
-                        marginTop: "2rem",
-                        padding: "1.25rem",
-                        border: "1px solid Tomato",
-                        borderRadius: "10px",
-                     }}
-                  >
-                     <h3 style={{ fontSize: "1.1rem", color: "Tomato", marginBottom: "0.75rem" }}>
-                        Danger Zone
-                     </h3>
-                     {!showDeleteConfirm ? (
-                        <button
-                           onClick={() => setShowDeleteConfirm(true)}
-                           onMouseEnter={() => setHoveredDelete(true)}
-                           onMouseLeave={() => setHoveredDelete(false)}
+                           <div style={{ marginBottom: "1.5rem" }}>
+                              <label style={labelStyle}>
+                                 Discovery Mode
+                                 <InfoTooltip text="Visible: full name and photo shown. Anonymous: shows your first name and the first letter of your last name; photo is hidden until you approve an intro. Hidden: removes you from search and path discovery entirely." />
+                              </label>
+                              <select
+                                 style={inputStyle}
+                                 value={privacyForm.discovery_mode}
+                                 onChange={(e) => setPrivacy('discovery_mode')(e.target.value)}
+                              >
+                                 <option value="full">Visible</option>
+                                 <option value="anonymous">Anonymous</option>
+                                 <option value="hidden">Hidden</option>
+                              </select>
+                              <p style={helperStyle}>How you appear in warm path discovery results.</p>
+                           </div>
+
+                           <div style={toggleRowStyle}>
+                              <div>
+                                 <label style={{ ...labelStyle, marginBottom: 0 }}>
+                                    Be suggested as a connector
+                                    <InfoTooltip text="When someone wants to meet a contact you know, we may ask if you can help make the intro. Turn off to opt out." />
+                                 </label>
+                                 <p style={{ ...helperStyle, marginTop: 0 }}>Lets others ask you to introduce them to people you know.</p>
+                              </div>
+                              <Toggle
+                                 on={privacyForm.allow_connector_prompts}
+                                 onToggle={() => setPrivacy('allow_connector_prompts')(!privacyForm.allow_connector_prompts)}
+                              />
+                           </div>
+
+                           <div style={{ marginBottom: "1.5rem" }}>
+                              <label style={labelStyle}>
+                                 Who can request introductions?
+                                 <InfoTooltip text="Friends of friends means anyone connected to one of your connections (2nd-degree). Choosing 'No one' pauses all incoming intro requests until you change it back." />
+                              </label>
+                              <select
+                                 style={inputStyle}
+                                 value={privacyForm.who_can_request}
+                                 onChange={(e) => setPrivacy('who_can_request')(e.target.value)}
+                              >
+                                 <option value="anyone">Anyone</option>
+                                 <option value="connections">Direct connections</option>
+                                 <option value="connections_of_connections">Friends of friends</option>
+                                 <option value="nobody">No one (pause all requests)</option>
+                              </select>
+                              <p style={helperStyle}>Sets the furthest reach allowed for intro requests.</p>
+                           </div>
+
+                           <div style={{ marginBottom: "1.5rem" }}>
+                              <label style={labelStyle}>Blocked users</label>
+                              {loadingBlocks ? (
+                                 <p style={helperStyle}>Loading…</p>
+                              ) : blocks.length === 0 ? (
+                                 <p style={helperStyle}>You haven&rsquo;t blocked anyone. Blocking hides someone from your paths and prevents intro requests in either direction.</p>
+                              ) : (
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {blocks.map((b) => {
+                                       const name = [b.blocked?.first_name, b.blocked?.last_name].filter(Boolean).join(' ') || b.blocked?.email || 'Unknown user';
+                                       return (
+                                          <div
+                                             key={b.block_id}
+                                             style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '0.6rem',
+                                                padding: '0.55rem 0.7rem',
+                                                background: '#fff',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: '4px',
+                                             }}
+                                          >
+                                             <span style={{ fontSize: '0.85rem', color: 'var(--dark)' }}>{name}</span>
+                                             <button
+                                                type="button"
+                                                onClick={() => handleUnblock(b)}
+                                                disabled={unblockingId === b.block_id}
+                                                style={{
+                                                   background: 'transparent',
+                                                   border: '1px solid #7a6f68',
+                                                   color: '#7a6f68',
+                                                   padding: '0.35rem 0.85rem',
+                                                   borderRadius: '100px',
+                                                   fontWeight: 600,
+                                                   fontSize: '0.78rem',
+                                                   cursor: unblockingId === b.block_id ? 'not-allowed' : 'pointer',
+                                                }}
+                                             >
+                                                {unblockingId === b.block_id ? 'Unblocking…' : 'Unblock'}
+                                             </button>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              )}
+                           </div>
+                        </>
+                     )}
+
+                     {activeTab === 'danger' && (
+                        <div
                            style={{
-                              backgroundColor: hoveredDelete ? "#c0392b" : "Tomato",
-                              padding: "0.75rem 1.5rem",
-                              borderRadius: "100px",
-                              border: "none",
-                              fontSize: "0.9rem",
-                              fontWeight: "bold",
-                              cursor: "pointer",
-                              color: "#fff",
-                              transition: "background-color 0.1s",
+                              padding: "1.5rem",
+                              border: "1px solid Tomato",
+                              borderRadius: "8px",
+                              background: "rgba(255, 99, 71, 0.02)",
                            }}
                         >
-                           Delete Account
-                        </button>
-                     ) : (
-                        <div>
-                           <p style={{ fontSize: "0.9rem", marginBottom: "0.75rem" }}>
-                              This will permanently delete your account and all your data.
-                              Type <strong>DELETE</strong> to confirm.
-                           </p>
-                           <input
-                              style={{ ...inputStyle, marginBottom: "0.75rem" }}
-                              type="text"
-                              value={deleteText}
-                              onChange={(e) => setDeleteText(e.target.value)}
-                              placeholder="Type DELETE"
-                           />
-                           <div style={{ display: "flex", gap: "10px" }}>
+                           <h3 style={{ fontSize: "1.15rem", color: "Tomato", marginBottom: "0.75rem", fontFamily: "var(--font-serif)" }}>
+                              Danger Zone
+                           </h3>
+                           {!showDeleteConfirm ? (
                               <button
-                                 onClick={handleDeleteAccount}
-                                 disabled={deleteText !== "DELETE" || isSaving}
-                                 onMouseEnter={() => setHoveredDeleteConfirm(true)}
-                                 onMouseLeave={() => setHoveredDeleteConfirm(false)}
+                                 onClick={() => setShowDeleteConfirm(true)}
+                                 onMouseEnter={() => setHoveredDelete(true)}
+                                 onMouseLeave={() => setHoveredDelete(false)}
                                  style={{
-                                    backgroundColor: deleteText !== "DELETE" ? "#ccc" : hoveredDeleteConfirm ? "#c0392b" : "Tomato",
+                                    backgroundColor: hoveredDelete ? "#c0392b" : "Tomato",
                                     padding: "0.75rem 1.5rem",
-                                    borderRadius: "100px",
+                                    borderRadius: "4px",
                                     border: "none",
                                     fontSize: "0.9rem",
                                     fontWeight: "bold",
-                                    cursor: deleteText === "DELETE" ? "pointer" : "not-allowed",
+                                    cursor: "pointer",
                                     color: "#fff",
                                     transition: "background-color 0.1s",
                                  }}
                               >
-                                 Permanently Delete
+                                 Delete Account
                               </button>
-                              <button
-                                 onClick={() => {
-                                    setShowDeleteConfirm(false);
-                                    setDeleteText("");
-                                 }}
-                                 style={{
-                                    background: "none",
-                                    border: "none",
-                                    color: "Tomato",
-                                    cursor: "pointer",
-                                    fontSize: "0.85rem",
-                                 }}
-                              >
-                                 Cancel
-                              </button>
-                           </div>
+                           ) : (
+                              <div>
+                                 <p style={{ fontSize: "0.9rem", marginBottom: "0.75rem", color: "var(--charcoal)" }}>
+                                    This will permanently delete your account and all your data.
+                                    Type <strong>DELETE</strong> to confirm.
+                                 </p>
+                                 <input
+                                    style={{ ...inputStyle, marginBottom: "0.75rem" }}
+                                    type="text"
+                                    value={deleteText}
+                                    onChange={(e) => setDeleteText(e.target.value)}
+                                    placeholder="Type DELETE"
+                                 />
+                                 <div style={{ display: "flex", gap: "10px" }}>
+                                    <button
+                                       onClick={handleDeleteAccount}
+                                       disabled={deleteText !== "DELETE" || isSaving}
+                                       onMouseEnter={() => setHoveredDeleteConfirm(true)}
+                                       onMouseLeave={() => setHoveredDeleteConfirm(false)}
+                                       style={{
+                                          backgroundColor: deleteText !== "DELETE" ? "#ccc" : hoveredDeleteConfirm ? "#c0392b" : "Tomato",
+                                          padding: "0.75rem 1.5rem",
+                                          borderRadius: "4px",
+                                          border: "none",
+                                          fontSize: "0.9rem",
+                                          fontWeight: "bold",
+                                          cursor: deleteText === "DELETE" ? "pointer" : "not-allowed",
+                                          color: "#fff",
+                                          transition: "background-color 0.1s",
+                                       }}
+                                    >
+                                       Permanently Delete
+                                    </button>
+                                    <button
+                                       onClick={() => {
+                                          setShowDeleteConfirm(false);
+                                          setDeleteText("");
+                                       }}
+                                       style={{
+                                          background: "none",
+                                          border: "none",
+                                          color: "Tomato",
+                                          cursor: "pointer",
+                                          fontSize: "0.85rem",
+                                       }}
+                                    >
+                                       Cancel
+                                    </button>
+                                 </div>
+                              </div>
+                           )}
                         </div>
                      )}
+
+                     {/* Save Button (only for profile and privacy tabs) */}
+                     {(activeTab === 'profile' || activeTab === 'privacy') && (
+                        <>
+                           <hr style={dividerStyle} />
+                           <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <button
+                                 disabled={!canSave}
+                                 onClick={handleSave}
+                                 onMouseEnter={() => setHoveredSave(true)}
+                                 onMouseLeave={() => setHoveredSave(false)}
+                                 style={{
+                                    backgroundColor: !canSave ? "#ccc" : hoveredSave ? "#e8825a" : "var(--warm)",
+                                    padding: "0.75rem 1.75rem",
+                                    borderRadius: "4px",
+                                    border: "none",
+                                    fontSize: "0.9rem",
+                                    fontWeight: "bold",
+                                    cursor: canSave ? "pointer" : "not-allowed",
+                                    transition: "background-color 0.15s",
+                                    color: "#fff",
+                                    fontFamily: "var(--font-sans)"
+                                 }}
+                              >
+                                 {isSaving ? "Saving..." : "Save Changes"}
+                              </button>
+                           </div>
+                        </>
+                     )}
                   </div>
-               )}
+               </div>
             </div>
          </div>
       </div>

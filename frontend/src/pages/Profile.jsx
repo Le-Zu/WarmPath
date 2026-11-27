@@ -11,12 +11,14 @@ import LoadingScreen from "@/components/LoadingScreen";
 import InfoTooltip from "@/components/InfoTooltip";
 import InviteConnectorPanel from "@/components/InviteConnectorPanel";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import ProfileNetworkWidget from "@/components/ProfileNetworkWidget";
 
 export default function Profile() {
    const navigate = useNavigate();
    const { currentUser, loading, error } = useContext(UserContext);
    const toast = useToast();
    const [connections, setConnections] = useState([]);
+   const connectorCount = connections.filter((c) => c.status === "accepted").length;
    const [loadingConns, setLoadingConns] = useState(false);
    const [acceptingId, setAcceptingId] = useState(null);
    const [removingConn, setRemovingConn] = useState(null);
@@ -350,11 +352,13 @@ export default function Profile() {
       <div className="app-page">
          <div
             style={{
-               background: currentUser.banner_picture_url ? `url(${currentUser.banner_picture_url})` : "var(--dark)",
+               background: currentUser.banner_picture_url
+                  ? `url(${currentUser.banner_picture_url})`
+                  : 'linear-gradient(135deg, #2d4a32 0%, #386641 55%, #4a7a52 100%)',
                backgroundSize: 'cover',
                backgroundPosition: 'center',
                borderRadius: 8,
-               height: "200px",
+               minHeight: "220px",
                marginBottom: "1.5rem",
                position: "relative",
                display: "flex",
@@ -362,6 +366,34 @@ export default function Profile() {
                overflow: "hidden"
             }}
          >
+            {/* Decorative flame glow, anchored right */}
+            <svg
+               viewBox="0 0 100 130"
+               aria-hidden="true"
+               style={{
+                  position: 'absolute',
+                  right: '32px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 160,
+                  height: 200,
+                  opacity: 0.18,
+                  pointerEvents: 'none',
+                  zIndex: 1,
+               }}
+            >
+               <defs>
+                  <linearGradient id="wp-banner-flame" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="0" stopColor="#f4a261" />
+                     <stop offset="1" stopColor="#e76f51" />
+                  </linearGradient>
+               </defs>
+               <path
+                  fill="url(#wp-banner-flame)"
+                  d="M50 4c4 18-10 26-18 40-6 11-7 22 0 32-9-3-15-12-15-12-3 10-2 22 6 31 9 10 24 13 36 6 13-7 19-22 14-37-3-9-9-15-9-24 8 6 12 14 12 14 3-15-3-31-15-42-7-7-12-12-11-8z"
+               />
+            </svg>
+
             {/* Gradient overlay for readability */}
             <div style={{
                position: 'absolute',
@@ -369,7 +401,7 @@ export default function Profile() {
                left: 0,
                right: 0,
                bottom: 0,
-               background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+               background: 'linear-gradient(transparent, rgba(0,0,0,0.45))',
                zIndex: 1
             }} />
 
@@ -416,7 +448,8 @@ export default function Profile() {
                               fontFamily: "var(--font-serif)",
                               fontSize: "2rem",
                               lineHeight: 1.2,
-                              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                              textShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                              marginBottom: '0.2rem'
                            }}
                         >
                            {fullName}
@@ -428,11 +461,45 @@ export default function Profile() {
                               .filter(Boolean)
                               .join(" · ") || "Just getting started"}
                         </div>
+
+                        {/* Status Intent below Position Title */}
+                        {currentUser.intent_status && (
+                           <div style={{ 
+                              fontSize: "0.85rem", 
+                              color: "var(--warm-light)", 
+                              marginTop: "0.4rem",
+                              textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              fontStyle: 'italic'
+                           }}>
+                              <span>📍</span>
+                              <span>{currentUser.intent_status}</span>
+                           </div>
+                        )}
+
+                        {/* Reach statistics inside Banner */}
+                        <div style={{ 
+                           fontSize: "0.78rem", 
+                           color: "rgba(255,255,255,0.75)", 
+                           marginTop: "0.6rem",
+                           textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                           display: 'flex',
+                           alignItems: 'center',
+                           gap: '0.4rem'
+                        }}>
+                           <span>📈</span>
+                           <span>Your Reach: {connectorCount || 0} Connectors • {connections.filter(c => c.status === 'accepted').length} Connections</span>
+                        </div>
                      </div>
                      <button
                         onClick={() => navigate("/settings")}
                         style={{
-                           background: "rgba(255,255,255,0.2)",
+                           position: "absolute",
+                           top: "1rem",
+                           right: "1rem",
+                           background: "rgba(255,255,255,0.25)",
                            border: "1px solid rgba(255,255,255,0.4)",
                            borderRadius: "100px",
                            color: "#fff",
@@ -440,39 +507,19 @@ export default function Profile() {
                            fontSize: "0.75rem",
                            fontWeight: 600,
                            cursor: "pointer",
-                           transition: "background 0.2s",
-                           backdropFilter: "blur(4px)"
+                           transition: "all 0.2s",
+                           backdropFilter: "blur(4px)",
+                           zIndex: 10
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.35)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
                      >
-                        Edit in Settings
+                        Edit profile
                      </button>
                   </div>
                </div>
             </div>
          </div>
-
-         {currentUser.intent_status && (
-            <div
-               style={{
-                  margin: "0 0 1.5rem",
-                  padding: "0.85rem 1rem",
-                  background: "rgba(231, 111, 81, 0.08)",
-                  border: "1px solid rgba(231, 111, 81, 0.3)",
-                  borderRadius: "6px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.6rem",
-                  fontSize: "0.9rem",
-                  color: "var(--dark)",
-                  lineHeight: 1.4,
-               }}
-            >
-               <span style={{ fontSize: "1rem", lineHeight: 1 }}>📍</span>
-               <span style={{ flex: 1 }}>{currentUser.intent_status}</span>
-            </div>
-         )}
 
          <div
             style={{
@@ -614,28 +661,46 @@ export default function Profile() {
 
             <div>
                <div className="app-card" style={{ marginBottom: "1.5rem" }}>
-                  <div className="app-eyebrow" style={{ marginBottom: "0.75rem" }}>
-                     My Network
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                     <div className="app-eyebrow" style={{ marginBottom: 0 }}>
+                        My Network
+                     </div>
+                     <InfoTooltip 
+                        label="My Network Graph" 
+                        text="Visual map of your actual connection circle. Green nodes are active connectors. Amber nodes are awaiting reply. Terracotta nodes are new connections. Scroll to zoom, drag to pan." 
+                     />
                   </div>
                   {loadingConns ? (
-                     <div style={{ fontSize: "0.85rem", color: "#888" }}>
-                        Loading network...
+                     <div style={{
+                        height: '220px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1rem',
+                        background: '#fcfbfa',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: '4px',
+                        marginBottom: '1.5rem'
+                     }}>
+                        <div style={{
+                           width: '32px',
+                           height: '32px',
+                           border: '3px solid rgba(231, 111, 81, 0.1)',
+                           borderTopColor: 'var(--warm)',
+                           borderRadius: '50%',
+                           animation: 'wp-spin 1s linear infinite'
+                        }} />
+                        <span style={{ fontSize: '0.82rem', color: '#7a6f68', fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
+                           Loading network graph...
+                        </span>
                      </div>
                   ) : (
                      <>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
-                              Awaiting Reply
-                           </div>
-                           <InfoTooltip
-                              label="Awaiting Reply"
-                              text="Requests you have sent that are waiting for the other person to accept."
-                              width={220}
-                           />
+                        <div style={{ marginBottom: '1.5rem' }}>
+                           <ProfileNetworkWidget connections={connections} connectorCount={connectorCount} />
                         </div>
-                        {renderConnectionList(awaitingReply, "No pending requests.")}
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                            <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
                               Connectors
                            </div>
@@ -649,15 +714,27 @@ export default function Profile() {
 
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
                            <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
-                              New Connections
+                              Awaiting Reply
                            </div>
                            <InfoTooltip
-                              label="New Connections"
+                              label="Awaiting Reply"
+                              text="Requests you have sent that are waiting for the other person to accept."
+                              width={220}
+                           />
+                        </div>
+                        {renderConnectionList(awaitingReply, "No pending requests.")}
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+                           <div style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "#7a6f68" }}>
+                              New This Week
+                           </div>
+                           <InfoTooltip
+                              label="New This Week"
                               text="People you have recently connected with, either directly or through an intro from a connector."
                               width={220}
                            />
                         </div>
-                        {renderConnectionList(newConnections, "No intros completed yet.")}
+                        {renderConnectionList(newConnections, "No new connections this week.")}
 
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem", marginBottom: showAddForm ? "1.5rem" : 0 }}>
                            <button

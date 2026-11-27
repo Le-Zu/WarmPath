@@ -21,6 +21,43 @@ const FLAME_SIZES = {
 
 const EMPTY_FLAME_FILL = '#d8cfc7';
 
+// Inject CSS styles for the staggered flame bounce animation
+if (typeof document !== 'undefined' && !document.getElementById('wp-flame-styles')) {
+  const s = document.createElement('style');
+  s.id = 'wp-flame-styles';
+  s.textContent = `
+    @keyframes wp-flame-bounce-1 {
+      0% { transform: translateY(0) scale(0.85); opacity: 0; }
+      40% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(-2px) scale(1); opacity: 1; }
+    }
+    @keyframes wp-flame-bounce-2 {
+      0% { transform: translateY(0) scale(0.85); opacity: 0; }
+      40% { transform: translateY(-16px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(-6px) scale(1); opacity: 1; }
+    }
+    @keyframes wp-flame-bounce-3 {
+      0% { transform: translateY(0) scale(0.85); opacity: 0; }
+      40% { transform: translateY(-22px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(-10px) scale(1); opacity: 1; }
+    }
+    @keyframes wp-flame-bounce-4 {
+      0% { transform: translateY(0) scale(0.85); opacity: 0; }
+      40% { transform: translateY(-28px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(-14px) scale(1); opacity: 1; }
+    }
+    @keyframes wp-flame-bounce-5 {
+      0% { transform: translateY(0) scale(0.85); opacity: 0; }
+      40% { transform: translateY(-34px) scale(1.1); opacity: 1; }
+      100% { transform: translateY(-18px) scale(1); opacity: 1; }
+    }
+    .wp-flame-item {
+      opacity: 0;
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 function FlameSvg({ size, fill }) {
     return (
         <svg
@@ -40,7 +77,6 @@ function FlameSvg({ size, fill }) {
 }
 
 export default function WarmthScore({ score }) {
-    // Treat null/undefined/0 as a 0 score (all gray flames)
     const numericScore = score ? Number(score) : 0;
     const isValid = Number.isInteger(numericScore) && numericScore >= 0 && numericScore <= 5;
 
@@ -56,19 +92,29 @@ export default function WarmthScore({ score }) {
         <div
             style={{
                 display: 'inline-flex',
-                alignItems: 'flex-end',
+                alignItems: 'center', // Centers start leveled horizontally
                 gap: '0.4rem',
+                minHeight: '60px',
+                paddingTop: '20px' // Provides vertical clearance for the bounce transformations
             }}
             aria-label={`Warm score ${numericScore} out of 5`}
         >
             {[1, 2, 3, 4, 5].map((position) => {
                 const filled = position <= numericScore;
                 return (
-                    <FlameSvg
+                    <div
                         key={position}
-                        size={FLAME_SIZES[position]}
-                        fill={filled ? SCORE_COLORS[position] : EMPTY_FLAME_FILL}
-                    />
+                        className="wp-flame-item"
+                        style={{
+                            animation: `wp-flame-bounce-${position} 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`,
+                            animationDelay: `${(position - 1) * 80}ms`,
+                        }}
+                    >
+                        <FlameSvg
+                            size={FLAME_SIZES[position]}
+                            fill={filled ? SCORE_COLORS[position] : EMPTY_FLAME_FILL}
+                        />
+                    </div>
                 );
             })}
         </div>

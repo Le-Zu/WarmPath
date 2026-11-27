@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, EyeOff } from 'lucide-react';
+import { User, EyeOff, Sparkles } from 'lucide-react';
 import { IntroRequestModal } from '@/features/intros';
 import { WarmthScore } from '@/features/gemini';
 
@@ -85,6 +85,25 @@ export default function PathCard({ path, score = '...', loading = false }) {
 
       {/* Target Info Section (Right Side) */}
       <div className="path-card-info">
+        {path.intentLabel && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              color: 'var(--warm)',
+              background: 'rgba(231, 111, 81, 0.1)',
+              padding: '0.25rem 0.6rem',
+              borderRadius: '999px',
+              marginBottom: '0.65rem',
+            }}
+          >
+            <Sparkles size={12} strokeWidth={2} />
+            {path.intentLabel}
+          </span>
+        )}
         <div style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>
           {path.target.isAnonymous
             ? <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><EyeOff size={22} strokeWidth={1.75} color="#7a6f68" /></div>
@@ -93,7 +112,7 @@ export default function PathCard({ path, score = '...', loading = false }) {
               : <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={22} strokeWidth={1.75} color="#7a6f68" /></div>}
         </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: 'var(--dark)', marginBottom: '0.25rem' }}>
-          {path.target.name} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}
+          {path.target.name?.trim() || 'Contact'} {path.target.isAnonymous && <span style={{ fontSize: '0.7rem', color: '#6a994e', verticalAlign: 'middle', marginLeft: '4px' }}>(Anonymous)</span>}
         </div>
         <div style={{ fontSize: '0.85rem', color: '#7a6f68', marginBottom: path.target.intentStatus ? '0.5rem' : '1.25rem' }}>{path.target.role}</div>
         {path.target.intentStatus && (
@@ -126,7 +145,20 @@ export default function PathCard({ path, score = '...', loading = false }) {
               WarmScore AI is assessing your connections for the best matches...
             </div>
           ) : (
-            <WarmthScore score={score} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  color: '#7a6f68',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Warm Score
+              </span>
+              <WarmthScore score={score} />
+            </div>
           )}
         </div>
         <button className="btn-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.4rem' }} onClick={() => setOpen(true)}>
