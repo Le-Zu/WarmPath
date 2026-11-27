@@ -142,7 +142,7 @@ async function deleteUserAccount(userId: string, firebaseUid: string | null) {
 
     // 11. Delete from Firebase if applicable
     if (firebaseUid && !firebaseUid.startsWith('dev-')) {
-        const { adminAuth } = await import('./config/firebase');
+        const { adminAuth } = await import('./config/firebase.js');
         try {
             await adminAuth.deleteUser(firebaseUid);
             console.log(`[deleteUserAccount] Firebase user deleted: ${firebaseUid}`);
@@ -1576,7 +1576,7 @@ app.delete('/api/dev/users/:id', async (req: AuthRequest, res) => {
         return res.status(403).json({ error: 'Not available in production.' });
     }
 
-    const targetId = req.params.id;
+    const targetId = String(req.params.id);
     
     try {
         const user = await basePrisma.users.findUnique({
